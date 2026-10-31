@@ -1,0 +1,9 @@
+/bin/
+*.db
+*.db-shm
+*.db-wal
+node_modules/
+/admin/dist/
+/sdk/ts/**/dist/
+__pycache__/
+.venv/
