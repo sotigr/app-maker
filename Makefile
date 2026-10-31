@@ -21,7 +21,7 @@ fuzz:
 
 # Build the admin console / flow editor; output is embedded into fwd.
 ui:
-	cd admin && npm ci && npm run build
+	cd admin && pnpm install --frozen-lockfile && pnpm run build
 
 clean:
 	rm -rf bin

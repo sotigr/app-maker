@@ -48,3 +48,10 @@
 - Golden views: `go test ./internal/schema/domain -run TestViewsGolden -update`
 - Fuzz: `make fuzz` (10 min)
 - `./scripts/gen-depguard.sh` regenerates `.golangci.yml` (do not edit it by hand)
+
+## Frontend / browser checks
+- npm is NOT installed; use **pnpm** (12.x). `cd admin && pnpm install && pnpm run build`.
+- Visual check: `brave --headless=new --remote-debugging-port=9233 --user-data-dir=<tmp>` then a Node
+  script using the built-in WebSocket against CDP (`/json/list` → Page.navigate, Runtime.evaluate to
+  log in via fetch, Page.reload, Page.captureScreenshot). The user's own Brave may be running: never
+  pkill brave broadly; kill by PID. In bash, `cmd & ` after `S=...&&` chains loses variables.

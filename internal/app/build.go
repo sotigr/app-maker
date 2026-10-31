@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	adminui "app-maker/admin"
 	accessapi "app-maker/internal/access/api"
 	accessapp "app-maker/internal/access/application"
 	accessdomain "app-maker/internal/access/domain"
@@ -261,6 +262,9 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if opt.Deployer != nil {
 		opt.Deployer.register(mux)
 	}
+	(&editorHandler{rt: rt}).register(mux)
+	mux.Handle("GET /admin/", adminui.Handler())
+	mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusFound))
 	maxBody := cfg.HTTP.MaxBodyBytes
 	if maxBody == 0 {
 		maxBody = 1 << 20

@@ -97,7 +97,11 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	f, err := h.svc.GetFeature(r.Context(), accessapi.PrincipalFrom(r.Context()), r.PathValue("type"), id)
+	typeName := r.PathValue("type")
+	if typeName == "_" {
+		typeName = "" // any type: clients that only know the ID (parent links)
+	}
+	f, err := h.svc.GetFeature(r.Context(), accessapi.PrincipalFrom(r.Context()), typeName, id)
 	if err != nil {
 		fail(w, r, err)
 		return

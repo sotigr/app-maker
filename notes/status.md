@@ -2,7 +2,7 @@
 
 _Last updated: 2026-10-31_
 
-## Current phase: 7 – Admin console + visual flow editor (next). VERTICAL SLICE COMPLETE.
+## Current phase: 8 – Change log + streaming (next). Vertical slice + visual editor complete.
 
 ### Done
 - **Phase 0** bootstrap: notes, ADRs 0001–0006, Makefile, depguard generator (`scripts/gen-depguard.sh`).
@@ -64,13 +64,23 @@ _Last updated: 2026-10-31_
   - manifest loader: `ReadDir` + `LoadFiles` (bundles), modules/<name>/... supported.
   - tracker: tests/task-permissions.test.json (3 tests), seed/dev.json, owners can read tasks/comments.
 
-### Next (phase 7): admin console + visual flow editor (ADR 0002)
-- `admin/` React + Vite + @xyflow/react; built assets embedded in fwd (go:embed) at /admin.
-- Console: login, type browser (GET /v1/schema/types), feature tree/list/forms from views, actions
-  buttons from state machines, principals/grants, flow runs (query flowRun), deploys (GET /v1/deploy).
-- Flow editor: catalog from GET /v1/flows (nodes + flows), nodes/edges/inputs/when editing, x-layout
-  positions, server-side validate endpoint, dev-only save `PUT /v1/dev/manifest/flows/{name}` (cfg.Dev),
-  hot reload picks up the file.
+- **Phase 7** admin console + visual flow editor (ADR 0002):
+  - `admin/` React 19 + Vite 8 + @xyflow/react 12, built with **pnpm** (npm is not installed);
+    `make ui`; `admin/dist` is committed and embedded (`admin/embed.go`, served at /admin with SPA
+    fallback and CSP).
+  - Pages: login, data (types, lists, create/update forms from views, transition + transfer buttons,
+    children, delete), flows list, flow editor (palette from catalog, canvas with explicit (solid) +
+    inferred (dashed) edges, inspector with typed inputs/map editor/when/onError/forEach body, flow
+    properties, validate, save, auto layout, JSON view), runs, deploys.
+  - Server: `POST /v1/flows/validate` (admins), `PUT /v1/dev/manifest/flows/{name}` (dev only; writes
+    the file; fw dev hot reload activates it); `GET /v1/features/_/{id}` reads any type.
+  - Screenshot: docs/img/flow-editor.png (taken with headless Brave via CDP; script idea in gotchas).
+
+### Next (phase 8): change log + streaming (spec 9)
+- publish_events worker → ChangeLog port (memory adapter first), gateway role: subscriptions (feature,
+  children, query), gap-free snapshot+delta, per-subscriber projection, sseq, state/append modes,
+  backpressure, ephemeral fields (POST /v1/ephemeral), resume/reset, access-changed handling,
+  SSE `GET /v1/stream` and WebSocket `/v1/ws` (coder/websocket).
 
 ## Phase roadmap
 
@@ -83,8 +93,8 @@ _Last updated: 2026-10-31_
 | 4 | SQLite repo + River (riversqlite) | part M4 | done |
 | 5 | Flow engine, triggers, actions, effects | M8 | done |
 | 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
-| 7 | Admin console + visual flow editor (React Flow) | M9 part | next |
-| 8 | Change log + gateway streaming (SSE/WS) | M6 | todo |
+| 7 | Admin console + visual flow editor (React Flow) | M9 part | done |
+| 8 | Change log + gateway streaming (SSE/WS) | M6 | next |
 | 9 | TS SDK + codegen | M7 | todo |
 | 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | todo |
 | 11 | Search + aggregates | M9 | todo |
