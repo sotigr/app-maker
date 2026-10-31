@@ -1,0 +1,12 @@
+{
+  "type": "urn:app:feature:task",
+  "read":   "hasRole(feature, 'viewer')",
+  "create": "hasRole(parent, 'editor')",
+  "update": "hasRole(feature, 'editor') || principal.id == feature.assignee",
+  "delete": "hasRole(feature, 'admin') || isOwner(feature)",
+  "actions": {
+    "start":    "hasRole(feature, 'editor')",
+    "complete": "principal.id == feature.assignee",
+    "reopen":   "hasRole(feature, 'admin')"
+  }
+}

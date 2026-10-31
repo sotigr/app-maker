@@ -1,0 +1,12 @@
+{
+  "app": "tracker",
+  "version": "1.0.0",
+  "framework": ">=1.0 <2.0",
+  "repositories": { "default": "default" },
+  "auth": {
+    "password": { "enabled": true, "minLength": 12 }
+  },
+  "roles": { "viewer": [], "editor": ["viewer"], "admin": ["editor"] },
+  "limits": { "requestsPerMinute": 600, "maxDocumentBytes": 262144 },
+  "settings": { "supportEmail": "${env.supportEmail}" }
+}
