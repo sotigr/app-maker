@@ -15,6 +15,11 @@
     "doneCount": {
       "type": "integer"
     },
+    "notes": {
+      "description": "Owner-only notes",
+      "maxLength": 5000,
+      "type": "string"
+    },
     "owner": {
       "format": "uuid",
       "type": "string"

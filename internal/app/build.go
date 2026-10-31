@@ -35,6 +35,7 @@ import (
 	"app-maker/internal/kernel"
 	queryapi "app-maker/internal/query/api"
 	querydomain "app-maker/internal/query/domain"
+	bleveidx "app-maker/internal/query/infrastructure/bleve"
 	schemaapi "app-maker/internal/schema/api"
 	schemahttp "app-maker/internal/schema/interfaces/http"
 	"app-maker/platform/config"
@@ -160,6 +161,12 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		sum := sha256.Sum256(cursorKey)
 		cursorKey = sum[:]
 	}
+	// Search index (spec 7.5): embedded Bleve, in memory; rebuilt by
+	// index_features jobs. PostgreSQL full-text search arrives with phase 10.
+	search, err := bleveidx.NewMemory()
+	if err != nil {
+		return nil, err
+	}
 	authz := &authorizerRef{}
 	limits := contentapp.Limits{MaxDocumentBytes: c.Manifest.App.Limits.MaxDocumentBytes}
 	if limits.MaxDocumentBytes > 256<<10 {
@@ -167,7 +174,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	}
 	rt.Content = contentapp.NewService(contentapp.Deps{
 		Repos: rt.repos, Types: c.Types, Authorizer: authz, Clock: opt.Clock, IDs: opt.IDs,
-		Planner: querydomain.NewPlanner(cursorKey), Limits: limits,
+		Planner: querydomain.NewPlanner(cursorKey), Limits: limits, Search: search,
 	})
 	sys := rt.Content.SystemPorts()
 
@@ -225,6 +232,8 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
 	rt.Content.AddHook(rt.Engine.EventHook())
 	rt.Content.AddHook(rt.Content.AggregateHook())
+	rt.Content.AddHook(rt.Content.IndexHook())
+	rt.JobKinds.Register(contentapp.JobIndexFeatures, rt.Content.HandleIndexFeatures, time.Minute)
 	rt.JobKinds.Register(contentapp.JobRecomputeAggregate, rt.Content.HandleRecomputeAggregate, time.Minute)
 	rt.JobKinds.Register(flowapp.JobRunFlow, rt.Engine.HandleRunFlow, 15*time.Minute)
 	email := opt.Email

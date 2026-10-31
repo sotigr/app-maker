@@ -42,6 +42,8 @@ type Deps struct {
 	Hooks       []CommitHook
 	BeforeWrite BeforeWriteHook // optional (spec 10.2)
 	Planner     queryapi.Planner
+	// Search is the full-text index (optional, spec 7.5).
+	Search queryapi.SearchIndex
 	// Jobs enqueues jobs that accompany no write (effect-only flow runs).
 	Jobs   kernel.JobEnqueuer
 	Limits Limits

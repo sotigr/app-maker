@@ -121,7 +121,7 @@ _Last updated: 2026-10-31_
 | 8 | Change log + gateway streaming (SSE/WS) | M6 | done (memory log only) |
 | 9 | TS SDK + codegen | M7 | done (no React demo UI) |
 | 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | next |
-| 11 | Search + aggregates | M9 | todo |
+| 11 | Search + aggregates | M9 | done (Bleve in memory) |
 | 12 | Code nodes (Python), LLM, blobs, OIDC/MFA, limits, observability | M10 (no Helm/OCI) | todo |
 
 ## Open issues / deferred
@@ -147,5 +147,12 @@ _Last updated: 2026-10-31_
   conflicts); e2e `test/e2e/aggregates_test.go` (20 concurrent creates, filtered doneCount, delete).
 - River adapter no longer applies cross-batch unique keys (River treats running jobs as duplicates →
   lost updates); unique-key jobs are idempotent recomputes. In-process adapter still coalesces pending.
-- NEXT 11b: search (index_features jobs, per-tier docs public/owner, Bleve, GET /v1/search, re-check
-  + project hits, approximateTotal). Docker still needed for phase 10.
+- 11b search DONE: query/api SearchIndex port; query/infrastructure/bleve (mem-only); content IndexHook →
+  index_features jobs; HandleIndexFeatures writes one doc per tier (public, owner; private never);
+  Service.Search re-checks + projects hits, highlights only readable fields; GET /v1/search?q=&type=.
+  Tracker project gained owner-only searchable `notes`. e2e `test/e2e/search_test.go`.
+- Gaps: Bleve index is in memory → empty after restart under SQLite (needs startup reindex or file
+  index); no search UI in admin console; PostgreSQL FTS adapter with phase 10.
+- NEXT: phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
+  fake/Anthropic/OpenAI-compatible adapters, blobs on local fs + uploads, rate limits, OIDC/MFA,
+  OpenTelemetry). Phase 10 still blocked on Docker.

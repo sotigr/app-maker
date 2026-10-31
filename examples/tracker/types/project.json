@@ -49,6 +49,13 @@
       "maxLength": 200,
       "x-persist": false,
       "description": "Who is looking at the project right now (ephemeral)"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 5000,
+      "x-visibility": "owner",
+      "x-searchable": true,
+      "description": "Owner-only notes"
     }
   },
   "required": [

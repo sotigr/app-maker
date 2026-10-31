@@ -31,6 +31,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/features/{id}/move", h.move)
 	mux.HandleFunc("POST /v1/query", h.query)
 	mux.HandleFunc("POST /v1/transactions", h.transaction)
+	mux.HandleFunc("GET /v1/search", h.search)
 }
 
 // fail writes err. Anonymous callers get 401 instead of 403/404, so they
@@ -223,6 +224,19 @@ func (h *Handler) transaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := h.svc.Execute(r.Context(), wc(r), body.Ops)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	httpserver.WriteJSON(w, http.StatusOK, res)
+}
+
+// search serves GET /v1/search?q=&type=&limit=&offset= (spec 7.5).
+func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	offset, _ := strconv.Atoi(q.Get("offset"))
+	res, err := h.svc.Search(r.Context(), accessapi.PrincipalFrom(r.Context()), q.Get("q"), q.Get("type"), limit, offset)
 	if err != nil {
 		fail(w, r, err)
 		return
