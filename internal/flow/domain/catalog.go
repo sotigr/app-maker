@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -89,6 +90,14 @@ type Runtime interface {
 	Subflow(ctx context.Context, name string, input map[string]any) (any, error)
 	// Render renders a manifest template.
 	Render(name string, vars map[string]any) (string, error)
+	// LLM calls a model through the instance's router (spec 11.7); req.Model
+	// is an alias. onDelta may be nil.
+	LLM(ctx context.Context, req rt.LLMRequest, onDelta func(rt.LLMDelta) error) (rt.LLMResponse, error)
+	// Ephemeral publishes x-persist:false field values of a feature as the
+	// run's principal (spec 9.7; llm.complete streamTo).
+	Ephemeral(ctx context.Context, featureID string, values map[string]any) error
+	// OutputSchema is the node's declared output schema, if any.
+	OutputSchema() json.RawMessage
 	Log(msg string, kv ...any)
 }
 

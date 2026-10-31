@@ -29,6 +29,16 @@
       "pattern": "^[a-z0-9-]+$",
       "type": "string"
     },
+    "summary": {
+      "description": "Model-written status summary (summarize action)",
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "summaryDraft": {
+      "description": "Summary text while it is being generated (ephemeral)",
+      "maxLength": 5000,
+      "type": "string"
+    },
     "taskCount": {
       "type": "integer"
     },

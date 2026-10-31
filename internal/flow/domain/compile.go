@@ -94,6 +94,9 @@ type CompiledNode struct {
 	Deps     []string
 	Body     *Graph // forEach
 	MaxItems int
+	// OutputV validates the output of nodes declaring an outputSchema
+	// (spec 11.1) before downstream nodes see it.
+	OutputV schemaapi.Validator
 }
 
 // Graph is a validated DAG with topological levels.
@@ -405,11 +408,16 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 			c.errf(ptr+"/node", "%s nodes (%s) are not allowed in %s flows", nt.Kind(), spec.Node, f.Trigger)
 		}
 		out := nt.Output()
+		cn := &CompiledNode{Name: name, Spec: spec, Type: nt}
 		if len(spec.OutputSchema) > 0 {
 			out = c.schemaType(ptr+"/outputSchema", spec.OutputSchema)
+			cn.OutputV = c.validator(f.Name+ptr+"/outputSchema", ptr+"/outputSchema", spec.OutputSchema)
+			if spec.Node == "llm.complete" && out.Kind != rt.TMap {
+				c.errf(ptr+"/outputSchema", "llm.complete output schemas must describe an object")
+			}
 		}
 		nodeFields[name] = rt.MapOf(map[string]*rt.Type{"out": out, "error": rt.OpenMap()})
-		g.Nodes[name] = &CompiledNode{Name: name, Spec: spec, Type: nt}
+		g.Nodes[name] = cn
 	}
 	nodesT := rt.MapOf(nodeFields)
 	env := c.runEnv(f, nodesT, extra)

@@ -95,7 +95,7 @@ func testCmd() *cobra.Command {
 // devCmd runs all roles locally on SQLite with River, in-process jobs and
 // schedules, seed data, and hot reload on manifest changes (spec 12.3).
 func devCmd() *cobra.Command {
-	var addr, env string
+	var addr, env, llmProvider string
 	c := &cobra.Command{
 		Use:   "dev [dir]",
 		Short: "Run the app locally with SQLite, River, seed data, and hot reload",
@@ -106,6 +106,7 @@ func devCmd() *cobra.Command {
 			cfg := config.Default()
 			cfg.Dev, cfg.Manifest, cfg.Env = true, dir, env
 			cfg.HTTP.Addr = addr
+			cfg.LLM.Provider = llmProvider
 			dbPath := filepath.Join(dir, ".fw", "dev.db")
 			cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: dbPath}}
 			cfg.Credentials.Driver = "sqlite"
@@ -178,6 +179,7 @@ func devCmd() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&addr, "addr", ":8080", "listen address")
+	c.Flags().StringVar(&llmProvider, "llm", "fake", "LLM provider serving every model alias (fake, anthropic, or a configured name; empty uses app.json aliases)")
 	c.Flags().StringVar(&env, "env", "dev", "environment")
 	return c
 }

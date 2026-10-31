@@ -3,5 +3,8 @@
   "read":   "hasRole(feature, 'viewer') || isOwner(feature)",
   "create": "hasRole(parent, 'editor')",
   "update": "hasRole(feature, 'editor') || isOwner(feature)",
-  "delete": "hasRole(feature, 'admin') || isOwner(feature)"
+  "delete": "hasRole(feature, 'admin') || isOwner(feature)",
+  "actions": {
+    "summarize": "hasRole(feature, 'editor') || isOwner(feature)"
+  }
 }

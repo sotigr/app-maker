@@ -75,6 +75,22 @@ type Config struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"` // json | text
 	} `yaml:"log"`
+	LLM struct {
+		// Provider, when set, serves every model alias (fw dev: fake).
+		Provider string `yaml:"provider"`
+		// Providers are named model vendors that app.json aliases refer to
+		// as "<name>:<model>". "fake" always exists; "anthropic" exists by
+		// default and uses the SDK's credential resolution.
+		Providers map[string]LLMProvider `yaml:"providers"`
+	} `yaml:"llm"`
+}
+
+// LLMProvider configures one model vendor (spec 11.7).
+type LLMProvider struct {
+	Kind    string `yaml:"kind"` // anthropic | openai-compatible | fake
+	BaseURL string `yaml:"baseURL"`
+	// APIKey is a ${secret:<name>} reference; literal keys are rejected.
+	APIKey string `yaml:"apiKey"`
 }
 
 // Default returns the development defaults: all roles, single topology,
@@ -166,6 +182,7 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("FW_BOOTSTRAP_ADMIN_PASSWORD", &c.Bootstrap.AdminPassword)
 	str("FW_LOG_LEVEL", &c.Log.Level)
 	str("FW_LOG_FORMAT", &c.Log.Format)
+	str("FW_LLM_PROVIDER", &c.LLM.Provider)
 	return nil
 }
 
@@ -178,6 +195,17 @@ func (c Config) Validate() error {
 	for _, r := range c.Roles {
 		if !slices.Contains([]string{RoleAPI, RoleGateway, RoleWorker, RoleRunner}, r) {
 			errs = append(errs, fmt.Errorf("roles: unknown role %q", r))
+		}
+	}
+	for name, p := range c.LLM.Providers {
+		if !slices.Contains([]string{"anthropic", "openai-compatible", "fake"}, p.Kind) {
+			errs = append(errs, fmt.Errorf("llm.providers.%s.kind: unknown kind %q", name, p.Kind))
+		}
+		if p.Kind == "openai-compatible" && p.BaseURL == "" {
+			errs = append(errs, fmt.Errorf("llm.providers.%s.baseURL: required for openai-compatible", name))
+		}
+		if p.APIKey != "" && !strings.HasPrefix(p.APIKey, "${secret:") {
+			errs = append(errs, fmt.Errorf("llm.providers.%s.apiKey: must be a ${secret:<name>} reference", name))
 		}
 	}
 	if c.Topology != TopologySingle && c.Topology != TopologyReplicated {

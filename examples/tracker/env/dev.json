@@ -1,1 +1,1 @@
-{ "supportEmail": "support@example.com" }
+{ "supportEmail": "support@example.com", "llm": { "default": "anthropic:claude-opus-5-5" } }

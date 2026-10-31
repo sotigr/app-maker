@@ -5,6 +5,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -77,6 +78,10 @@ type Deps struct {
 	Secrets  func(ref string) (string, bool)
 	// Nodes is the node catalog, published to the visual editor.
 	Nodes *domain.NodeRegistry
+	// LLM serves llm.complete (spec 11.7); nil disables the node at run time.
+	LLM rt.LLMClient
+	// Ephemeral publishes ephemeral field values (llm.complete streamTo).
+	Ephemeral func(ctx context.Context, p accessapi.Principal, id kernel.ID, values map[string]any) error
 }
 
 // Engine executes flows.
@@ -244,7 +249,8 @@ func (e *Engine) runOnce(ctx context.Context, runID kernel.ID, req Request) (Res
 	if req.FeatureID != nil {
 		link.FeatureID = *req.FeatureID
 	}
-	r := &run{e: e, ctx: ctx, id: runID, principal: principal, writes: newWriteSet(), depth: 0, nodes: map[string]any{}, trace: map[string]any{}}
+	r := &run{e: e, ctx: ctx, id: runID, principal: principal, writes: newWriteSet(), depth: 0, nodes: map[string]any{}, trace: map[string]any{},
+		calls: map[string][]rt.LLMCall{}}
 	base := e.d.Authorizer.Bindings(ctx, principal)
 	base["principal"] = principal.ExprValue()
 	base["trigger"] = trigger
@@ -312,6 +318,13 @@ type run struct {
 	mu        sync.Mutex
 	nodes     map[string]any // per-node status for the run record
 	trace     map[string]any
+	calls     map[string][]rt.LLMCall // LLM calls per node (spec 11.7)
+}
+
+func (r *run) llmCalls(node string) []rt.LLMCall {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.calls[node]
 }
 
 type nodeState struct {
@@ -372,6 +385,9 @@ func (r *run) execGraph(g *domain.Graph, base map[string]any, prefix []string) (
 				out, err := r.execNode(ctx, n, vars, prefix)
 				st := &nodeState{out: out}
 				status := map[string]any{"status": "succeeded", "ms": time.Since(start).Milliseconds()}
+				if calls := r.llmCalls(strings.Join(append(append([]string{}, prefix...), name), ".")); calls != nil {
+					status["llm"] = calls
+				}
 				if err != nil {
 					var re *domain.RejectError
 					var fe *domain.FailError
@@ -461,7 +477,7 @@ func (r *run) execNode(ctx context.Context, n *domain.CompiledNode, vars map[str
 	if n.Spec.Node == "forEach" {
 		return r.forEach(n, in, vars, prefix)
 	}
-	nr := &nodeRuntime{run: r, node: strings.Join(append(append([]string{}, prefix...), n.Name), ".")}
+	nr := &nodeRuntime{run: r, node: strings.Join(append(append([]string{}, prefix...), n.Name), "."), spec: n.Spec}
 	attempts := 1
 	if n.Spec.Retry != nil && n.Spec.Retry.Max > 0 {
 		attempts = 1 + n.Spec.Retry.Max
@@ -469,6 +485,16 @@ func (r *run) execNode(ctx context.Context, n *domain.CompiledNode, vars map[str
 	var out any
 	for i := 1; i <= attempts; i++ {
 		out, err = n.Type.Execute(ctx, in, nr)
+		if err == nil && n.OutputV != nil {
+			// Spec 11.1/11.7: output is validated before downstream nodes run;
+			// a mismatch is retryable for External and Code nodes.
+			if errs := n.OutputV.Validate(toWire(out)); len(errs) > 0 {
+				err = fmt.Errorf("output does not match the output schema: %v", errs)
+				if k := n.Type.Kind(); k == domain.KindExternal || k == domain.KindCode {
+					err = &retryable{err}
+				}
+			}
+		}
 		var re *retryable
 		if err == nil || !errors.As(err, &re) || i == attempts || ctx.Err() != nil {
 			break
@@ -511,6 +537,7 @@ func (r *run) forEach(n *domain.CompiledNode, in map[string]any, vars map[string
 type nodeRuntime struct {
 	run  *run
 	node string
+	spec domain.NodeSpec
 }
 
 func (n *nodeRuntime) Principal() accessapi.Principal { return n.run.principal }
@@ -518,6 +545,34 @@ func (n *nodeRuntime) RunID() kernel.ID               { return n.run.id }
 func (n *nodeRuntime) NodeID() string                 { return n.node }
 func (n *nodeRuntime) Now() time.Time                 { return n.run.e.d.Clock.Now() }
 func (n *nodeRuntime) NewID() kernel.ID               { return n.run.e.d.IDs.NewID() }
+
+func (n *nodeRuntime) OutputSchema() json.RawMessage { return n.spec.OutputSchema }
+
+// LLM calls the router and records the call on the run (spec 11.7).
+func (n *nodeRuntime) LLM(ctx context.Context, req rt.LLMRequest, onDelta func(rt.LLMDelta) error) (rt.LLMResponse, error) {
+	if n.run.e.d.LLM == nil {
+		return rt.LLMResponse{}, kernel.NewError(kernel.CodeUnsupportedCapability, "no LLM provider is configured")
+	}
+	res, call, err := n.run.e.d.LLM.Complete(ctx, req, onDelta)
+	if call.Model != "" {
+		n.run.mu.Lock()
+		n.run.calls[n.node] = append(n.run.calls[n.node], call)
+		n.run.mu.Unlock()
+	}
+	return res, err
+}
+
+// Ephemeral publishes ephemeral values as the run's principal.
+func (n *nodeRuntime) Ephemeral(ctx context.Context, featureID string, values map[string]any) error {
+	if n.run.e.d.Ephemeral == nil {
+		return kernel.NewError(kernel.CodeUnsupportedCapability, "ephemeral fields are not available")
+	}
+	id, err := kernel.ParseID(featureID)
+	if err != nil {
+		return kernel.ErrNotFound
+	}
+	return n.run.e.d.Ephemeral(ctx, n.run.principal, id, values)
+}
 
 func (n *nodeRuntime) Log(msg string, kv ...any) {
 	n.run.e.d.Log.Info(msg, append([]any{"run", n.run.id.String(), "node", n.node}, kv...)...)
@@ -607,7 +662,7 @@ func (n *nodeRuntime) Subflow(_ context.Context, name string, input map[string]a
 			return nil, kernel.NewValidationError(errs...)
 		}
 	}
-	child := &run{e: n.run.e, ctx: n.run.ctx, id: n.run.id, principal: n.run.principal, writes: n.run.writes,
+	child := &run{e: n.run.e, ctx: n.run.ctx, id: n.run.id, principal: n.run.principal, writes: n.run.writes, calls: n.run.calls,
 		depth: n.run.depth + 1, nodes: n.run.nodes, trace: n.run.trace}
 	base := n.run.e.d.Authorizer.Bindings(n.run.ctx, n.run.principal)
 	base["principal"] = n.run.principal.ExprValue()

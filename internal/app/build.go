@@ -36,6 +36,7 @@ import (
 	queryapi "app-maker/internal/query/api"
 	querydomain "app-maker/internal/query/domain"
 	bleveidx "app-maker/internal/query/infrastructure/bleve"
+	runtimeapp "app-maker/internal/runtime/application"
 	schemaapi "app-maker/internal/schema/api"
 	schemahttp "app-maker/internal/schema/interfaces/http"
 	"app-maker/platform/config"
@@ -78,6 +79,7 @@ type Runtime struct {
 	Handler    http.Handler
 	Engine     *flowapp.Engine
 	Gateway    *changeapp.Gateway
+	LLM        *runtimeapp.Router
 	ChangeLog  *changemem.Log
 	Deploys    DeployStore
 	Log        *slog.Logger
@@ -224,10 +226,14 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	}
 	out := egress.New(egress.Config{AllowPrivate: cfg.Dev})
 	settings := c.Manifest.App.Settings
+	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
+		return nil, err
+	}
 	rt.Engine = flowapp.NewEngine(flowapp.Deps{
 		Flows: c.Flows, Content: rt.Content.FlowAccess(), Authorizer: rt.Authorizer, Types: c.Types,
 		Clock: opt.Clock, IDs: opt.IDs, Jobs: rt.Enqueuer, HTTP: out, Templates: templates, Settings: settings,
 		Resolve: rt.Auth.Resolve, Recorder: runRecorder{w: sys}, Log: opt.Log, Secrets: secrets, Nodes: c.Nodes,
+		LLM: rt.LLM, Ephemeral: rt.ephemeral,
 	})
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
 	rt.Content.AddHook(rt.Engine.EventHook())

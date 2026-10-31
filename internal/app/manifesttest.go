@@ -180,6 +180,7 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 		res.Failures = append(res.Failures, fmt.Sprintf(format, args...))
 	}
 	cfg := config.Default()
+	cfg.LLM.Provider = "fake" // manifest tests never call real models
 	cfg.Manifest = c.Manifest.Dir
 	cfg.Bootstrap.AdminEmail, cfg.Bootstrap.AdminPassword = "admin@test.local", "test-admin-password"
 	ctx, cancel := context.WithCancel(ctx)

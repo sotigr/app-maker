@@ -131,7 +131,7 @@ _Last updated: 2026-10-31_
 - Manifest activation is in-process only (single replica); multi-replica `manifest-activated` events
   and the 30 s fallback poll belong with the change log (phase 8/10).
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
-- `emit` node, code nodes, `llm.complete`: not registered yet (phase 12).
+- `emit` node and code nodes: not registered yet (phase 12b).
 - River `dead_letter` run status is not recorded yet (failures are recorded as failed per attempt).
 - Streaming resume replays nothing: an expired cursor sends reset, a valid one gets a fresh snapshot
   (clients treat both alike, §9.11). Gateway restart/multi-gateway tests need the Valkey log (phase 10).
@@ -153,6 +153,20 @@ _Last updated: 2026-10-31_
   Tracker project gained owner-only searchable `notes`. e2e `test/e2e/search_test.go`.
 - Gaps: Bleve index is in memory → empty after restart under SQLite (needs startup reindex or file
   index); no search UI in admin console; PostgreSQL FTS adapter with phase 10.
-- NEXT: phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
+
+## Phase 12 progress
+- 12a llm.complete DONE (ADR 0008): runtime/api LLM port; runtime/domain/llm (aliases, prices, cost);
+  runtime/application Router (alias→provider, force provider, monthly budget in memory, call log);
+  runtime/infrastructure/llm: Anthropic (anthropic-sdk-go v1.84, beta Messages + fallbacks "default",
+  output_config.format with StrictSchema, no temperature), OpenAICompatible (HTTP, SSE), Fake.
+  Engine: CompiledNode.OutputV validates outputs with outputSchema (retryable for External/Code);
+  run node status gets `llm` call records; Runtime.LLM/Ephemeral/OutputSchema; streamTo → gateway
+  ephemeral (≤5/s). Config `llm.provider`/`llm.providers` (FW_LLM_PROVIDER); `fw dev --llm fake` default.
+  Tracker: project summary + summaryDraft (ephemeral), flow summarize-project (action summarize).
+  e2e test/e2e/llm_test.go.
+- NEXT 12b: Python code nodes (proto, runner, fwnode, process isolation, ctx.llm via Router).
+  Then blobs, rate limits, OIDC/MFA, OTel.
+
+- OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
   fake/Anthropic/OpenAI-compatible adapters, blobs on local fs + uploads, rate limits, OIDC/MFA,
   OpenTelemetry). Phase 10 still blocked on Docker.

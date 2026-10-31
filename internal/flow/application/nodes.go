@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"text/template"
+	"time"
 
 	contentapi "app-maker/internal/content/api"
 	"app-maker/internal/flow/domain"
@@ -259,6 +261,14 @@ func Builtins() []domain.NodeType {
 				}
 				return map[string]any{"status": int64(res.StatusCode), "body": parsed, "headers": headers}, nil
 			}},
+		&builtin{name: "llm.complete", kind: domain.KindExternal,
+			desc: "Calls a language model by alias (default, fast, large); with an outputSchema the reply is that JSON document, otherwise {text}.",
+			inputs: []domain.Param{param("prompt", rt.String, false, "user message"), param("model", rt.String, false, "model alias; 'default' by default"),
+				param("system", rt.String, false, "system prompt"), param("messages", rt.ListOf(rt.Any), false, "prior turns [{role, content}]"),
+				param("maxTokens", rt.Int, false, "output token limit"), param("temperature", rt.Float, false, "sampling temperature (ignored by providers that reject it)"),
+				param("streamTo", rt.Any, false, "{feature, path}: stream partial text to an ephemeral field")},
+			out:  rt.MapOf(map[string]*rt.Type{"text": rt.String}),
+			exec: llmComplete},
 		// Control.
 		&builtin{name: "if", kind: domain.KindControl, desc: "A condition; use when: nodes.<if>.out on the branches.",
 			inputs: []domain.Param{param("cond", rt.Bool, true, "condition")}, out: rt.Bool,
@@ -320,3 +330,134 @@ const (
 	JobDeliverWebhook = "deliver_webhook"
 	JobRunFlow        = "run_flow"
 )
+
+// llmComplete runs the llm.complete node (spec 11.7).
+func llmComplete(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
+	req := rt.LLMRequest{Model: str(in["model"]), System: str(in["system"]), OutputSchema: r.OutputSchema()}
+	if req.Model == "" {
+		req.Model = "default"
+	}
+	if n, ok := in["maxTokens"].(int64); ok {
+		req.MaxTokens = int(n)
+	}
+	if t, ok := in["temperature"].(float64); ok {
+		req.Temperature = &t
+	}
+	msgs, _ := in["messages"].([]any)
+	for i, m := range msgs {
+		mm, _ := m.(map[string]any)
+		role := str(mm["role"])
+		if role != "user" && role != "assistant" {
+			return nil, kernel.NewError(kernel.CodeBadRequest, "messages[%d].role must be user or assistant", i)
+		}
+		req.Messages = append(req.Messages, rt.LLMMessage{Role: role, Content: str(mm["content"])})
+	}
+	if p := str(in["prompt"]); p != "" {
+		req.Messages = append(req.Messages, rt.LLMMessage{Role: "user", Content: p})
+	}
+	if len(req.Messages) == 0 {
+		return nil, kernel.NewError(kernel.CodeBadRequest, "llm.complete needs a prompt or messages")
+	}
+	var onDelta func(rt.LLMDelta) error
+	var st *streamer
+	if target, ok := in["streamTo"].(map[string]any); ok && target != nil {
+		st = &streamer{ctx: ctx, r: r, feature: str(target["feature"]), path: str(target["path"])}
+		onDelta = st.delta
+	}
+	res, err := r.LLM(ctx, req, onDelta)
+	if st != nil {
+		st.flush()
+	}
+	if err != nil {
+		var le *rt.LLMError
+		var ke *kernel.Error
+		switch {
+		case errors.As(err, &le) && !le.Retryable, errors.As(err, &ke):
+			return nil, err
+		default:
+			return nil, &retryable{err}
+		}
+	}
+	if len(req.OutputSchema) == 0 {
+		return map[string]any{"text": res.Text}, nil
+	}
+	out, err := fromJSON([]byte(res.Text))
+	if err != nil {
+		return nil, &retryable{fmt.Errorf("the model reply is not JSON (stop reason %s): %w", res.StopReason, err)}
+	}
+	return out, nil
+}
+
+// streamer forwards partial LLM output to an ephemeral field, at most
+// five times per second (the gateway allows 30 ephemeral writes per second
+// per feature). Failures stop streaming without failing the node.
+type streamer struct {
+	ctx     context.Context
+	r       domain.Runtime
+	feature string
+	path    string
+	text    strings.Builder
+	last    time.Time
+	sent    int
+	off     bool
+}
+
+func (s *streamer) delta(d rt.LLMDelta) error {
+	s.text.WriteString(d.Text)
+	if time.Since(s.last) >= 200*time.Millisecond {
+		s.publish(s.ctx)
+	}
+	return nil
+}
+
+func (s *streamer) flush() {
+	if s.text.Len() != s.sent {
+		s.publish(s.ctx)
+	}
+}
+
+func (s *streamer) publish(ctx context.Context) {
+	if s.off {
+		return
+	}
+	s.last, s.sent = time.Now(), s.text.Len()
+	if err := s.r.Ephemeral(ctx, s.feature, map[string]any{s.path: s.text.String()}); err != nil {
+		s.off = true
+		s.r.Log("llm.complete streamTo disabled", "err", err)
+	}
+}
+
+// fromJSON decodes JSON into expression values: integral numbers become
+// int64, others float64.
+func fromJSON(raw []byte) (any, error) {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+	if dec.More() {
+		return nil, fmt.Errorf("trailing data after the JSON document")
+	}
+	return numbers(v), nil
+}
+
+func numbers(v any) any {
+	switch x := v.(type) {
+	case json.Number:
+		if i, err := x.Int64(); err == nil {
+			return i
+		}
+		f, _ := x.Float64()
+		return f
+	case map[string]any:
+		for k, e := range x {
+			x[k] = numbers(e)
+		}
+	case []any:
+		for i, e := range x {
+			x[i] = numbers(e)
+		}
+	}
+	return v
+}

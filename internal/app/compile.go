@@ -5,6 +5,7 @@
 package app
 
 import (
+	llmdomain "app-maker/internal/runtime/domain/llm"
 	"fmt"
 	"strings"
 
@@ -60,6 +61,7 @@ type Compiled struct {
 	Roles    *accessdomain.Roles
 	Flows    *flowdomain.FlowSet
 	Nodes    *flowdomain.NodeRegistry
+	LLM      llmdomain.Config
 	Warnings []Problem
 }
 
@@ -121,6 +123,10 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 			probs = append(probs, pr)
 		}
 	}
+	llmCfg, err := llmdomain.ParseConfig(m.App.LLM)
+	if err != nil {
+		probs = append(probs, Problem{File: "app.json", Pointer: "/llm", Message: err.Error()})
+	}
 	nodes := NodeCatalog()
 	fsrc := make([]flowdomain.Source, len(m.Flows))
 	for i, f := range m.Flows {
@@ -133,5 +139,5 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	if len(probs) > 0 {
 		return nil, &ValidationError{Problems: append(probs, warnings...)}
 	}
-	return &Compiled{Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, Warnings: warnings}, nil
+	return &Compiled{Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
 }

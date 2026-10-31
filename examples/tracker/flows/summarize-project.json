@@ -1,0 +1,36 @@
+{
+  "flow": "summarizeProject",
+  "version": 1,
+  "title": "Summarize a project with a language model",
+  "trigger": { "action": "summarize", "on": "urn:app:feature:project" },
+  "input":  { "type": "object", "properties": {}, "additionalProperties": false },
+  "output": { "type": "object", "properties": { "summary": { "type": "string" }, "risk": { "type": "string" } } },
+  "timeoutMs": 30000,
+  "nodes": {
+    "tasks":  { "node": "feature.children", "in": { "id": "feature.id", "type": "'task'", "limit": "50" } },
+    "prompt": { "node": "template",
+                "in": { "text": "'Project: {{.title}}\\nTasks:\\n{{range .tasks}}- {{.title}} ({{.status}})\\n{{end}}'",
+                        "vars": { "title": "feature.title", "tasks": "nodes.tasks.out" } } },
+    "summarize": {
+      "node": "llm.complete",
+      "in": {
+        "model": "'default'",
+        "system": "'You summarize project status in at most three sentences and rate delivery risk.'",
+        "prompt": "nodes.prompt.out",
+        "maxTokens": "1000",
+        "streamTo": "{ 'feature': feature.id, 'path': '/summaryDraft' }"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string", "maxLength": 2000 },
+          "risk": { "type": "string", "enum": ["low", "medium", "high"] }
+        },
+        "required": ["summary", "risk"]
+      },
+      "retry": { "max": 2, "backoff": "exponential" }
+    },
+    "save": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/summary": "nodes.summarize.out.summary" } } }
+  },
+  "result": { "summary": "nodes.summarize.out.summary", "risk": "nodes.summarize.out.risk" }
+}

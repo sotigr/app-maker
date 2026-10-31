@@ -8,5 +8,6 @@
   },
   "roles": { "viewer": [], "editor": ["viewer"], "admin": ["editor"] },
   "limits": { "requestsPerMinute": 600, "maxDocumentBytes": 262144 },
+  "llm": { "aliases": { "default": "${env.llm.default}" }, "monthlyBudgetUsd": 50 },
   "settings": { "supportEmail": "${env.supportEmail}" }
 }

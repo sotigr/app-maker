@@ -50,6 +50,17 @@
       "x-persist": false,
       "description": "Who is looking at the project right now (ephemeral)"
     },
+    "summary": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Model-written status summary (summarize action)"
+    },
+    "summaryDraft": {
+      "type": "string",
+      "maxLength": 5000,
+      "x-persist": false,
+      "description": "Summary text while it is being generated (ephemeral)"
+    },
     "notes": {
       "type": "string",
       "maxLength": 5000,
