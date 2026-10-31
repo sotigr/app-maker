@@ -3,17 +3,56 @@
   "$id": "urn:app:feature:project/v1",
   "title": "Project",
   "type": "object",
-  "x-traits": ["urn:sys:trait:ownable", "urn:sys:trait:timestamped"],
-  "x-allowedChildren": ["urn:app:feature:task"],
+  "x-traits": [
+    "urn:sys:trait:ownable",
+    "urn:sys:trait:timestamped"
+  ],
+  "x-allowedChildren": [
+    "urn:app:feature:task"
+  ],
   "x-uniqueName": "slug",
   "properties": {
-    "title":       { "type": "string", "maxLength": 200, "x-indexed": true, "x-searchable": true },
-    "slug":        { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 80, "x-indexed": true },
-    "description": { "type": "string", "maxLength": 5000, "x-searchable": true },
-    "taskCount":   { "type": "integer", "x-aggregate": { "op": "count", "of": "urn:app:feature:task" } },
-    "doneCount":   { "type": "integer",
-                     "x-aggregate": { "op": "count", "of": "urn:app:feature:task", "where": "status == 'done'" } }
+    "title": {
+      "type": "string",
+      "maxLength": 200,
+      "x-indexed": true,
+      "x-searchable": true
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "maxLength": 80,
+      "x-indexed": true
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 5000,
+      "x-searchable": true
+    },
+    "taskCount": {
+      "type": "integer",
+      "x-aggregate": {
+        "op": "count",
+        "of": "urn:app:feature:task"
+      }
+    },
+    "doneCount": {
+      "type": "integer",
+      "x-aggregate": {
+        "op": "count",
+        "of": "urn:app:feature:task",
+        "where": "status == 'done'"
+      }
+    },
+    "presence": {
+      "type": "string",
+      "maxLength": 200,
+      "x-persist": false,
+      "description": "Who is looking at the project right now (ephemeral)"
+    }
   },
-  "required": ["title"],
+  "required": [
+    "title"
+  ],
   "additionalProperties": false
 }

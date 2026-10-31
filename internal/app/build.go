@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,6 +19,9 @@ import (
 	accesssqlite "app-maker/internal/access/infrastructure/sqlite"
 	accesshttp "app-maker/internal/access/interfaces/http"
 	changeapi "app-maker/internal/change/api"
+	changeapp "app-maker/internal/change/application"
+	changemem "app-maker/internal/change/infrastructure/memory"
+	changehttp "app-maker/internal/change/interfaces/http"
 	contentapp "app-maker/internal/content/application"
 	contentdomain "app-maker/internal/content/domain"
 	contentmem "app-maker/internal/content/infrastructure/memory"
@@ -74,6 +76,8 @@ type Runtime struct {
 	Health     *health.Registry
 	Handler    http.Handler
 	Engine     *flowapp.Engine
+	Gateway    *changeapp.Gateway
+	ChangeLog  *changemem.Log
 	Deploys    DeployStore
 	Log        *slog.Logger
 	repos      *contentdomain.RepositoryRegistry
@@ -108,9 +112,10 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	rt.JobKinds = jobs.NewRegistry()
 	rt.Jobs = jobs.NewInProcess(rt.JobKinds, jobs.InProcessConfig{Concurrency: cfg.Jobs.Concurrency, BaseBackoff: opt.JobBackoff}, opt.Log)
 	rt.Enqueuer = rt.Jobs
-	rt.JobKinds.Register(changeapi.JobPublishEvents, func(context.Context, json.RawMessage) error {
-		return nil // the change log arrives in phase 8; events are dropped until then
-	}, 0)
+	// Change log (spec 9.3): in-memory until the Valkey and PostgreSQL
+	// adapters (phase 10); refused in the replicated topology.
+	rt.ChangeLog = changemem.New(24*time.Hour, 0)
+	rt.JobKinds.Register(changeapi.JobPublishEvents, changeapp.Publisher{Log: rt.ChangeLog}.Handle, 0)
 
 	// Content repositories (spec 5.4).
 	rt.repos = contentdomain.NewRepositoryRegistry()
@@ -248,6 +253,8 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	accessH.Register(mux)
 	contenthttp.New(rt.Content).Register(mux)
 	flowhttp.New(rt.Engine).Register(mux)
+	rt.Gateway = changeapp.NewGateway(rt.ChangeLog, rt.Content.StreamReader(), rt.Authorizer, c.Types, querydomain.NewPlanner(cursorKey), opt.Log)
+	changehttp.New(rt.Gateway).Register(mux)
 	schemahttp.New(c.Types, c.Manifest.App.App, c.Manifest.App.Version).Register(mux)
 	var idem httpserver.IdempotencyStore = httpserver.NewMemoryIdempotency()
 	rt.Deploys = &memoryDeploys{}
@@ -324,6 +331,13 @@ func (rt *Runtime) Start(ctx context.Context) error {
 				return fmt.Errorf("river: %w", err)
 			}
 		}
+	}
+	if rt.Cfg.HasRole(config.RoleGateway) || rt.Cfg.HasRole(config.RoleAPI) {
+		go func() {
+			if err := rt.Gateway.Run(ctx); err != nil {
+				rt.Log.Error("gateway stopped", "err", err)
+			}
+		}()
 	}
 	go rt.Health.RunWatchdog(ctx)
 	return nil

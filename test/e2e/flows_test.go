@@ -1,6 +1,11 @@
 package e2e
 
 import (
+	"fmt"
+
+	accessapi "app-maker/internal/access/api"
+	"app-maker/internal/content/application"
+
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -223,4 +228,20 @@ func TestFlowLoopStopped(t *testing.T) {
 			t.Fatalf("title after loop stop: %s", got.str("data", "title"))
 		}
 	})
+}
+
+func (w *world) taskVersionInt(t *testing.T, id string) kernel.Version {
+	t.Helper()
+	r := mustOK(t, w.admin.do("GET", "/v1/features/task/"+id, nil), 200)
+	return kernel.Version(r.Body["version"].(float64))
+}
+
+func etagOf(v float64) string { return `"` + strings.TrimSuffix(fmt.Sprint(v), ".0") + `"` }
+
+func systemFixture() application.WriteContext {
+	return application.WriteContext{Principal: accessapi.System(), Fixture: true}
+}
+
+func updateOp(id string, v kernel.Version, data map[string]any) []application.Op {
+	return []application.Op{{Op: application.OpUpdate, Type: "task", ID: id, Version: v, Data: data}}
 }

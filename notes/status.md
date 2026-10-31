@@ -2,7 +2,7 @@
 
 _Last updated: 2026-10-31_
 
-## Current phase: 8 – Change log + streaming (next). Vertical slice + visual editor complete.
+## Current phase: 9 – TypeScript SDK + codegen (next).
 
 ### Done
 - **Phase 0** bootstrap: notes, ADRs 0001–0006, Makefile, depguard generator (`scripts/gen-depguard.sh`).
@@ -76,11 +76,25 @@ _Last updated: 2026-10-31_
     the file; fw dev hot reload activates it); `GET /v1/features/_/{id}` reads any type.
   - Screenshot: docs/img/flow-editor.png (taken with headless Brave via CDP; script idea in gotchas).
 
-### Next (phase 8): change log + streaming (spec 9)
-- publish_events worker → ChangeLog port (memory adapter first), gateway role: subscriptions (feature,
-  children, query), gap-free snapshot+delta, per-subscriber projection, sseq, state/append modes,
-  backpressure, ephemeral fields (POST /v1/ephemeral), resume/reset, access-changed handling,
-  SSE `GET /v1/stream` and WebSocket `/v1/ws` (coder/websocket).
+- **Phase 8** (M6 core) change log + streaming:
+  - change/domain ChangeLog port + Cursor; change/infrastructure/memory Log (retention 24h, seq cursors).
+  - change/application: Publisher (publish_events worker), Gateway (Connect/Conn/Sub; targets feature,
+    children, query (one type, eq/in, scope, no sort); buffered gap-free subscribe; version-aware deltas
+    limited to readable+requested paths; enter/leave; sseq; state-mode coalescing with x-stream maxRate;
+    append overflow → reset; access re-check on grant/team/user events → error forbidden; suspension
+    closes; Ephemeral writes (update policy, x-persist:false only, 30/s/feature, last values in snapshot);
+    resume: expired cursor → reset + snapshot).
+  - change/interfaces/http: SSE GET /v1/stream (?target=&id=&paths= or ?sub=base64url JSON; Last-Event-ID),
+    WS /v1/ws (subscribe/unsubscribe/publish), POST /v1/ephemeral/{type}/{id}.
+  - tracker project has `presence` (x-persist:false). e2e stream tests on memory + sqlite.
+
+### Next (phase 9): TypeScript SDK + codegen (spec 13)
+- `fw codegen ts --out <dir>`: types per type and audience from views, typed client, action methods,
+  enum/state-machine constants, view validators (JSON Schemas).
+- `sdk/ts/client` (@fw/client): transport (WS, SSE fallback, reconnect+resume), auth (cookie + CSRF),
+  normalized cache, live queries/children/feature, optimistic updates with rollback, FwError.
+- `sdk/ts/react` (@fw/react): useFeature, useQuery, useChildren, useAction, useSession.
+- Minimal tracker UI demo.
 
 ## Phase roadmap
 
@@ -94,8 +108,8 @@ _Last updated: 2026-10-31_
 | 5 | Flow engine, triggers, actions, effects | M8 | done |
 | 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
 | 7 | Admin console + visual flow editor (React Flow) | M9 part | done |
-| 8 | Change log + gateway streaming (SSE/WS) | M6 | next |
-| 9 | TS SDK + codegen | M7 | todo |
+| 8 | Change log + gateway streaming (SSE/WS) | M6 | done (memory log only) |
+| 9 | TS SDK + codegen | M7 | next |
 | 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | todo |
 | 11 | Search + aggregates | M9 | todo |
 | 12 | Code nodes (Python), LLM, blobs, OIDC/MFA, limits, observability | M10 (no Helm/OCI) | todo |
@@ -109,7 +123,8 @@ _Last updated: 2026-10-31_
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
 - `emit` node, code nodes, `llm.complete`: not registered yet (phase 12).
 - River `dead_letter` run status is not recorded yet (failures are recorded as failed per attempt).
-- publish_events jobs are consumed by a no-op handler until the change log (phase 8).
+- Streaming resume replays nothing: an expired cursor sends reset, a valid one gets a fresh snapshot
+  (clients treat both alike, §9.11). Gateway restart/multi-gateway tests need the Valkey log (phase 10).
 - Rate limiting per principal/IP (§14.1) not yet (phase 12); login limiter exists.
 - Query view for non-admins is the **public** query view (owner-tier fields not filterable).
 - System principal is virtual (fixed ID `...0001`, no feature); root feature fixed ID `...0002`.

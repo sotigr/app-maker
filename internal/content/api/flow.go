@@ -63,3 +63,11 @@ type FlowAccess interface {
 	// read (spec 8.5 actions) and returns the feature's storage view.
 	AuthorizeAction(ctx context.Context, p accessapi.Principal, id kernel.ID, action string, input map[string]any) (FlowFeature, error)
 }
+
+// StreamReader reads projected snapshots for streaming subscriptions
+// (spec 9.5): the same projection as HTTP responses.
+type StreamReader interface {
+	Get(ctx context.Context, p accessapi.Principal, id kernel.ID) (FeatureView, error)
+	Children(ctx context.Context, p accessapi.Principal, parent kernel.ID, typeName string, limit int) ([]FeatureView, error)
+	Query(ctx context.Context, p accessapi.Principal, doc []byte) ([]FeatureView, error)
+}

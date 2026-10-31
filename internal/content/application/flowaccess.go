@@ -137,3 +137,43 @@ func (x *FlowPorts) AuthorizeAction(ctx context.Context, p accessapi.Principal, 
 	}
 	return x.storageOf(f.Snapshot(), ct), nil
 }
+
+// StreamPorts adapts the service to contentapi.StreamReader.
+type StreamPorts struct{ s *Service }
+
+// StreamReader returns the snapshot port used by the gateway.
+func (s *Service) StreamReader() *StreamPorts { return &StreamPorts{s: s} }
+
+var _ contentapi.StreamReader = (*StreamPorts)(nil)
+
+// Get implements contentapi.StreamReader.
+func (x *StreamPorts) Get(ctx context.Context, p accessapi.Principal, id kernel.ID) (contentapi.FeatureView, error) {
+	return x.s.GetFeature(ctx, p, "", id)
+}
+
+// Children implements contentapi.StreamReader (every page up to limit).
+func (x *StreamPorts) Children(ctx context.Context, p accessapi.Principal, parent kernel.ID, typeName string, limit int) ([]contentapi.FeatureView, error) {
+	var out []contentapi.FeatureView
+	cursor := ""
+	for len(out) < limit {
+		page, err := x.s.ListChildren(ctx, p, parent, typeName, cursor, 500)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, page.Items...)
+		if page.Next == "" {
+			break
+		}
+		cursor = page.Next
+	}
+	return out, nil
+}
+
+// Query implements contentapi.StreamReader.
+func (x *StreamPorts) Query(ctx context.Context, p accessapi.Principal, doc []byte) ([]contentapi.FeatureView, error) {
+	res, err := x.s.RunQuery(ctx, p, doc)
+	if err != nil {
+		return nil, err
+	}
+	return res.Items, nil
+}
