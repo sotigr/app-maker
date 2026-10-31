@@ -11,7 +11,6 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riversqlite"
 	"github.com/riverqueue/river/rivermigrate"
-	"github.com/riverqueue/river/rivertype"
 
 	"app-maker/internal/kernel"
 )
@@ -139,11 +138,10 @@ func toParams(jobs []kernel.JobRequest) []river.InsertManyParams {
 		if j.ScheduledAt != nil {
 			opts.ScheduledAt = *j.ScheduledAt
 		}
-		if j.UniqueKey != "" {
-			opts.UniqueOpts = river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
-				rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRetryable, rivertype.JobStateScheduled,
-			}}
-		}
+		// River counts running jobs as duplicates, so a commit landing while
+		// a recompute runs would lose its job. Unique-key jobs recompute from
+		// current state and are idempotent, so across batches they are not
+		// deduplicated (only within a batch, above).
 		out = append(out, river.InsertManyParams{Args: riverArgs{JobKind: j.Kind, UniqueKey: j.UniqueKey, Args: args}, InsertOpts: opts})
 	}
 	return out

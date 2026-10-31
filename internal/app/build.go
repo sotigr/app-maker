@@ -224,6 +224,8 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	})
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
 	rt.Content.AddHook(rt.Engine.EventHook())
+	rt.Content.AddHook(rt.Content.AggregateHook())
+	rt.JobKinds.Register(contentapp.JobRecomputeAggregate, rt.Content.HandleRecomputeAggregate, time.Minute)
 	rt.JobKinds.Register(flowapp.JobRunFlow, rt.Engine.HandleRunFlow, 15*time.Minute)
 	email := opt.Email
 	if email == nil {

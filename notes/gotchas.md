@@ -22,7 +22,9 @@
   `db.SetMaxOpenConns(1)`, `rivermigrate.New(riversqlite.New(db), nil).Migrate(ctx, DirectionUp, nil)`.
   - With MaxOpenConns(1) **never touch the pool while a tx is open** (deadlock) — do everything via the tx.
   - `FetchPollInterval` must be >= `FetchCooldown` (100ms default).
-  - Unique jobs: `UniqueOpts{ByArgs: true}` + `river:"unique"` struct tags; a **duplicate unique key
+  - River unique jobs MUST include `running` in ByState → a job inserted while the same key runs is
+    skipped → lost updates for recompute jobs. Adapter therefore ignores UniqueKey across batches.
+  - (old) Unique jobs: `UniqueOpts{ByArgs: true}` + `river:"unique"` struct tags; a **duplicate unique key
     within one InsertMany batch is an error** → dedupe the batch first; across batches it is skipped.
   - Workers are typed by args type; framework uses ONE River kind `fw` whose args carry the real kind,
     and dispatches via `platform/jobs.Registry`.

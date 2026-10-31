@@ -140,3 +140,12 @@ _Last updated: 2026-10-31_
 - System principal is virtual (fixed ID `...0001`, no feature); root feature fixed ID `...0002`.
 - Grants are children of their object (any type accepts grant children).
 - Git: one commit per phase on main; user approved committing at each phase boundary without asking again (identity passed per commit: `git -c user.name=skp -c user.email=skp@archeiothiki.gr`).
+
+## Phase 11 progress
+- 11a aggregates DONE: `content/application/aggregates.go` (AggregateHook enqueues recompute_aggregate per
+  parent; worker recomputes count/sum/min/max/avg from live children, writes only on change, retries
+  conflicts); e2e `test/e2e/aggregates_test.go` (20 concurrent creates, filtered doneCount, delete).
+- River adapter no longer applies cross-batch unique keys (River treats running jobs as duplicates →
+  lost updates); unique-key jobs are idempotent recomputes. In-process adapter still coalesces pending.
+- NEXT 11b: search (index_features jobs, per-tier docs public/owner, Bleve, GET /v1/search, re-check
+  + project hits, approximateTotal). Docker still needed for phase 10.
