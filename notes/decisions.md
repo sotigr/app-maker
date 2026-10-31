@@ -12,7 +12,7 @@
 | Editor / admin tech | React + React Flow (xyflow), Vite build, embedded in `fwd` via `go:embed` |
 | Slice storage | Memory repo + SQLite repo with River (`riversqlite`) |
 | Non-Go scope | TS SDK + codegen, Python code-node runner, admin console. Helm chart / OCI image excluded for now |
-| Commits | Ask the user before committing at phase boundaries |
+| Commits | One commit per phase; commit at each phase boundary without asking again (approved 2026-10-31) |
 
 ## ADRs (`docs/adr/`)
 

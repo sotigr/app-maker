@@ -17,8 +17,16 @@
   Error messages need `golang.org/x/text/message` printer → validator lives in
   `schema/infrastructure/jsonschema` (domain gets a `ValidatorFactory` port).
   Validate wire docs with numbers as `json.Number`.
-- **River SQLite driver** `riverdriver/riversqlite` exists (v0.50+). Early testing; single writer →
-  `db.SetMaxOpenConns(1)` or "database is locked"; listener polls a table; completions row by row.
+- **River v0.50 + riversqlite + modernc.org/sqlite** work together (prototype verified):
+  `sql.Open("sqlite", "file:x.db?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_txlock=immediate")`,
+  `db.SetMaxOpenConns(1)`, `rivermigrate.New(riversqlite.New(db), nil).Migrate(ctx, DirectionUp, nil)`.
+  - With MaxOpenConns(1) **never touch the pool while a tx is open** (deadlock) — do everything via the tx.
+  - `FetchPollInterval` must be >= `FetchCooldown` (100ms default).
+  - Unique jobs: `UniqueOpts{ByArgs: true}` + `river:"unique"` struct tags; a **duplicate unique key
+    within one InsertMany batch is an error** → dedupe the batch first; across batches it is skipped.
+  - Workers are typed by args type; framework uses ONE River kind `fw` whose args carry the real kind,
+    and dispatches via `platform/jobs.Registry`.
+  - `pkill -f <pattern>` can kill the calling shell if the pattern is in the command line (exit 144).
 
 ## Design facts worth remembering
 - `x-computed` and `x-aggregate.where` see top-level fields as bare variables (spec 4.3 example:

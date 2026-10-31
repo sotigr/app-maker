@@ -27,7 +27,14 @@ type server struct {
 	clock *kernel.FakeClock
 }
 
-func start(t *testing.T) *server {
+// eachDriver runs fn against the memory and the SQLite (+River) backends.
+func eachDriver(t *testing.T, fn func(t *testing.T, driver string)) {
+	for _, d := range []string{"memory", "sqlite"} {
+		t.Run(d, func(t *testing.T) { fn(t, d) })
+	}
+}
+
+func start(t *testing.T, driver string) *server {
 	t.Helper()
 	compiled, err := app.Load("../../examples/tracker", "dev")
 	if err != nil {
@@ -37,15 +44,22 @@ func start(t *testing.T) *server {
 	cfg.Manifest = "../../examples/tracker"
 	cfg.Dev = true
 	cfg.Bootstrap.AdminEmail, cfg.Bootstrap.AdminPassword = adminEmail, adminPassword
+	if driver == "sqlite" {
+		cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: t.TempDir() + "/app.db"}}
+		cfg.Credentials.Driver = "sqlite"
+	}
 	clock := kernel.NewFakeClock(time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC))
-	rt, err := app.Build(cfg, compiled, app.Options{Clock: clock, FastHashing: true,
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	rt, err := app.Build(ctx, cfg, compiled, app.Options{Clock: clock, FastHashing: true,
 		Log: slog.New(slog.DiscardHandler), JobBackoff: time.Millisecond})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	rt.Start(ctx)
+	t.Cleanup(func() { rt.Close(context.Background()) })
+	if err := rt.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if err := rt.Bootstrap(ctx); err != nil {
 		t.Fatal(err)
 	}

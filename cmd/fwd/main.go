@@ -63,15 +63,17 @@ func run() error {
 	for _, w := range compiled.Warnings {
 		log.Warn(w.String())
 	}
-	rt, err := app.Build(cfg, compiled, app.Options{Log: log})
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	rt, err := app.Build(ctx, cfg, compiled, app.Options{Log: log})
 	if err != nil {
 		return err
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 	runCtx, cancelRun := context.WithCancel(context.Background())
 	defer cancelRun()
-	rt.Start(runCtx)
+	if err := rt.Start(runCtx); err != nil {
+		return err
+	}
 	if err := rt.Bootstrap(ctx); err != nil {
 		return err
 	}
@@ -112,6 +114,7 @@ func run() error {
 	if public != nil {
 		_ = public.Shutdown(shutdownCtx)
 	}
+	rt.Close(shutdownCtx)
 	cancelRun()
 	_ = internal.Shutdown(shutdownCtx)
 	log.Info("fwd stopped")

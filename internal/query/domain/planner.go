@@ -196,7 +196,10 @@ func (p *Planner) Plan(ctx context.Context, req queryapi.PlanRequest) (queryapi.
 		}
 		plan.Sort = append(plan.Sort, queryapi.SortKey{Path: s.Field, Desc: s.Dir == "desc"})
 	}
-	plan.Sort = append(plan.Sort, queryapi.SortKey{Path: ""})
+	// The ID breaks ties in the direction of the first key, so an index on
+	// (value, id) serves the whole order.
+	idDesc := len(plan.Sort) > 0 && plan.Sort[0].Desc
+	plan.Sort = append(plan.Sort, queryapi.SortKey{Path: "", Desc: idDesc})
 	for _, sel := range d.Select {
 		if _, err := field(sel, false); err != nil {
 			return queryapi.Plan{}, err

@@ -21,8 +21,8 @@ type world struct {
 // setup: admin owns project P with task T and comment C; editor and viewer
 // hold grants on P; alice (app role editor) owns her own project; the
 // stranger has no grants.
-func setup(t *testing.T) *world {
-	s := start(t)
+func setup(t *testing.T, driver string) *world {
+	s := start(t, driver)
 	w := &world{s: s, admin: s.admin()}
 	w.alice = s.user(w.admin, "alice", "editor")
 	w.editor = s.user(w.admin, "eddie")
@@ -39,8 +39,10 @@ func setup(t *testing.T) *world {
 }
 
 // Milestone 3: the tracker's permission matrix passes through HTTP.
-func TestPermissionMatrix(t *testing.T) {
-	w := setup(t)
+func TestPermissionMatrix(t *testing.T) { eachDriver(t, testPermissionMatrix) }
+
+func testPermissionMatrix(t *testing.T, driver string) {
+	w := setup(t, driver)
 	type row struct {
 		who    string
 		c      *client
@@ -115,8 +117,10 @@ func TestPermissionMatrix(t *testing.T) {
 }
 
 // Milestone 3: no response can expose a private field.
-func TestNoPrivateFieldLeaks(t *testing.T) {
-	w := setup(t)
+func TestNoPrivateFieldLeaks(t *testing.T) { eachDriver(t, testNoPrivateFieldLeaks) }
+
+func testNoPrivateFieldLeaks(t *testing.T, driver string) {
+	w := setup(t, driver)
 	const secret = 0.987654321
 	ctx := context.Background()
 	res, err := w.s.rt.Content.Execute(ctx, application.WriteContext{Principal: accessapi.System(), Fixture: true}, []application.Op{
@@ -155,8 +159,10 @@ func TestNoPrivateFieldLeaks(t *testing.T) {
 	}
 }
 
-func TestProtocolRules(t *testing.T) {
-	w := setup(t)
+func TestProtocolRules(t *testing.T) { eachDriver(t, testProtocolRules) }
+
+func testProtocolRules(t *testing.T, driver string) {
+	w := setup(t, driver)
 	// 428 without If-Match, 409 with a stale one (spec 6.1, 6.6).
 	r := w.admin.do("PATCH", "/v1/features/task/"+w.task, map[string]any{"title": "x"})
 	if r.Status != 428 || r.code() != kernel.CodeVersionRequired {

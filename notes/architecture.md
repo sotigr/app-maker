@@ -35,6 +35,9 @@ Module: `app-maker`. Layout follows spec §15.1. Layer rules: §15.2 + ADR 0004 
 | `content/domain` | Feature aggregate, Snapshot, DomainEvent, Mutation/Batch, FeatureRepository port, Capabilities, RepositoryRegistry, Project/WireDocument/ExprDocument, ValueAt |
 | `content/application` | Service: Execute (pipeline), GetFeature, ListChildren, RunQuery, MoveFeature, EnsureRoot, SystemPorts; CommitHook, BeforeWriteHook |
 | `content/infrastructure/memory` | memory repository (+Count) |
+| `content/infrastructure/sqlite` | SQLite repository (+Count, EnsureIndexes, Explain), codec (data + kinds) |
+| `access/infrastructure/sqlite` | SQLite credential store (access_* tables) |
+| `platform/sqlitedb` | shared SQLite opener with replica lock |
 | `content/repotest` | conformance suite |
 | `content/interfaces/http` | /v1/features, /v1/query, /v1/transactions |
 | `change/api` | Event, EventKind, publish_events job args |
@@ -49,16 +52,17 @@ Module: `app-maker`. Layout follows spec §15.1. Layer rules: §15.2 + ADR 0004 
 
 | Port (owner) | Implementations |
 |---|---|
-| `content/domain.FeatureRepository` | memory |
+| `content/domain.FeatureRepository` | memory, sqlite |
 | `access/api.Authorizer` | access/application.Authorizer |
-| `access/domain.CredentialStore` | access/infrastructure/memory |
+| `access/domain.CredentialStore` | access/infrastructure/memory, access/infrastructure/sqlite |
 | `access/domain.RelationshipIndex` | access/infrastructure/relindex |
 | `schema/domain.ValidatorFactory` | schema/infrastructure/jsonschema |
 | `runtime/api.Compiler` | runtime/domain/expression |
 | `query/api.Planner` | query/domain.Planner |
 | `content/api.SystemReader/Writer` | content/application.System |
-| `kernel.JobEnqueuer` | platform/jobs.InProcess |
-| `platform/httpserver.IdempotencyStore` | MemoryIdempotency |
+| `kernel.JobEnqueuer` | platform/jobs.InProcess, platform/jobs.RiverSQLite |
+| `content/infrastructure/sqlite.TxJobInserter` | platform/jobs.RiverSQLite |
+| `platform/httpserver.IdempotencyStore` | MemoryIdempotency, SQLIdempotency |
 
 ## Request flow (write)
 HTTP handler → `Service.Execute` → resolve (types, `$` refs) → loadAll (GetMany) → per op:
