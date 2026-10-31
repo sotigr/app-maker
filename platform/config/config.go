@@ -75,6 +75,11 @@ type Config struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"` // json | text
 	} `yaml:"log"`
+	Blobs struct {
+		Driver string `yaml:"driver"` // fs (s3 later)
+		// Dir holds fs blobs; empty uses a directory in the temp directory.
+		Dir string `yaml:"dir"`
+	} `yaml:"blobs"`
 	Runner struct {
 		// Isolation of code-node workers (spec 11.3): process | container |
 		// microvm. Only process is implemented; it is for development and
@@ -123,6 +128,7 @@ func Default() Config {
 	c.Log.Level = "info"
 	c.Log.Format = "json"
 	c.Runner.Isolation = "process"
+	c.Blobs.Driver = "fs"
 	return c
 }
 
@@ -199,6 +205,8 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("FW_LOG_FORMAT", &c.Log.Format)
 	str("FW_LLM_PROVIDER", &c.LLM.Provider)
 	str("FW_RUNNER_ISOLATION", &c.Runner.Isolation)
+	str("FW_BLOBS_DRIVER", &c.Blobs.Driver)
+	str("FW_BLOBS_DIR", &c.Blobs.Dir)
 	str("FW_RUNNER_LISTEN", &c.Runner.Listen)
 	str("FW_RUNNER_ADDR", &c.Runner.Addr)
 	return nil
@@ -214,6 +222,16 @@ func (c Config) Validate() error {
 		if !slices.Contains([]string{RoleAPI, RoleGateway, RoleWorker, RoleRunner}, r) {
 			errs = append(errs, fmt.Errorf("roles: unknown role %q", r))
 		}
+	}
+	switch c.Blobs.Driver {
+	case "fs":
+		if c.Topology == TopologyReplicated {
+			errs = append(errs, fmt.Errorf("blobs.driver: fs keeps blobs on one machine; the replicated topology needs s3 (spec 14.10)"))
+		}
+	case "s3":
+		errs = append(errs, fmt.Errorf("blobs.driver: s3 is not implemented yet"))
+	default:
+		errs = append(errs, fmt.Errorf("blobs.driver: must be fs or s3"))
 	}
 	switch c.Runner.Isolation {
 	case "process":

@@ -10,6 +10,28 @@
         "null"
       ]
     },
+    "attachment": {
+      "additionalProperties": false,
+      "description": "A file attached to the task (uploaded through POST /v1/uploads)",
+      "properties": {
+        "contentType": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "size",
+        "contentType"
+      ],
+      "type": "object"
+    },
     "dueAt": {
       "format": "date-time",
       "type": "string"

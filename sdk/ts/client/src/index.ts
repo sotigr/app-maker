@@ -8,6 +8,22 @@ export type FeatureId<T extends string = string> = string & { readonly __type?: 
 export type Decimal = string;
 /** RFC 3339 timestamps in UTC. */
 export type Timestamp = string;
+/** A Blob field value (spec 14.4). Reads add short-lived signed URLs. */
+export interface BlobRef {
+  id: string;
+  size: number;
+  contentType: string;
+  readonly url?: string;
+  readonly thumbnails?: Record<string, string>;
+}
+
+/** Where an uploaded blob will be set: an existing feature, or a new one under parent. */
+export interface UploadTarget {
+  type: string;
+  field: string;
+  feature?: string;
+  parent?: string;
+}
 
 /** The envelope every feature is returned in. */
 export interface Feature<T extends string = string, D = Record<string, unknown>> {
@@ -189,6 +205,20 @@ export class FwClient {
     const f = await this.request<Feature>("GET", `/v1/features/${type}/${id}`);
     this.cache.put(f);
     return f;
+  }
+
+  /** upload sends bytes through a signed URL (spec 14.4) and returns the
+   * blob to set on the field in a normal create or update. */
+  async upload(target: UploadTarget, body: Blob | ArrayBuffer | Uint8Array, contentType: string): Promise<BlobRef> {
+    const size = body instanceof Blob ? body.size : body.byteLength;
+    const t = await this.request<{ blob: BlobRef; uploadUrl: string; method: string; headers: Record<string, string> }>(
+      "POST", "/v1/uploads", { ...target, size, contentType });
+    const res = await this.fetchFn(this.base + t.uploadUrl, { method: t.method, headers: t.headers, body: body as BodyInit, credentials: "omit" });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new FwError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
+    }
+    return t.blob;
   }
 
   async create(type: string, data: unknown, parent?: string): Promise<Feature> {

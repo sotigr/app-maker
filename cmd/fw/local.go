@@ -110,6 +110,7 @@ func devCmd() *cobra.Command {
 			dbPath := filepath.Join(dir, ".fw", "dev.db")
 			cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: dbPath}}
 			cfg.Credentials.Driver = "sqlite"
+			cfg.Blobs.Dir = filepath.Join(dir, ".fw", "blobs")
 			cfg.Bootstrap.AdminEmail = envOr("FW_BOOTSTRAP_ADMIN_EMAIL", "admin@localhost")
 			cfg.Bootstrap.AdminPassword = envOr("FW_BOOTSTRAP_ADMIN_PASSWORD", "admin-password-dev")
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

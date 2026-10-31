@@ -92,6 +92,7 @@ const (
 	TypeFlow           TypeID = "urn:sys:feature:flow"
 	TypeFlowRun        TypeID = "urn:sys:feature:flowRun"
 	TypeGrant          TypeID = "urn:sys:feature:grant"
+	TypeBlob           TypeID = "urn:sys:feature:blob"
 
 	TraitPrincipal   TypeID = "urn:sys:trait:principal"
 	TraitOwnable     TypeID = "urn:sys:trait:ownable"

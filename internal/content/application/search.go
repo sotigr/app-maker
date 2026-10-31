@@ -162,7 +162,7 @@ func (s *Service) Search(ctx context.Context, p accessapi.Principal, text, typeN
 			out.ApproximateTotal-- // dropped by the re-check
 			continue
 		}
-		view := domain.Project(ct, f.Snapshot(), aud, nil)
+		view := s.link(ct, domain.Project(ct, f.Snapshot(), aud, nil))
 		hl := map[string]string{}
 		readable := ct.View(aud, schemaapi.DirRead).Readable
 		words := strings.Fields(strings.ToLower(text))

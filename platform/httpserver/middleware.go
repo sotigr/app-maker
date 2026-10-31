@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,10 +63,17 @@ func Recover(next http.Handler) http.Handler {
 	})
 }
 
-// LimitBody caps request bodies (spec 14.1: 1 MiB).
-func LimitBody(n int64) Middleware {
+// LimitBody caps request bodies (spec 14.1: 1 MiB). PUT requests under
+// the exempt prefixes (signed blob uploads) are limited by their handler.
+func LimitBody(n int64, exempt ...string) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, p := range exempt {
+				if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, p) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
 			r.Body = http.MaxBytesReader(w, r.Body, n)
 			next.ServeHTTP(w, r)
 		})

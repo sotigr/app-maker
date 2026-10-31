@@ -24,6 +24,10 @@ const (
 type Handler struct {
 	auth   *application.AuthService
 	secure bool
+	// Signed lists path prefixes whose URLs carry their own signature
+	// (blob uploads and downloads): requests there stay anonymous and skip
+	// cookie and CSRF handling.
+	Signed []string
 }
 
 // New returns a handler; secure sets the Secure flag on cookies.
@@ -39,6 +43,12 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := application.WithRequestCache(r.Context())
 		p := accessapi.Anonymous()
+		for _, prefix := range h.Signed {
+			if strings.HasPrefix(r.URL.Path, prefix) {
+				next.ServeHTTP(w, r.WithContext(accessapi.WithPrincipal(ctx, p)))
+				return
+			}
+		}
 		authz := r.Header.Get("Authorization")
 		if authz == "" {
 			// WebSocket clients outside browsers cannot set headers; they

@@ -94,6 +94,19 @@
         "chore"
       ],
       "description": "Set by the triage action (Python code node)"
+    },
+    "attachment": {
+      "x-kind": "blob",
+      "x-maxBytes": 1048576,
+      "x-contentTypes": [
+        "image/*",
+        "application/pdf",
+        "text/plain"
+      ],
+      "x-thumbnails": [
+        64
+      ],
+      "description": "A file attached to the task (uploaded through POST /v1/uploads)"
     }
   },
   "required": [

@@ -45,7 +45,9 @@ type Deps struct {
 	// Search is the full-text index (optional, spec 7.5).
 	Search queryapi.SearchIndex
 	// Jobs enqueues jobs that accompany no write (effect-only flow runs).
-	Jobs   kernel.JobEnqueuer
+	Jobs kernel.JobEnqueuer
+	// Blobs verifies blob values and links downloads (optional, spec 14.4).
+	Blobs  contentapi.Blobs
 	Limits Limits
 }
 
@@ -80,6 +82,9 @@ func (s *Service) AddHook(h CommitHook) { s.d.Hooks = append(s.d.Hooks, h) }
 
 // SetBeforeWrite installs the before-write flow runner.
 func (s *Service) SetBeforeWrite(h BeforeWriteHook) { s.d.BeforeWrite = h }
+
+// SetBlobs installs blob storage (it depends on the service's system ports).
+func (s *Service) SetBlobs(b contentapi.Blobs) { s.d.Blobs = b }
 
 // Types returns the type registry.
 func (s *Service) Types() schemaapi.TypeRegistry { return s.d.Types }
@@ -202,7 +207,7 @@ func (s *Service) GetFeature(ctx context.Context, p accessapi.Principal, typeNam
 	if err != nil {
 		return contentapi.FeatureView{}, err
 	}
-	return domain.Project(ct, f.Snapshot(), aud, nil), nil
+	return s.link(ct, domain.Project(ct, f.Snapshot(), aud, nil)), nil
 }
 
 // ChildPage is a page of projected children.
@@ -255,7 +260,7 @@ func (s *Service) ListChildren(ctx context.Context, p accessapi.Principal, paren
 		if err != nil {
 			return ChildPage{}, err
 		}
-		out.Items = append(out.Items, domain.Project(ct, f.Snapshot(), aud, nil))
+		out.Items = append(out.Items, s.link(ct, domain.Project(ct, f.Snapshot(), aud, nil)))
 	}
 	return out, nil
 }

@@ -130,7 +130,7 @@ func (s *Service) RunQuery(ctx context.Context, p accessapi.Principal, raw []byt
 			return QueryResult{}, err
 		}
 		snap := f.Snapshot()
-		out.Items = append(out.Items, domain.Project(ct, snap, aud, plan.Select))
+		out.Items = append(out.Items, s.link(ct, domain.Project(ct, snap, aud, plan.Select)))
 		readable := ct.View(aud, schemaapi.DirRead).Readable
 		for _, path := range doc.Expand {
 			if !readable[path] {
@@ -171,7 +171,7 @@ func (s *Service) expand(ctx context.Context, p accessapi.Principal, repo domain
 		if err != nil {
 			continue
 		}
-		out[f.ID().String()] = domain.Project(ct, f.Snapshot(), aud, nil)
+		out[f.ID().String()] = s.link(ct, domain.Project(ct, f.Snapshot(), aud, nil))
 	}
 	return out, nil
 }

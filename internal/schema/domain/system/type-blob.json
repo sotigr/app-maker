@@ -1,0 +1,21 @@
+{
+  "$id": "urn:sys:feature:blob",
+  "title": "Blob",
+  "description": "An upload intent and the state of its bytes in blob storage (spec 14.4).",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:timestamped"],
+  "properties": {
+    "state":       { "enum": ["pending", "uploaded", "committed", "released", "deleted"], "x-indexed": true, "x-write": "system" },
+    "principal":   { "type": ["string", "null"], "x-kind": "ref", "x-write": "system" },
+    "target":      { "type": "string", "maxLength": 200, "x-write": "system" },
+    "field":       { "type": "string", "maxLength": 200, "x-write": "system" },
+    "size":        { "type": "integer", "minimum": 0, "x-write": "system" },
+    "contentType": { "type": "string", "maxLength": 200, "x-write": "system" },
+    "feature":     { "type": ["string", "null"], "x-write": "system" },
+    "expiresAt":   { "type": "string", "format": "date-time", "x-write": "system" },
+    "uploadedAt":  { "type": ["string", "null"], "format": "date-time", "x-write": "system" },
+    "releasedAt":  { "type": ["string", "null"], "format": "date-time", "x-indexed": true, "x-write": "system" },
+    "thumbnails":  { "type": "array", "items": { "type": "integer" }, "x-write": "system" }
+  },
+  "required": ["state", "target", "field", "size", "contentType", "expiresAt"]
+}

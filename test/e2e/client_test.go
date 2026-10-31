@@ -64,6 +64,7 @@ func startWith(t *testing.T, driver string, extraFlows map[string]string) *serve
 	}
 	cfg := config.Default()
 	cfg.LLM.Provider = "fake"
+	cfg.Blobs.Dir = t.TempDir()
 	cfg.Manifest = "../../examples/tracker"
 	cfg.Dev = true
 	cfg.Bootstrap.AdminEmail, cfg.Bootstrap.AdminPassword = adminEmail, adminPassword

@@ -171,10 +171,15 @@ func (s *Service) prepareAll(ctx context.Context, wc WriteContext, repo domain.F
 		var err error
 		switch w.op.Op {
 		case OpCreate:
-			err = s.prepareCreate(ctx, wc, w, created, now)
+			if err = s.prepareCreate(ctx, wc, w, created, now); err == nil {
+				err = s.verifyBlobs(ctx, wc, w, nil)
+			}
 			created[w.id] = w
 		case OpUpdate:
-			err = s.prepareUpdate(ctx, wc, w, now)
+			old := blobIDs(w.ct, w.feature.Fields())
+			if err = s.prepareUpdate(ctx, wc, w, now); err == nil {
+				err = s.verifyBlobs(ctx, wc, w, old)
+			}
 		case OpDelete:
 			err = s.prepareDelete(ctx, wc, repo, w, works, now)
 		case OpMove:
@@ -695,7 +700,7 @@ func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.Featu
 			continue
 		}
 		snap := w.feature.Snapshot()
-		res.Features = append(res.Features, domain.Project(w.ct, snap, w.aud, nil))
+		res.Features = append(res.Features, s.link(w.ct, domain.Project(w.ct, snap, w.aud, nil)))
 	}
 	return res, nil
 }

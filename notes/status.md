@@ -176,8 +176,15 @@ _Last updated: 2026-10-31_
   scheduler read it; now per-level results merged after Wait) — present since phase 5; (2) flaky
   TestStreamingChildrenAndQuery: test helper `next` dropped messages of other subs (gateway serves a
   connection's subs in map order); wsClient now keeps a backlog.
-- NEXT 12c: blobs (local fs) + uploads; then rate limits (§14.1), OIDC/MFA, OpenTelemetry + audit log,
-  `emit` node, python.allowedPackages check, dead_letter status.
+- 12c blobs DONE (ADR 0010): system type blob (intents), integration BlobStore/BlobFS/BlobSigner/
+  Thumbnail, integration/application Blobs (CreateUpload, Upload, Verify, Link, Download, Jobs hook,
+  blob_state/blob_purge/cleanup_blobs), integration/interfaces/http (POST /v1/uploads, PUT/GET
+  /v1/blobs/{id}); content Deps.Blobs (SetBlobs), verifyBlobs in prepareAll, link() on views,
+  AuthorizeBlobField; access Handler.Signed prefixes; LimitBody exemptions; config blobs.driver/dir
+  (fw dev: .fw/blobs). Tracker task `attachment` (x-thumbnails [64]). TS SDK BlobRef + upload().
+  e2e test/e2e/blobs_test.go. Gotcha: advancing the fake clock 25h expires sessions → log in again.
+- NEXT 12d: rate limits (§14.1) and remaining limits; then OIDC/MFA, OpenTelemetry + audit log,
+  `emit` node, python.allowedPackages check, dead_letter status, S3 adapter (needs Docker/minio).
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with

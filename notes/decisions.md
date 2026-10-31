@@ -26,6 +26,7 @@
 | 0007 | Flow engine choices | inferred deps, actions served by Flow, flow commits skip before-write flows, webhook signature format, env secrets |
 | 0008 | LLM providers | port in runtime/api; anthropic (official SDK, fallbacks, output_config), openai-compatible (HTTP), fake; aliases "<provider>:<model>"; keys as secret refs; fw dev → fake |
 | 0009 | Code nodes | gRPC engine↔runner (codenode.proto), stdio JSON frames to stdlib-only fwnode, process isolation + egress proxy, uv venvs by lock hash, python node inputs from inputSchema |
+| 0010 | Blob storage | intents as urn:sys:feature:blob features, BlobFS, signed PUT/GET URLs, Verify on write, commit/release jobs, thumbnails, hourly cleanup_blobs |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)

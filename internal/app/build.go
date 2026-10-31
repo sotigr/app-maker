@@ -32,6 +32,7 @@ import (
 	integrationapp "app-maker/internal/integration/application"
 	integrationdomain "app-maker/internal/integration/domain"
 	integrationinfra "app-maker/internal/integration/infrastructure"
+	integrationhttp "app-maker/internal/integration/interfaces/http"
 	"app-maker/internal/kernel"
 	queryapi "app-maker/internal/query/api"
 	querydomain "app-maker/internal/query/domain"
@@ -254,10 +255,17 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	delivery := &integrationapp.Delivery{Email: email, HTTP: out, Templates: templates, Secrets: secrets, Clock: opt.Clock}
 	rt.JobKinds.Register(flowapp.JobDeliverEmail, delivery.HandleEmail, time.Minute)
 	rt.JobKinds.Register(flowapp.JobDeliverWebhook, delivery.HandleWebhook, time.Minute)
+	blobs, err := rt.blobService(cfg, cursorKey, opt)
+	if err != nil {
+		return nil, err
+	}
 	schedules, err := rt.Engine.Schedules()
 	if err != nil {
 		return nil, err
 	}
+	schedules = append(schedules, flowapp.Schedule{Name: integrationapp.JobCleanupBlobs,
+		Next: func(t time.Time) time.Time { return t.Truncate(time.Hour).Add(time.Hour) },
+		Job:  kernel.JobRequest{Kind: integrationapp.JobCleanupBlobs, Queue: kernel.QueueMaintenance, Args: []byte("{}"), MaxAttempts: 3}})
 	for _, sc := range schedules {
 		if rt.River != nil {
 			err = rt.River.AddPeriodic(sc.Name, sc.Next, sc.Job)
@@ -272,7 +280,9 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	// HTTP (spec 6).
 	mux := http.NewServeMux()
 	accessH := accesshttp.New(rt.Auth, cfg.HTTP.SecureCookies)
+	accessH.Signed = []string{"/v1/blobs/"}
 	accessH.Register(mux)
+	integrationhttp.New(blobs).Register(mux)
 	contenthttp.New(rt.Content).Register(mux)
 	flowhttp.New(rt.Engine).Register(mux)
 	rt.Gateway = changeapp.NewGateway(rt.ChangeLog, rt.Content.StreamReader(), rt.Authorizer, c.Types, querydomain.NewPlanner(cursorKey), opt.Log)
@@ -302,7 +312,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		httpserver.WithRequestID,
 		httpserver.Recover,
 		httpserver.AccessLog(opt.Log),
-		httpserver.LimitBody(maxBody),
+		httpserver.LimitBody(maxBody, "/v1/blobs/"),
 		accessH.Middleware,
 		httpserver.Idempotency(idem, func(r *http.Request) string {
 			return accessapi.PrincipalFrom(r.Context()).ID.String()
