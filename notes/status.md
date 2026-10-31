@@ -2,7 +2,7 @@
 
 _Last updated: 2026-10-31_
 
-## Current phase: 9 – TypeScript SDK + codegen (next).
+## Current phase: 10 – PostgreSQL + Valkey (next; needs Docker running).
 
 ### Done
 - **Phase 0** bootstrap: notes, ADRs 0001–0006, Makefile, depguard generator (`scripts/gen-depguard.sh`).
@@ -88,13 +88,23 @@ _Last updated: 2026-10-31_
     WS /v1/ws (subscribe/unsubscribe/publish), POST /v1/ephemeral/{type}/{id}.
   - tracker project has `presence` (x-persist:false). e2e stream tests on memory + sqlite.
 
-### Next (phase 9): TypeScript SDK + codegen (spec 13)
-- `fw codegen ts --out <dir>`: types per type and audience from views, typed client, action methods,
-  enum/state-machine constants, view validators (JSON Schemas).
-- `sdk/ts/client` (@fw/client): transport (WS, SSE fallback, reconnect+resume), auth (cookie + CSRF),
-  normalized cache, live queries/children/feature, optimistic updates with rollback, FwError.
-- `sdk/ts/react` (@fw/react): useFeature, useQuery, useChildren, useAction, useSession.
-- Minimal tracker UI demo.
+- **Phase 9** (M7 core) TS SDK + codegen:
+  - `sdk/ts/client` (@fw/client): FwClient (request w/ CSRF or bearer, FwError), auth, Cache (normalized,
+    version-aware applyDelta), get/create/update (optimistic + rollback)/delete/query/children/action/
+    ephemeral, WS subscriptions with reconnect + resubscribe, watch/live helpers, TypeApi.
+  - `sdk/ts/react` (@fw/react): useFeature, useQuery, useChildren, useAction, useSession.
+  - `fw codegen ts [dir] --out --client-import`: one index.ts (types from owner views; private absent;
+    enums, transitions, action input/output types, schemas, createClient).
+  - Non-browser WS auth: subprotocol `fw.bearer.<token>` (server selects subprotocol `fw`).
+  - Checks: `make sdk` (codegen + tsc 7 typecheck incl. example/usage.ts with @ts-expect-error cases);
+    `node sdk/ts/smoke/smoke.ts <url> <login> <password>` against fw dev (live delta, optimistic rollback).
+  - Not done: React demo UI for "two browsers" criterion; SSE fallback in the SDK.
+
+### Next (phase 10): PostgreSQL + Valkey (needs `sudo systemctl start docker`)
+- Postgres repository (§5.3 layout: data jsonb, ancestors uuid[] GIN, expression indexes CONCURRENTLY),
+  riverpgxv5 jobs, Postgres credential/idempotency/deploy stores, repotest via testcontainers, EXPLAIN tests.
+- Valkey Streams change log (64 partitions, XREAD), PostgreSQL LISTEN/NOTIFY change log, Valkey rate
+  limiter + last-value store; replicated topology wiring; manifest-activated events across replicas.
 
 ## Phase roadmap
 
@@ -109,8 +119,8 @@ _Last updated: 2026-10-31_
 | 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
 | 7 | Admin console + visual flow editor (React Flow) | M9 part | done |
 | 8 | Change log + gateway streaming (SSE/WS) | M6 | done (memory log only) |
-| 9 | TS SDK + codegen | M7 | next |
-| 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | todo |
+| 9 | TS SDK + codegen | M7 | done (no React demo UI) |
+| 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | next |
 | 11 | Search + aggregates | M9 | todo |
 | 12 | Code nodes (Python), LLM, blobs, OIDC/MFA, limits, observability | M10 (no Helm/OCI) | todo |
 

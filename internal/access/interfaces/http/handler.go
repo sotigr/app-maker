@@ -39,7 +39,17 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := application.WithRequestCache(r.Context())
 		p := accessapi.Anonymous()
-		if authz := r.Header.Get("Authorization"); authz != "" {
+		authz := r.Header.Get("Authorization")
+		if authz == "" {
+			// WebSocket clients outside browsers cannot set headers; they
+			// pass the bearer token as a subprotocol "fw.bearer.<token>".
+			for _, proto := range strings.Split(r.Header.Get("Sec-WebSocket-Protocol"), ",") {
+				if tok, ok := strings.CutPrefix(strings.TrimSpace(proto), "fw.bearer."); ok {
+					authz = "Bearer " + tok
+				}
+			}
+		}
+		if authz != "" {
 			token, ok := strings.CutPrefix(authz, "Bearer ")
 			if !ok {
 				httpserver.WriteError(w, r, kernel.ErrUnauthenticated)

@@ -7,3 +7,5 @@ node_modules/
 __pycache__/
 .venv/
 .fw/
+sdk/ts/gen/
+sdk/ts/smoke/gen/

@@ -1,4 +1,4 @@
-.PHONY: build test lint fuzz ui depguard clean
+.PHONY: build test lint fuzz ui sdk depguard clean
 
 GO ?= go
 
@@ -25,3 +25,9 @@ ui:
 
 clean:
 	rm -rf bin
+
+# Generate the tracker client and typecheck the SDK (spec 13).
+sdk:
+	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/gen
+	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
+	cd sdk/ts && pnpm install && pnpm run typecheck

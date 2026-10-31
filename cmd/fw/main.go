@@ -18,7 +18,7 @@ func main() {
 		SilenceErrors: true,
 	}
 	root.AddCommand(initCmd(), validateCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
-		exportCmd(), importCmd(), planCmd(), applyCmd())
+		exportCmd(), importCmd(), planCmd(), applyCmd(), codegenCmd())
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "fw:", err)
 		os.Exit(1)

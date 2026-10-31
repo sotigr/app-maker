@@ -143,7 +143,7 @@ func (h *Handler) ws(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	c, err := websocket.Accept(w, r, nil)
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{"fw"}})
 	if err != nil {
 		return
 	}
