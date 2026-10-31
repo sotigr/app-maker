@@ -190,3 +190,22 @@ func (r *RiverSQLite) Committed(ctx context.Context) ([]kernel.JobRequest, error
 	}
 	return out, rows.Err()
 }
+
+type scheduleFunc func(time.Time) time.Time
+
+func (f scheduleFunc) Next(t time.Time) time.Time { return f(t) }
+
+// AddPeriodic registers a periodic job; River enqueues each occurrence once
+// through its own leadership in the database (spec 2.5).
+func (r *RiverSQLite) AddPeriodic(name string, next func(time.Time) time.Time, job kernel.JobRequest) error {
+	params := toParams([]kernel.JobRequest{job})
+	if len(params) == 0 {
+		return nil
+	}
+	p := params[0]
+	defer func() { _ = recover() }() // insert-only clients cannot schedule
+	r.client.PeriodicJobs().Add(river.NewPeriodicJob(scheduleFunc(next),
+		func() (river.JobArgs, *river.InsertOpts) { return p.Args, p.InsertOpts },
+		&river.PeriodicJobOpts{ID: name}))
+	return nil
+}

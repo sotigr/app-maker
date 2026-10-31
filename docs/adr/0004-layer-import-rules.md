@@ -39,3 +39,8 @@ Test files (`_test.go`) are excluded from the depguard layer rules. Tests act as
 composition root: domain tests wire the real expression compiler and the jsonschema adapter
 instead of fakes, so the compiler is tested against the behavior it has in production.
 Production code in the same packages still follows the rules above.
+
+## Addendum: concurrency helpers
+
+Application packages may import `golang.org/x/sync` (errgroup), as section 15.6 prescribes
+errgroup for fan-out. Domain packages still start no goroutines.

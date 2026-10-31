@@ -1,0 +1,9 @@
+{
+  "flow": "rejectSpam",
+  "title": "Refuse spam comments",
+  "trigger": { "beforeWrite": ["create", "update"], "on": "urn:app:feature:comment" },
+  "nodes": {
+    "check": { "node": "reject", "when": "lower(feature.body) contains 'buy now'",
+               "in": { "code": "'spam'", "message": "'comment looks like spam'", "status": "422" } }
+  }
+}

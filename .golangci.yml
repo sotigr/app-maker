@@ -93,6 +93,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         schema-infrastructure:
           list-mode: lax
           files: ["**/internal/schema/infrastructure/**", "!$test"]
@@ -323,6 +324,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         content-infrastructure:
           list-mode: lax
           files: ["**/internal/content/infrastructure/**", "!$test"]
@@ -553,6 +555,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         access-infrastructure:
           list-mode: lax
           files: ["**/internal/access/infrastructure/**", "!$test"]
@@ -783,6 +786,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         query-infrastructure:
           list-mode: lax
           files: ["**/internal/query/infrastructure/**", "!$test"]
@@ -1013,6 +1017,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         change-infrastructure:
           list-mode: lax
           files: ["**/internal/change/infrastructure/**", "!$test"]
@@ -1243,6 +1248,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         flow-infrastructure:
           list-mode: lax
           files: ["**/internal/flow/infrastructure/**", "!$test"]
@@ -1473,6 +1479,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         runtime-infrastructure:
           list-mode: lax
           files: ["**/internal/runtime/infrastructure/**", "!$test"]
@@ -1703,6 +1710,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         integration-infrastructure:
           list-mode: lax
           files: ["**/internal/integration/infrastructure/**", "!$test"]
@@ -1933,6 +1941,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/sync
         manifest-infrastructure:
           list-mode: lax
           files: ["**/internal/manifest/infrastructure/**", "!$test"]

@@ -66,6 +66,8 @@ var Defaults = []PolicyDoc{
 		Update: "isOwner(feature)", Delete: "isOwner(feature)"},
 	{Type: string(schemaapi.TypeServiceAccount), Read: "isOwner(feature)", Create: "principal.kind != 'anonymous'",
 		Update: "isOwner(feature)", Delete: "isOwner(feature)"},
+	// The built-in transfer action of Ownable types (spec 10.3).
+	{Type: string(schemaapi.TraitOwnable), Actions: map[string]string{"transfer": "isOwner(feature)"}},
 	{Type: string(schemaapi.TypeGrant), Read: "principal.id == feature.subject || hasRole(feature, 'admin')",
 		Create: "hasRole(parent, 'admin')", Delete: "hasRole(feature, 'admin')"},
 }

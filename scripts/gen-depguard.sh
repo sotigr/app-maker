@@ -82,6 +82,7 @@ $(for l in "${PURE_LIBS[@]}"; do echo "            - ${l}"; done)
             - ${MOD}/internal/${c}/application
 $(all_apis)
 $(for l in "${PURE_LIBS[@]}"; do echo "            - ${l}"; done)
+            - golang.org/x/sync
         ${c}-infrastructure:
           list-mode: lax
           files: ["**/internal/${c}/infrastructure/**", "!\$test"]

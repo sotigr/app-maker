@@ -29,10 +29,10 @@ type BeforeWriteHook interface {
 	BeforeWrite(ctx context.Context, req BeforeWriteRequest) (BeforeWriteResult, error)
 }
 
-// BeforeWriteResult carries a before-write flow's staged changes.
+// BeforeWriteResult carries before-write flows' staged writes; they join
+// the triggering batch. Temporary references must be unique per call.
 type BeforeWriteResult struct {
-	// Set holds field values the flow computed for the written feature.
-	Set map[string]any
+	Ops []Op
 }
 
 func (s *Service) beforeWrite(ctx context.Context, wc WriteContext, w *work) error {
@@ -46,6 +46,15 @@ func (s *Service) beforeWrite(ctx context.Context, wc WriteContext, w *work) err
 	if w.op.Op != OpDelete && w.feature != nil {
 		req.After = domain.ExprDocument(w.feature.Snapshot())
 	}
-	_, err := s.d.BeforeWrite.BeforeWrite(ctx, req)
-	return err
+	res, err := s.d.BeforeWrite.BeforeWrite(ctx, req)
+	if err != nil {
+		return err
+	}
+	if len(res.Ops) > 0 && w.tx != nil {
+		w.tx.staged = append(w.tx.staged, res.Ops...)
+		for range res.Ops {
+			w.tx.origin = append(w.tx.origin, w.index)
+		}
+	}
+	return nil
 }

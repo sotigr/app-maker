@@ -1,0 +1,13 @@
+{
+  "flow": "inboundIssue",
+  "title": "Create a task from an inbound issue webhook",
+  "trigger": { "webhook": "issues", "secret": "${secret:issues-webhook}" },
+  "runAs": "system",
+  "privileged": true,
+  "input": { "type": "object", "properties": { "project": { "type": "string" }, "title": { "type": "string" } },
+             "required": ["project", "title"] },
+  "nodes": {
+    "task": { "node": "feature.create",
+              "in": { "type": "'task'", "parent": "input.project", "data": { "title": "'[inbound] ' + input.title" } } }
+  }
+}

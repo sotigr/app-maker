@@ -1,0 +1,21 @@
+{
+  "flow": "completeTask",
+  "version": 1,
+  "title": "Complete a task",
+  "trigger": { "action": "complete", "on": "urn:app:feature:task" },
+  "input":  { "type": "object", "properties": { "note": { "type": "string", "maxLength": 2000 } }, "additionalProperties": false },
+  "output": { "type": "object", "properties": { "late": { "type": "boolean" } } },
+  "timeoutMs": 10000,
+  "nodes": {
+    "project": { "node": "feature.get", "in": { "id": "feature.parentId" } },
+    "late":    { "node": "expr", "in": { "expr": "feature.dueAt != nil && now() > feature.dueAt" } },
+    "setDone": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/status": "'done'" } } },
+    "comment": { "node": "feature.create", "when": "input.note != nil && input.note != ''",
+                 "in": { "type": "'comment'", "parent": "feature.id", "data": { "body": "input.note" } } },
+    "notify":  { "node": "email.send", "when": "nodes.late.out == true",
+                 "in": { "to": "env.supportEmail", "template": "'late-task'",
+                         "vars": { "title": "feature.title", "project": "nodes.project.out.title" } } }
+  },
+  "edges": [["project", "notify"], ["late", "notify"], ["late", "setDone"]],
+  "result": { "late": "nodes.late.out" }
+}

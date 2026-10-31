@@ -1,0 +1,12 @@
+{
+  "flow": "notifyAssignee",
+  "title": "Tell a new assignee",
+  "trigger": { "event": ["updated"], "on": "urn:app:feature:task",
+               "when": "changed('/assignee') && after.assignee != nil" },
+  "nodes": {
+    "assignee": { "node": "feature.get", "in": { "id": "feature.assignee" } },
+    "mail": { "node": "email.send",
+              "in": { "to": "nodes.assignee.out.email ?? env.supportEmail", "template": "'assigned'",
+                      "vars": { "title": "feature.title" } } }
+  }
+}

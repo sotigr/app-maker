@@ -1,0 +1,5 @@
+Subject: Daily digest
+
+Open tasks:
+{{range .titles}}- {{.}}
+{{end}}

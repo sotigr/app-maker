@@ -26,6 +26,8 @@
     within one InsertMany batch is an error** → dedupe the batch first; across batches it is skipped.
   - Workers are typed by args type; framework uses ONE River kind `fw` whose args carry the real kind,
     and dispatches via `platform/jobs.Registry`.
+  - `git stash --include-untracked` + pop does NOT restore empty directories (lost examples/tracker/flows
+    etc. once) → keep `.gitkeep` in empty manifest dirs; verify commits in a `git worktree` instead.
   - `pkill -f <pattern>` can kill the calling shell if the pattern is in the command line (exit 144).
 
 ## Design facts worth remembering

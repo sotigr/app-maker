@@ -2,7 +2,7 @@
 
 _Last updated: 2026-10-31_
 
-## Current phase: 5 – Flow engine (next)
+## Current phase: 6 – Manifest context + `fw` CLI (next) → completes the vertical slice
 
 ### Done
 - **Phase 0** bootstrap: notes, ADRs 0001–0006, Makefile, depguard generator (`scripts/gen-depguard.sh`).
@@ -36,13 +36,28 @@ _Last updated: 2026-10-31_
   - SQLite credential store, SQL idempotency store; `internal/app` wires driver `sqlite`.
   - e2e suite runs on both memory and sqlite; jobs verified to run via River.
 
-### Next (phase 5): flow engine
-- flow/domain: definition parsing (§10.4), GraphValidator (all §10.14 rules), node registry + catalog,
-  executor (topological, concurrent, write set, one commit), run context and expressions.
-- Triggers: beforeWrite (hook into content pipeline), action (`POST /v1/actions/{type}/{id}/{action}`,
-  generated `transition` + `transfer`), event (CommitHook enqueues run_flow), schedule (River periodic
-  jobs; in-process ticker for memory), webhook (`POST /v1/hooks/{name}`, HMAC).
-- Causation chain + loop stop, flowRun records, retries, time budgets, effects (email/webhook jobs).
+- **Phase 5** (M8) flow engine:
+  - flow/domain: Definition (5 triggers), NodeRegistry/NodeType/Runtime ports, Compile (all §10.14 rules,
+    inferred deps from `nodes.X` refs, typed envs, forEach subgraphs), cron.
+  - flow/application: Engine (levels run concurrently, when/skip, onError, retries, forEach, subflow,
+    write set with read-through, single commit via content FlowAccess, conflict retry x3, causation
+    + loop_stopped, run records), built-in nodes (expr, template, feature.get/query/children,
+    feature.create/update/delete/move, email.send, webhook.call, http.request, if, switch, forEach,
+    subflow, reject, fail), triggers (EventHook commit hook → run_flow jobs, BeforeWrite staging,
+    InvokeAction incl. transition/transfer, Webhook HMAC, Schedules), Catalog for the editor.
+  - integration: templates (templates/email/*.txt, "Subject:" line), deliver_email/deliver_webhook.
+  - platform/egress (private/metadata blocking), periodic jobs (River + in-process).
+  - content: FlowAccess port + before-write staged ops join the batch.
+  - Tracker flows: completeTask (action), notifyAssignee (event), rejectSpam (beforeWrite),
+    dailyDigest (schedule, forEach), inboundIssue (webhook). e2e tests on memory + sqlite.
+  - ADR 0007 records the engine choices.
+
+### Next (phase 6): manifest context + fw CLI
+- `cmd/fw`: init, dev (SQLite + River + fake LLM, hot reload, seed), validate, plan, apply, test
+  (manifest tests §12.6), seed, export/import, runs, login/token create.
+- manifest: deploy records, plan/diff (compat checker per type, policy/flow changes, privileged flows),
+  migrations (expand/migrate/contract, migrate_batch jobs).
+- Tracker manifest tests in examples/tracker/tests.
 
 ## Phase roadmap
 
@@ -53,8 +68,8 @@ _Last updated: 2026-10-31_
 | 2 | Content, memory repo, conformance, in-process jobs | M2 | done |
 | 3 | Access, HTTP API, query, health, config, manifest loader, fwd | M3 | done |
 | 4 | SQLite repo + River (riversqlite) | part M4 | done |
-| 5 | Flow engine, triggers, actions, effects | M8 | next |
-| 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | todo |
+| 5 | Flow engine, triggers, actions, effects | M8 | done |
+| 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | next |
 | 7 | Admin console + visual flow editor (React Flow) | M9 part | todo |
 | 8 | Change log + gateway streaming (SSE/WS) | M6 | todo |
 | 9 | TS SDK + codegen | M7 | todo |
@@ -64,9 +79,8 @@ _Last updated: 2026-10-31_
 
 ## Open issues / deferred
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
-- Before-write flows: hook exists (`content/application/beforewrite.go`), runner in phase 5.
-- Actions endpoint `POST /v1/actions/{type}/{id}/{action}` not yet served (phase 5); the pipeline
-  already supports `WriteContext.Action` (unlocks x-write action fields, enforces transitions).
+- `emit` node, code nodes, `llm.complete`: not registered yet (phase 12).
+- River `dead_letter` run status is not recorded yet (failures are recorded as failed per attempt).
 - publish_events jobs are consumed by a no-op handler until the change log (phase 8).
 - Rate limiting per principal/IP (§14.1) not yet (phase 12); login limiter exists.
 - Query view for non-admins is the **public** query view (owner-tier fields not filterable).

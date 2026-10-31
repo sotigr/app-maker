@@ -14,17 +14,29 @@ import (
 	"time"
 
 	"app-maker/internal/app"
+	integrationinfra "app-maker/internal/integration/infrastructure"
 	"app-maker/internal/kernel"
+	manifestdomain "app-maker/internal/manifest/domain"
+	manifestfs "app-maker/internal/manifest/infrastructure/fs"
 	"app-maker/platform/config"
 )
 
 const adminEmail, adminPassword = "admin@example.com", "correct-horse-battery"
 
 type server struct {
-	t     *testing.T
-	url   string
-	rt    *app.Runtime
-	clock *kernel.FakeClock
+	t      *testing.T
+	url    string
+	rt     *app.Runtime
+	clock  *kernel.FakeClock
+	emails *integrationinfra.Recorder
+}
+
+// testSecrets resolves the secrets used by tracker flows in tests.
+func testSecrets(ref string) (string, bool) {
+	if ref == "${secret:issues-webhook}" {
+		return "s3cret", true
+	}
+	return "", false
 }
 
 // eachDriver runs fn against the memory and the SQLite (+River) backends.
@@ -34,9 +46,19 @@ func eachDriver(t *testing.T, fn func(t *testing.T, driver string)) {
 	}
 }
 
-func start(t *testing.T, driver string) *server {
+func start(t *testing.T, driver string) *server { return startWith(t, driver, nil) }
+
+// startWith starts the tracker plus extra flow files (test-only flows).
+func startWith(t *testing.T, driver string, extraFlows map[string]string) *server {
 	t.Helper()
-	compiled, err := app.Load("../../examples/tracker", "dev")
+	m, err := manifestfs.Load("../../examples/tracker", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, src := range extraFlows {
+		m.Flows = append(m.Flows, manifestdomain.File{Path: "flows/" + name, Data: []byte(src)})
+	}
+	compiled, err := app.Compile(m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,8 +73,9 @@ func start(t *testing.T, driver string) *server {
 	clock := kernel.NewFakeClock(time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+	emails := &integrationinfra.Recorder{}
 	rt, err := app.Build(ctx, cfg, compiled, app.Options{Clock: clock, FastHashing: true,
-		Log: slog.New(slog.DiscardHandler), JobBackoff: time.Millisecond})
+		Log: slog.New(slog.DiscardHandler), JobBackoff: time.Millisecond, Email: emails, Secrets: testSecrets})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +88,7 @@ func start(t *testing.T, driver string) *server {
 	}
 	ts := httptest.NewServer(rt.Handler)
 	t.Cleanup(ts.Close)
-	return &server{t: t, url: ts.URL, rt: rt, clock: clock}
+	return &server{t: t, url: ts.URL, rt: rt, clock: clock, emails: emails}
 }
 
 type client struct {

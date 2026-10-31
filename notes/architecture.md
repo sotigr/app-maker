@@ -42,6 +42,11 @@ Module: `app-maker`. Layout follows spec §15.1. Layer rules: §15.2 + ADR 0004 
 | `content/interfaces/http` | /v1/features, /v1/query, /v1/transactions |
 | `change/api` | Event, EventKind, publish_events job args |
 | `flow/api` | CausationChain |
+| `flow/domain` | Definition, Trigger, NodeSpec, NodeType/Runtime/NodeRegistry, Compile → FlowSet/Flow/Graph/ExprTree, Cron, RejectError/FailError |
+| `flow/application` | Engine (Run, EventHook, BeforeWrite, InvokeAction, Webhook, Schedules, HandleRunFlow, Catalog), Builtins, writeSet |
+| `flow/interfaces/http` | /v1/actions/{type}/{id}/{action}, /v1/hooks/{name}, /v1/flows |
+| `integration/{domain,application,infrastructure}` | Templates, Sign, Delivery (deliver_email/webhook), LogSender, Recorder |
+| `platform/egress` | outbound HTTP policy |
 | `manifest/domain`, `manifest/infrastructure/fs` | Manifest, AppConfig, Substitute, ComputeHash; loader |
 | `platform/{config,httpserver,health,jobs}` | config, problem details + middleware, probes, job registry + in-process runner |
 | `internal/app` | Load/Compile (manifest → registry, policies, roles), Build (wiring), Runtime |
@@ -60,6 +65,10 @@ Module: `app-maker`. Layout follows spec §15.1. Layer rules: §15.2 + ADR 0004 
 | `runtime/api.Compiler` | runtime/domain/expression |
 | `query/api.Planner` | query/domain.Planner |
 | `content/api.SystemReader/Writer` | content/application.System |
+| `content/api.FlowAccess` | content/application.FlowPorts |
+| content `CommitHook` | flow/application.EventHook |
+| content `BeforeWriteHook` | internal/app.beforeWriteAdapter → flow Engine.BeforeWrite |
+| flow `RunRecorder` | internal/app.runRecorder (flowRun features) |
 | `kernel.JobEnqueuer` | platform/jobs.InProcess, platform/jobs.RiverSQLite |
 | `content/infrastructure/sqlite.TxJobInserter` | platform/jobs.RiverSQLite |
 | `platform/httpserver.IdempotencyStore` | MemoryIdempotency, SQLIdempotency |

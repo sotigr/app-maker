@@ -42,7 +42,9 @@ type Deps struct {
 	Hooks       []CommitHook
 	BeforeWrite BeforeWriteHook // optional (spec 10.2)
 	Planner     queryapi.Planner
-	Limits      Limits
+	// Jobs enqueues jobs that accompany no write (effect-only flow runs).
+	Jobs   kernel.JobEnqueuer
+	Limits Limits
 }
 
 // Service implements the Content application use cases.
@@ -59,6 +61,16 @@ func NewService(d Deps) *Service {
 		d.Limits.MaxDocumentBytes = 256 << 10
 	}
 	return &Service{d: d}
+}
+
+// SetJobs sets the enqueuer for jobs without writes.
+func (s *Service) SetJobs(j kernel.JobEnqueuer) { s.d.Jobs = j }
+
+func (s *Service) enqueueJobs(ctx context.Context, jobs []kernel.JobRequest) error {
+	if s.d.Jobs == nil {
+		return errors.New("no job enqueuer configured")
+	}
+	return s.d.Jobs.Enqueue(ctx, jobs)
 }
 
 // AddHook appends a commit hook; used at wiring time to break cycles.

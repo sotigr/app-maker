@@ -1,0 +1,3 @@
+Subject: Late task completed: {{.title}}
+
+The task "{{.title}}" in {{.project}} was completed after its due date.

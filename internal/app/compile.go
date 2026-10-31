@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	accessdomain "app-maker/internal/access/domain"
+	flowapp "app-maker/internal/flow/application"
+	flowdomain "app-maker/internal/flow/domain"
 	manifestdomain "app-maker/internal/manifest/domain"
 	manifestfs "app-maker/internal/manifest/infrastructure/fs"
 	"app-maker/internal/runtime/domain/expression"
@@ -56,7 +58,20 @@ type Compiled struct {
 	Types    *schemadomain.Registry
 	Policies *accessdomain.PolicySet
 	Roles    *accessdomain.Roles
+	Flows    *flowdomain.FlowSet
+	Nodes    *flowdomain.NodeRegistry
 	Warnings []Problem
+}
+
+// NodeCatalog returns the registry of built-in node types.
+func NodeCatalog() *flowdomain.NodeRegistry {
+	nodes := flowdomain.NewNodeRegistry()
+	for _, n := range flowapp.Builtins() {
+		if err := nodes.Register(n); err != nil {
+			panic(err) // programmer error at startup
+		}
+	}
+	return nodes
 }
 
 // Load reads a manifest directory and compiles it (fw validate).
@@ -106,8 +121,17 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 			probs = append(probs, pr)
 		}
 	}
+	nodes := NodeCatalog()
+	fsrc := make([]flowdomain.Source, len(m.Flows))
+	for i, f := range m.Flows {
+		fsrc[i] = flowdomain.Source{File: f.Path, Data: f.Data}
+	}
+	flows, fp := flowdomain.Compile(flowdomain.CompileDeps{Types: reg, Exprs: exprs, Nodes: nodes, Validators: jsonschema.Factory{}}, fsrc)
+	for _, p := range fp {
+		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
+	}
 	if len(probs) > 0 {
 		return nil, &ValidationError{Problems: append(probs, warnings...)}
 	}
-	return &Compiled{Manifest: m, Types: reg, Policies: policies, Roles: roles, Warnings: warnings}, nil
+	return &Compiled{Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, Warnings: warnings}, nil
 }

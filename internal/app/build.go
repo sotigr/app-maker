@@ -24,12 +24,18 @@ import (
 	contentmem "app-maker/internal/content/infrastructure/memory"
 	contentsqlite "app-maker/internal/content/infrastructure/sqlite"
 	contenthttp "app-maker/internal/content/interfaces/http"
+	flowapp "app-maker/internal/flow/application"
+	flowhttp "app-maker/internal/flow/interfaces/http"
+	integrationapp "app-maker/internal/integration/application"
+	integrationdomain "app-maker/internal/integration/domain"
+	integrationinfra "app-maker/internal/integration/infrastructure"
 	"app-maker/internal/kernel"
 	queryapi "app-maker/internal/query/api"
 	querydomain "app-maker/internal/query/domain"
 	schemaapi "app-maker/internal/schema/api"
 	schemahttp "app-maker/internal/schema/interfaces/http"
 	"app-maker/platform/config"
+	"app-maker/platform/egress"
 	"app-maker/platform/health"
 	"app-maker/platform/httpserver"
 	"app-maker/platform/jobs"
@@ -45,6 +51,10 @@ type Options struct {
 	FastHashing bool
 	// JobBackoff overrides the first retry delay of in-process jobs.
 	JobBackoff time.Duration
+	// Email overrides the email sender (manifest tests record emails).
+	Email integrationapp.EmailSender
+	// Secrets overrides secret resolution (tests).
+	Secrets func(ref string) (string, bool)
 }
 
 // Runtime is a wired instance of the framework running one app.
@@ -60,6 +70,7 @@ type Runtime struct {
 	JobKinds   *jobs.Registry
 	Health     *health.Registry
 	Handler    http.Handler
+	Engine     *flowapp.Engine
 	Log        *slog.Logger
 	repos      *contentdomain.RepositoryRegistry
 	dbs        map[string]*sqlitedb.DB
@@ -181,11 +192,58 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	authCfg := accessapp.AuthConfig{PasswordEnabled: c.Manifest.App.Auth.Password.Enabled, MinPasswordLength: c.Manifest.App.Auth.Password.MinLength}
 	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 
+	// Flows (spec 10) and effects (spec 14.5).
+	rt.Content.SetJobs(rt.Enqueuer)
+	secrets := opt.Secrets
+	if secrets == nil {
+		secrets = envSecrets
+	}
+	var tfiles []struct{ Path, Data string }
+	for _, f := range c.Manifest.Templates {
+		tfiles = append(tfiles, struct{ Path, Data string }{f.Path, string(f.Data)})
+	}
+	templates, err := integrationdomain.NewTemplates(templateSources(tfiles))
+	if err != nil {
+		return nil, err
+	}
+	out := egress.New(egress.Config{AllowPrivate: cfg.Dev})
+	settings := c.Manifest.App.Settings
+	rt.Engine = flowapp.NewEngine(flowapp.Deps{
+		Flows: c.Flows, Content: rt.Content.FlowAccess(), Authorizer: rt.Authorizer, Types: c.Types,
+		Clock: opt.Clock, IDs: opt.IDs, Jobs: rt.Enqueuer, HTTP: out, Templates: templates, Settings: settings,
+		Resolve: rt.Auth.Resolve, Recorder: runRecorder{w: sys}, Log: opt.Log, Secrets: secrets, Nodes: c.Nodes,
+	})
+	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
+	rt.Content.AddHook(rt.Engine.EventHook())
+	rt.JobKinds.Register(flowapp.JobRunFlow, rt.Engine.HandleRunFlow, 15*time.Minute)
+	email := opt.Email
+	if email == nil {
+		email = integrationinfra.LogSender{Log: opt.Log}
+	}
+	delivery := &integrationapp.Delivery{Email: email, HTTP: out, Templates: templates, Secrets: secrets, Clock: opt.Clock}
+	rt.JobKinds.Register(flowapp.JobDeliverEmail, delivery.HandleEmail, time.Minute)
+	rt.JobKinds.Register(flowapp.JobDeliverWebhook, delivery.HandleWebhook, time.Minute)
+	schedules, err := rt.Engine.Schedules()
+	if err != nil {
+		return nil, err
+	}
+	for _, sc := range schedules {
+		if rt.River != nil {
+			err = rt.River.AddPeriodic(sc.Name, sc.Next, sc.Job)
+		} else {
+			err = rt.Jobs.AddPeriodic(sc.Name, sc.Next, sc.Job)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// HTTP (spec 6).
 	mux := http.NewServeMux()
 	accessH := accesshttp.New(rt.Auth, cfg.HTTP.SecureCookies)
 	accessH.Register(mux)
 	contenthttp.New(rt.Content).Register(mux)
+	flowhttp.New(rt.Engine).Register(mux)
 	schemahttp.New(c.Types, c.Manifest.App.App, c.Manifest.App.Version).Register(mux)
 	var idem httpserver.IdempotencyStore = httpserver.NewMemoryIdempotency()
 	if db, ok := rt.dbs[cfg.Repositories["default"].DSN]; ok {

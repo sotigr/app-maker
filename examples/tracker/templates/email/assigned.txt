@@ -1,0 +1,3 @@
+Subject: You were assigned: {{.title}}
+
+You are now the assignee of "{{.title}}".

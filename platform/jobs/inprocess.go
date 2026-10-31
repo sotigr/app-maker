@@ -44,6 +44,36 @@ type InProcess struct {
 	completed int
 	started   bool
 	wake      map[string]chan struct{}
+	periodic  []periodic
+}
+
+type periodic struct {
+	name string
+	next func(time.Time) time.Time
+	job  kernel.JobRequest
+}
+
+// AddPeriodic registers a periodic job; it starts with Start. In-process
+// scheduling suits the single topology only.
+func (p *InProcess) AddPeriodic(name string, next func(time.Time) time.Time, job kernel.JobRequest) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.periodic = append(p.periodic, periodic{name: name, next: next, job: job})
+	return nil
+}
+
+func (p *InProcess) runPeriodic(ctx context.Context, pj periodic) {
+	for {
+		wait := time.Until(pj.next(time.Now()))
+		t := time.NewTimer(wait)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return
+		case <-t.C:
+			_ = p.Enqueue(ctx, []kernel.JobRequest{pj.job})
+		}
+	}
 }
 
 type pendingJob struct {
@@ -126,7 +156,11 @@ func (p *InProcess) Start(ctx context.Context) {
 	for q := range queues {
 		p.signal(q)
 	}
+	periodics := append([]periodic(nil), p.periodic...)
 	p.mu.Unlock()
+	for _, pj := range periodics {
+		go p.runPeriodic(ctx, pj)
+	}
 	for q, n := range queues {
 		for i := 0; i < n; i++ {
 			go p.worker(ctx, q)

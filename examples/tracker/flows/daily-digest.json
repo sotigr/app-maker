@@ -1,0 +1,16 @@
+{
+  "flow": "dailyDigest",
+  "title": "Daily digest of open tasks",
+  "trigger": { "schedule": "0 8 * * *" },
+  "runAs": "system",
+  "privileged": true,
+  "nodes": {
+    "open": { "node": "feature.query",
+              "in": { "type": "'task'", "where": "{'field': '/status', 'op': 'ne', 'value': 'done'}", "limit": "100" } },
+    "titles": { "node": "forEach", "in": { "items": "nodes.open.out" }, "maxItems": 100,
+                "do": { "nodes": { "t": { "node": "expr", "in": { "expr": "item.title" } } }, "result": "nodes.t.out" } },
+    "mail": { "node": "email.send", "when": "len(nodes.titles.out) > 0",
+              "in": { "to": "env.supportEmail", "template": "'digest'", "vars": { "titles": "nodes.titles.out" } } }
+  },
+  "result": { "count": "len(nodes.titles.out)" }
+}

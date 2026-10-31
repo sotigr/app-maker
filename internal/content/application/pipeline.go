@@ -82,6 +82,7 @@ type work struct {
 	deleted bool
 	extra   []*work // cascaded deletes and setNull updates
 	ref     *accessapi.FeatureRef
+	tx      *txState
 }
 
 // Execute runs operations through the write pipeline and commits them in
@@ -115,6 +116,56 @@ func (s *Service) Execute(ctx context.Context, wc WriteContext, ops []Op) (TxRes
 	if err := s.loadAll(ctx, repo, works); err != nil {
 		return TxResult{}, err
 	}
+	tx := &txState{}
+	for _, w := range works {
+		w.tx = tx
+	}
+	if err := s.prepareAll(ctx, wc, repo, works, now); err != nil {
+		return TxResult{}, err
+	}
+	// Writes staged by before-write flows join the batch and go through
+	// the same pipeline (spec 10.6 step 3).
+	if len(tx.staged) > 0 {
+		extra, extraRefs, err := s.resolve(tx.staged)
+		if err != nil {
+			return TxResult{}, err
+		}
+		seen := map[kernel.ID]bool{}
+		for _, w := range works {
+			seen[w.id] = true
+		}
+		for i, w := range extra {
+			if w.ct.Repository != repoName {
+				return TxResult{}, kernel.ErrCrossRepository
+			}
+			if seen[w.id] {
+				return TxResult{}, kernel.NewError(kernel.CodeValidationFailed, "a before-write flow changed a feature of the write itself")
+			}
+			w.index = tx.origin[i]
+		}
+		if err := s.loadAll(ctx, repo, extra); err != nil {
+			return TxResult{}, err
+		}
+		inner := wc
+		inner.SkipBeforeWrite = true
+		if err := s.prepareAll(ctx, inner, repo, extra, now); err != nil {
+			return TxResult{}, err
+		}
+		works = append(works, extra...)
+		for k, v := range extraRefs {
+			refs[k] = v
+		}
+	}
+	return s.commit(ctx, wc, repo, works, refs)
+}
+
+// txState is shared by the operations of one Execute call.
+type txState struct {
+	staged []Op // writes staged by before-write flows
+	origin []int
+}
+
+func (s *Service) prepareAll(ctx context.Context, wc WriteContext, repo domain.FeatureRepository, works []*work, now timeT) error {
 	created := map[kernel.ID]*work{}
 	for _, w := range works {
 		var err error
@@ -130,10 +181,10 @@ func (s *Service) Execute(ctx context.Context, wc WriteContext, ops []Op) (TxRes
 			err = s.prepareMove(ctx, wc, w, created, now)
 		}
 		if err != nil {
-			return TxResult{}, opErr(w.index, err)
+			return opErr(w.index, err)
 		}
 	}
-	return s.commit(ctx, wc, repo, works, refs)
+	return nil
 }
 
 // MoveFeature changes a feature's parent (spec 6.2 POST /features/{id}/move).
