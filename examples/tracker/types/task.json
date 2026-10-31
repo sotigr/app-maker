@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:app:feature:task/v2",
+  "title": "Task",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:ownable", "urn:sys:trait:timestamped"],
+  "x-allowedChildren": ["urn:app:feature:comment"],
+  "properties": {
+    "title":    { "type": "string", "maxLength": 200, "x-indexed": true, "x-searchable": true },
+    "status":   { "enum": ["todo", "in_progress", "done"], "default": "todo",
+                  "x-indexed": true, "x-write": "action:transition",
+                  "x-stateMachine": {
+                    "initial": "todo",
+                    "transitions": [
+                      { "from": "todo",        "to": "in_progress", "action": "start" },
+                      { "from": "in_progress", "to": "done",        "action": "complete",
+                        "guard": "principal.id == feature.assignee" },
+                      { "from": "done",        "to": "in_progress", "action": "reopen",
+                        "guard": "'admin' in principal.roles" }
+                    ]
+                  } },
+    "assignee": { "type": ["string", "null"], "x-kind": "ref",
+                  "x-ref": "urn:sys:trait:principal", "x-onDelete": "setNull", "x-indexed": true },
+    "estimate": { "type": "string", "x-kind": "decimal" },
+    "dueAt":    { "type": "string", "format": "date-time", "x-indexed": true },
+    "progress": { "type": "integer", "minimum": 0, "maximum": 100,
+                  "x-stream": { "mode": "state", "maxRate": 10 } },
+    "isLate":   { "type": "boolean", "readOnly": true,
+                  "x-computed": "dueAt != nil && status != 'done' && now() > dueAt" },
+    "internalScore": { "type": "number", "x-visibility": "private" }
+  },
+  "required": ["title"],
+  "additionalProperties": false
+}

@@ -1,0 +1,45 @@
+{
+  "$id": "urn:app:feature:project/v1/views/public.read",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "createdAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    },
+    "description": {
+      "maxLength": 5000,
+      "type": "string"
+    },
+    "doneCount": {
+      "type": "integer"
+    },
+    "owner": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "slug": {
+      "maxLength": 80,
+      "pattern": "^[a-z0-9-]+$",
+      "type": "string"
+    },
+    "taskCount": {
+      "type": "integer"
+    },
+    "title": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "Project",
+  "type": "object"
+}

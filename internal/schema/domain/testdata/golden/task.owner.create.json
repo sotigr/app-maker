@@ -1,0 +1,36 @@
+{
+  "$id": "urn:app:feature:task/v2/views/owner.create",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assignee": {
+      "format": "uuid",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dueAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "estimate": {
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "type": "string"
+    },
+    "progress": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "title": {
+      "maxLength": 200,
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "Task",
+  "type": "object"
+}

@@ -1,0 +1,11 @@
+{
+  "$id": "urn:sys:feature:flow",
+  "title": "Flow",
+  "type": "object",
+  "properties": {
+    "name":       { "type": "string", "maxLength": 200, "x-indexed": true, "x-write": "system" },
+    "version":    { "type": "integer", "minimum": 0, "x-write": "system" },
+    "definition": { "x-kind": "json", "x-write": "system" }
+  },
+  "required": ["name"]
+}

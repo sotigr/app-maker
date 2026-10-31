@@ -1,0 +1,9 @@
+{
+  "$id": "urn:sys:feature:root",
+  "title": "Root",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:ownable"],
+  "properties": {
+    "name": { "type": "string", "maxLength": 120 }
+  }
+}

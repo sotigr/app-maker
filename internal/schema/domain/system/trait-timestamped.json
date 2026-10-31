@@ -1,0 +1,9 @@
+{
+  "$id": "urn:sys:trait:timestamped",
+  "title": "Timestamped",
+  "type": "object",
+  "properties": {
+    "createdAt": { "type": "string", "format": "date-time", "readOnly": true, "x-write": "system", "x-indexed": true },
+    "updatedAt": { "type": "string", "format": "date-time", "readOnly": true, "x-write": "system", "x-indexed": true }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$id": "urn:sys:trait:ownable",
+  "title": "Ownable",
+  "type": "object",
+  "properties": {
+    "owner": { "type": "string", "x-kind": "ref", "x-ref": "urn:sys:trait:principal",
+               "x-write": "action:transfer", "x-indexed": true, "x-onDelete": "restrict" }
+  }
+}

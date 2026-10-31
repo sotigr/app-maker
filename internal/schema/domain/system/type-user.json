@@ -1,0 +1,10 @@
+{
+  "$id": "urn:sys:feature:user",
+  "title": "User",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:principal", "urn:sys:trait:timestamped"],
+  "properties": {
+    "email": { "type": "string", "format": "email", "maxLength": 254,
+               "x-visibility": "owner", "x-write": "admin", "x-indexed": true }
+  }
+}

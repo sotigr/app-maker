@@ -1,0 +1,13 @@
+{
+  "$id": "urn:sys:feature:grant",
+  "title": "Grant",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:timestamped"],
+  "properties": {
+    "subject": { "type": "string", "x-kind": "ref", "x-ref": "urn:sys:trait:principal",
+                 "x-immutable": true, "x-indexed": true, "x-onDelete": "dangle" },
+    "object":  { "type": "string", "x-kind": "ref", "x-immutable": true, "x-indexed": true },
+    "role":    { "type": "string", "maxLength": 64, "x-indexed": true }
+  },
+  "required": ["subject", "object", "role"]
+}

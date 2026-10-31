@@ -1,0 +1,14 @@
+{
+  "$id": "urn:sys:trait:principal",
+  "title": "Principal",
+  "type": "object",
+  "properties": {
+    "displayName": { "type": "string", "maxLength": 120, "x-indexed": true },
+    "kind":   { "enum": ["user", "organization", "team", "service", "system"],
+                "readOnly": true, "x-visibility": "public", "x-write": "system", "x-indexed": true },
+    "roles":  { "type": "array", "items": { "type": "string", "maxLength": 64 }, "maxItems": 100,
+                "x-visibility": "owner", "x-write": "admin" },
+    "status": { "enum": ["active", "suspended", "deleted"], "default": "active",
+                "x-visibility": "owner", "x-write": "admin", "x-indexed": true }
+  }
+}

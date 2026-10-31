@@ -1,0 +1,8 @@
+{
+  "$id": "urn:sys:feature:organization",
+  "title": "Organization",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:principal", "urn:sys:trait:ownable", "urn:sys:trait:timestamped"],
+  "x-allowedChildren": ["urn:sys:feature:team"],
+  "properties": {}
+}

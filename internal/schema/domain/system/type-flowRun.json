@@ -1,0 +1,22 @@
+{
+  "$id": "urn:sys:feature:flowRun",
+  "title": "Flow run",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:timestamped"],
+  "x-retention": "168h",
+  "properties": {
+    "flow":        { "type": "string", "maxLength": 200, "x-indexed": true, "x-write": "system" },
+    "flowVersion": { "type": "integer", "minimum": 0, "x-write": "system" },
+    "trigger":     { "type": "string", "maxLength": 32, "x-indexed": true, "x-write": "system" },
+    "principal":   { "type": ["string", "null"], "x-kind": "ref", "x-write": "system", "x-indexed": true },
+    "status":      { "enum": ["running", "succeeded", "failed", "rejected", "dead_letter", "loop_stopped"],
+                     "x-indexed": true, "x-write": "system" },
+    "startedAt":   { "type": "string", "format": "date-time", "x-indexed": true, "x-write": "system" },
+    "endedAt":     { "type": ["string", "null"], "format": "date-time", "x-write": "system" },
+    "error":       { "x-kind": "json", "x-write": "system" },
+    "causation":   { "x-kind": "json", "x-write": "system" },
+    "nodes":       { "x-kind": "json", "x-write": "system" },
+    "trace":       { "x-kind": "json", "x-write": "system", "x-visibility": "private" }
+  },
+  "required": ["flow", "status"]
+}

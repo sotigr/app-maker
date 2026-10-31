@@ -1,0 +1,10 @@
+{
+  "$id": "urn:sys:feature:team",
+  "title": "Team",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:principal", "urn:sys:trait:ownable", "urn:sys:trait:timestamped"],
+  "properties": {
+    "members": { "type": "array", "items": { "type": "string", "x-kind": "ref", "x-ref": "urn:sys:trait:principal" },
+                 "maxItems": 1000, "x-indexed": true }
+  }
+}
