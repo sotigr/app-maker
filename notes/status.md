@@ -166,6 +166,15 @@ _Last updated: 2026-10-31_
   e2e test/e2e/llm_test.go.
 - NEXT 12b: Python code nodes (proto, runner, fwnode, process isolation, ctx.llm via Router).
   Then blobs, rate limits, OIDC/MFA, OTel.
+  **PAUSED 2026-10-31 waiting on the user** (they left; they will say "continue"). Two open questions
+  were asked and NOT answered yet; ask them again when resuming:
+  1. Runner↔Python worker transport: (recommended) gRPC engine↔runner on a Unix socket
+     (api/proto/codenode/v1/codenode.proto) + stdio length-prefixed JSON frames runner↔Python worker,
+     so fwnode is pure stdlib; or gRPC all the way (fwnode needs grpcio).
+  2. Python deps (spec 11.5, uv): (recommended) implement uv-built venvs keyed by lock hash, skip when
+     uv is absent (nodes without requirements use system python3); or wait for the user to install
+     uv; or stdlib-only for now.
+  Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
   fake/Anthropic/OpenAI-compatible adapters, blobs on local fs + uploads, rate limits, OIDC/MFA,
