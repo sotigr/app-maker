@@ -2,7 +2,7 @@
 
 _Last updated: 2026-10-31_
 
-## Current phase: 6 – Manifest context + `fw` CLI (next) → completes the vertical slice
+## Current phase: 7 – Admin console + visual flow editor (next). VERTICAL SLICE COMPLETE.
 
 ### Done
 - **Phase 0** bootstrap: notes, ADRs 0001–0006, Makefile, depguard generator (`scripts/gen-depguard.sh`).
@@ -52,12 +52,25 @@ _Last updated: 2026-10-31_
     dailyDigest (schedule, forEach), inboundIssue (webhook). e2e tests on memory + sqlite.
   - ADR 0007 records the engine choices.
 
-### Next (phase 6): manifest context + fw CLI
-- `cmd/fw`: init, dev (SQLite + River + fake LLM, hot reload, seed), validate, plan, apply, test
-  (manifest tests §12.6), seed, export/import, runs, login/token create.
-- manifest: deploy records, plan/diff (compat checker per type, policy/flow changes, privileged flows),
-  migrations (expand/migrate/contract, migrate_batch jobs).
-- Tracker manifest tests in examples/tracker/tests.
+- **Phase 6** (M5 core) manifest + CLI → vertical slice complete:
+  - `cmd/fw`: init (scaffold), validate, test (manifest tests §12.6), dev (SQLite+River, seed on fresh
+    db, hot reload via app.Server), login (token in $XDG_CONFIG_HOME/fw/credentials.json), token create,
+    seed (via API), runs list, export/import (NDJSON, ID remap), plan, apply (--plan hash | --auto-approve,
+    --allow-breaking).
+  - `internal/app`: RunManifestTests (fixtures, effect recording, HTTP fixtures), ApplySeed, Switch,
+    Server (Activate swaps runtimes; Start prefers the last applied manifest outside dev), Deployer
+    (/v1/deploy/plan|apply, GET /v1/deploy), MakePlan (compat per type, policies, flows, privileged,
+    exposures, index builds), DeployStore (memory, sqlite `manifest_deploys`).
+  - manifest loader: `ReadDir` + `LoadFiles` (bundles), modules/<name>/... supported.
+  - tracker: tests/task-permissions.test.json (3 tests), seed/dev.json, owners can read tasks/comments.
+
+### Next (phase 7): admin console + visual flow editor (ADR 0002)
+- `admin/` React + Vite + @xyflow/react; built assets embedded in fwd (go:embed) at /admin.
+- Console: login, type browser (GET /v1/schema/types), feature tree/list/forms from views, actions
+  buttons from state machines, principals/grants, flow runs (query flowRun), deploys (GET /v1/deploy).
+- Flow editor: catalog from GET /v1/flows (nodes + flows), nodes/edges/inputs/when editing, x-layout
+  positions, server-side validate endpoint, dev-only save `PUT /v1/dev/manifest/flows/{name}` (cfg.Dev),
+  hot reload picks up the file.
 
 ## Phase roadmap
 
@@ -69,8 +82,8 @@ _Last updated: 2026-10-31_
 | 3 | Access, HTTP API, query, health, config, manifest loader, fwd | M3 | done |
 | 4 | SQLite repo + River (riversqlite) | part M4 | done |
 | 5 | Flow engine, triggers, actions, effects | M8 | done |
-| 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | next |
-| 7 | Admin console + visual flow editor (React Flow) | M9 part | todo |
+| 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
+| 7 | Admin console + visual flow editor (React Flow) | M9 part | next |
 | 8 | Change log + gateway streaming (SSE/WS) | M6 | todo |
 | 9 | TS SDK + codegen | M7 | todo |
 | 10 | PostgreSQL + Valkey (needs Docker) | M4/M6 rest | todo |
@@ -78,6 +91,11 @@ _Last updated: 2026-10-31_
 | 12 | Code nodes (Python), LLM, blobs, OIDC/MFA, limits, observability | M10 (no Helm/OCI) | todo |
 
 ## Open issues / deferred
+- **Data migrations** (§12.5 migrations/*.json, migrate_batch jobs, upcast on read) not implemented;
+  `plan` lists migration files and treats their presence as permission for breaking changes. M5's
+  "100,000-feature migration while serving" criterion is open.
+- Manifest activation is in-process only (single replica); multi-replica `manifest-activated` events
+  and the 30 s fallback poll belong with the change log (phase 8/10).
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
 - `emit` node, code nodes, `llm.complete`: not registered yet (phase 12).
 - River `dead_letter` run status is not recorded yet (failures are recorded as failed per attempt).

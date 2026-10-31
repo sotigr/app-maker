@@ -1,6 +1,6 @@
 {
   "type": "urn:app:feature:comment",
-  "read":   "hasRole(feature, 'viewer')",
+  "read":   "hasRole(feature, 'viewer') || isOwner(feature)",
   "create": "hasRole(parent, 'viewer')",
   "update": "isOwner(feature)",
   "delete": "isOwner(feature) || hasRole(feature, 'admin')"

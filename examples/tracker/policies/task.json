@@ -1,6 +1,6 @@
 {
   "type": "urn:app:feature:task",
-  "read":   "hasRole(feature, 'viewer')",
+  "read":   "hasRole(feature, 'viewer') || isOwner(feature)",
   "create": "hasRole(parent, 'editor')",
   "update": "hasRole(feature, 'editor') || principal.id == feature.assignee",
   "delete": "hasRole(feature, 'admin') || isOwner(feature)",

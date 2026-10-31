@@ -55,6 +55,8 @@ type Options struct {
 	Email integrationapp.EmailSender
 	// Secrets overrides secret resolution (tests).
 	Secrets func(ref string) (string, bool)
+	// Deployer serves /v1/deploy when set (fwd, fw dev).
+	Deployer *Deployer
 }
 
 // Runtime is a wired instance of the framework running one app.
@@ -71,6 +73,7 @@ type Runtime struct {
 	Health     *health.Registry
 	Handler    http.Handler
 	Engine     *flowapp.Engine
+	Deploys    DeployStore
 	Log        *slog.Logger
 	repos      *contentdomain.RepositoryRegistry
 	dbs        map[string]*sqlitedb.DB
@@ -246,10 +249,17 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	flowhttp.New(rt.Engine).Register(mux)
 	schemahttp.New(c.Types, c.Manifest.App.App, c.Manifest.App.Version).Register(mux)
 	var idem httpserver.IdempotencyStore = httpserver.NewMemoryIdempotency()
+	rt.Deploys = &memoryDeploys{}
 	if db, ok := rt.dbs[cfg.Repositories["default"].DSN]; ok {
 		if idem, err = httpserver.NewSQLIdempotency(ctx, db.DB); err != nil {
 			return nil, err
 		}
+		if rt.Deploys, err = newSQLDeploys(ctx, db.DB); err != nil {
+			return nil, err
+		}
+	}
+	if opt.Deployer != nil {
+		opt.Deployer.register(mux)
 	}
 	maxBody := cfg.HTTP.MaxBodyBytes
 	if maxBody == 0 {

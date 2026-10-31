@@ -33,6 +33,8 @@ type Manifest struct {
 	Templates  []File
 	Seeds      map[string]File // by environment name
 	Hash       string
+	// Files holds every manifest file by relative path (the deploy bundle).
+	Files map[string][]byte
 }
 
 // AppConfig is app.json (spec 12.2).

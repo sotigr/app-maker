@@ -1,0 +1,56 @@
+[
+  {
+    "name": "only the assignee can complete a task",
+    "given": {
+      "principals": { "ana": { "kind": "user" }, "ben": { "kind": "user" } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana",
+          "data": { "title": "T", "status": "in_progress", "assignee": "ben" } }
+      ],
+      "grants": [ { "subject": "ben", "object": "p", "role": "editor" } ]
+    },
+    "steps": [
+      { "as": "ana", "action": "complete", "on": "t", "expect": { "error": "forbidden" } },
+      { "as": "ben", "action": "complete", "on": "t",
+        "expect": { "ok": true, "feature": { "status": "done" }, "output": { "late": false },
+                    "effects": [ { "node": "email.send", "count": 0 } ] } }
+    ]
+  },
+  {
+    "name": "a late completion emails the support address",
+    "given": {
+      "principals": { "ana": { "kind": "user" }, "ben": { "kind": "user" } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana",
+          "data": { "title": "T", "status": "in_progress", "assignee": "ben", "dueAt": "2020-01-01T00:00:00Z" } }
+      ],
+      "grants": [ { "subject": "ben", "object": "p", "role": "editor" } ]
+    },
+    "steps": [
+      { "as": "ben", "action": "complete", "on": "t", "input": { "note": "finally" },
+        "expect": { "feature": { "status": "done", "isLate": false }, "output": { "late": true },
+                    "effects": [ { "node": "email.send", "count": 1 } ] } }
+    ]
+  },
+  {
+    "name": "viewers read but cannot create tasks; strangers see nothing",
+    "given": {
+      "principals": { "ana": { "kind": "user" }, "vic": { "kind": "user" }, "sam": { "kind": "user" } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "T" } }
+      ],
+      "grants": [ { "subject": "vic", "object": "p", "role": "viewer" } ]
+    },
+    "steps": [
+      { "as": "vic", "read": "t", "expect": { "ok": true } },
+      { "as": "vic", "create": "task", "parent": "p", "data": { "title": "x" }, "expect": { "error": "forbidden" } },
+      { "as": "sam", "read": "t", "expect": { "error": "not_found" } },
+      { "as": "sam", "query": { "type": "task" }, "expect": { "count": 0 } },
+      { "as": "vic", "query": { "type": "task" }, "expect": { "count": 1 } },
+      { "as": "vic", "create": "comment", "parent": "t", "data": { "body": "BUY NOW" }, "expect": { "error": "spam" } }
+    ]
+  }
+]

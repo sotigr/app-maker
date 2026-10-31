@@ -1,0 +1,13 @@
+{
+  "users": [
+    { "ref": "ana", "email": "ana@example.com", "password": "ana-password-123", "name": "Ana", "roles": ["editor"] },
+    { "ref": "ben", "email": "ben@example.com", "password": "ben-password-123", "name": "Ben" }
+  ],
+  "features": [
+    { "ref": "launch", "type": "project", "owner": "ana", "data": { "title": "Launch", "slug": "launch" } },
+    { "ref": "copy", "type": "task", "parent": "launch", "owner": "ana",
+      "data": { "title": "Write copy", "assignee": "ben", "dueAt": "2026-12-01T00:00:00Z", "estimate": "3.5" } },
+    { "ref": "site", "type": "task", "parent": "launch", "owner": "ana", "data": { "title": "Build site" } }
+  ],
+  "grants": [ { "subject": "ben", "object": "launch", "role": "editor" } ]
+}

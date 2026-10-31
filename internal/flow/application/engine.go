@@ -620,3 +620,6 @@ func (n *nodeRuntime) Subflow(_ context.Context, name string, input map[string]a
 	base[rt.FnUUID] = func() string { return n.run.e.d.IDs.NewID().String() }
 	return child.execGraph(f.Graph, base, []string{n.node})
 }
+
+// SetHTTP replaces the outbound HTTP client (manifest tests use fixtures).
+func (e *Engine) SetHTTP(h HTTPDoer) { e.d.HTTP = h }

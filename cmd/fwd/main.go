@@ -65,20 +65,19 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	rt, err := app.Build(ctx, cfg, compiled, app.Options{Log: log})
-	if err != nil {
+	srv := app.NewServer(context.Background(), cfg, app.Options{Log: log})
+	if err := srv.Start(ctx, compiled); err != nil {
 		return err
 	}
-	runCtx, cancelRun := context.WithCancel(context.Background())
-	defer cancelRun()
-	if err := rt.Start(runCtx); err != nil {
-		return err
-	}
-	if err := rt.Bootstrap(ctx); err != nil {
-		return err
-	}
-
-	internal := &http.Server{Addr: cfg.HTTP.InternalAddr, Handler: rt.Health.Handler(), ReadHeaderTimeout: 5 * time.Second}
+	defer srv.Close()
+	health := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rt := srv.Current(); rt != nil {
+			rt.Health.Handler().ServeHTTP(w, r)
+			return
+		}
+		http.Error(w, "starting", http.StatusServiceUnavailable)
+	})
+	internal := &http.Server{Addr: cfg.HTTP.InternalAddr, Handler: health, ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		if err := internal.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("internal listener", "err", err)
@@ -87,16 +86,15 @@ func run() error {
 	var public *http.Server
 	errc := make(chan error, 1)
 	if cfg.HasRole(config.RoleAPI) || cfg.HasRole(config.RoleGateway) {
-		public = &http.Server{Addr: cfg.HTTP.Addr, Handler: rt.Handler, ReadHeaderTimeout: 10 * time.Second}
+		public = &http.Server{Addr: cfg.HTTP.Addr, Handler: srv.Switch, ReadHeaderTimeout: 10 * time.Second}
 		go func() {
 			if err := public.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				errc <- err
 			}
 		}()
 	}
-	rt.Health.MarkStarted()
-	log.Info("fwd started", "app", compiled.Manifest.App.App, "manifest", compiled.Manifest.Hash[:12],
-		"roles", strings.Join(cfg.Roles, ","), "addr", cfg.HTTP.Addr, "internal", cfg.HTTP.InternalAddr)
+	log.Info("fwd started", "app", compiled.Manifest.App.App, "roles", strings.Join(cfg.Roles, ","),
+		"addr", cfg.HTTP.Addr, "internal", cfg.HTTP.InternalAddr)
 
 	select {
 	case <-ctx.Done():
@@ -105,7 +103,9 @@ func run() error {
 	}
 	// Shutdown (spec 14.10): fail readiness, let the load balancer drain,
 	// then finish in-flight requests.
-	rt.Health.MarkStopping()
+	if rt := srv.Current(); rt != nil {
+		rt.Health.MarkStopping()
+	}
 	if !cfg.Dev {
 		time.Sleep(5 * time.Second)
 	}
@@ -114,8 +114,6 @@ func run() error {
 	if public != nil {
 		_ = public.Shutdown(shutdownCtx)
 	}
-	rt.Close(shutdownCtx)
-	cancelRun()
 	_ = internal.Shutdown(shutdownCtx)
 	log.Info("fwd stopped")
 	return nil
