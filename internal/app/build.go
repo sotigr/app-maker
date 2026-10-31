@@ -85,6 +85,7 @@ type Runtime struct {
 	Log        *slog.Logger
 	repos      *contentdomain.RepositoryRegistry
 	dbs        map[string]*sqlitedb.DB
+	closers    []func()
 }
 
 // authorizerRef breaks the Content <-> Access cycle: Content needs the
@@ -229,11 +230,15 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
 		return nil, err
 	}
+	code, err := rt.codeRunner(cfg, opt)
+	if err != nil {
+		return nil, err
+	}
 	rt.Engine = flowapp.NewEngine(flowapp.Deps{
 		Flows: c.Flows, Content: rt.Content.FlowAccess(), Authorizer: rt.Authorizer, Types: c.Types,
 		Clock: opt.Clock, IDs: opt.IDs, Jobs: rt.Enqueuer, HTTP: out, Templates: templates, Settings: settings,
 		Resolve: rt.Auth.Resolve, Recorder: runRecorder{w: sys}, Log: opt.Log, Secrets: secrets, Nodes: c.Nodes,
-		LLM: rt.LLM, Ephemeral: rt.ephemeral,
+		LLM: rt.LLM, Ephemeral: rt.ephemeral, Code: code, Bundle: newBundles(c).get,
 	})
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
 	rt.Content.AddHook(rt.Engine.EventHook())
@@ -360,10 +365,13 @@ func (rt *Runtime) Start(ctx context.Context) error {
 	return nil
 }
 
-// Close stops River and closes databases.
+// Close stops River and the runner and closes databases.
 func (rt *Runtime) Close(ctx context.Context) {
 	if rt.River != nil && rt.Cfg.HasRole(config.RoleWorker) {
 		_ = rt.River.Stop(ctx)
+	}
+	for i := len(rt.closers) - 1; i >= 0; i-- {
+		rt.closers[i]()
 	}
 	for _, db := range rt.dbs {
 		_ = db.Close()

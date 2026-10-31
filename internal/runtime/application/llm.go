@@ -66,7 +66,10 @@ func (r *Router) Complete(ctx context.Context, req rt.LLMRequest, onDelta func(r
 		res, err = p.Complete(ctx, req)
 	}
 	call := rt.LLMCall{Alias: alias, Provider: target.Provider, Model: target.Model, Usage: res.Usage,
-		LatencyMs: r.clock.Now().Sub(start).Milliseconds(), CostUSD: llm.Cost(target.Model, res.Usage.InputTokens, res.Usage.OutputTokens)}
+		LatencyMs: r.clock.Now().Sub(start).Milliseconds()}
+	if _, free := p.(interface{ Free() }); !free {
+		call.CostUSD = llm.Cost(target.Model, res.Usage.InputTokens, res.Usage.OutputTokens)
+	}
 	r.charge(call.CostUSD)
 	r.log.Info("llm call", "alias", alias, "provider", call.Provider, "model", call.Model,
 		"inputTokens", call.Usage.InputTokens, "outputTokens", call.Usage.OutputTokens,

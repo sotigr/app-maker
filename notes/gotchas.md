@@ -57,3 +57,11 @@
   script using the built-in WebSocket against CDP (`/json/list` → Page.navigate, Runtime.evaluate to
   log in via fetch, Page.reload, Page.captureScreenshot). The user's own Brave may be running: never
   pkill brave broadly; kill by PID. In bash, `cmd & ` after `S=...&&` chains loses variables.
+
+## Code nodes (phase 12b)
+- `python -I` ignores PYTHONPATH and does not add the script dir: the worker bootstrap inserts the
+  fwnode dir into sys.path from argv (`-I -c <bootstrap> <fwnode> <bundle> <entry>`).
+- Bundle dirs are read-only (0555): t.TempDir cleanup fails unless `Envs.RemoveAll` chmods first.
+- `sh -c 'ulimit ...'` adds PWD and SHLVL to the worker environment.
+- Regenerate protobuf with `PATH=$PATH:$HOME/go/bin make proto` (protoc 36 at /usr/bin).
+- fwnode keeps the protocol on dup'ed fds 0/1; user print() goes to stderr → runner log.

@@ -132,7 +132,12 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	for i, f := range m.Flows {
 		fsrc[i] = flowdomain.Source{File: f.Path, Data: f.Data}
 	}
-	flows, fp := flowdomain.Compile(flowdomain.CompileDeps{Types: reg, Exprs: exprs, Nodes: nodes, Validators: jsonschema.Factory{}}, fsrc)
+	codeFiles := map[string]bool{}
+	for _, f := range m.Nodes {
+		codeFiles[f.Path] = true
+	}
+	flows, fp := flowdomain.Compile(flowdomain.CompileDeps{Types: reg, Exprs: exprs, Nodes: nodes, Validators: jsonschema.Factory{},
+		CodeFiles: codeFiles}, fsrc)
 	for _, p := range fp {
 		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
 	}

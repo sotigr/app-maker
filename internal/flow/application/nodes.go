@@ -269,6 +269,10 @@ func Builtins() []domain.NodeType {
 				param("streamTo", rt.Any, false, "{feature, path}: stream partial text to an ephemeral field")},
 			out:  rt.MapOf(map[string]*rt.Type{"text": rt.String}),
 			exec: llmComplete},
+		// Code.
+		&builtin{name: "python", kind: domain.KindCode,
+			desc: "Runs a Python function run(input, ctx) from nodes/ on a runner; inputs follow the node's inputSchema.",
+			out:  rt.OpenMap(), exec: runCode},
 		// Control.
 		&builtin{name: "if", kind: domain.KindControl, desc: "A condition; use when: nodes.<if>.out on the branches.",
 			inputs: []domain.Param{param("cond", rt.Bool, true, "condition")}, out: rt.Bool,
@@ -460,4 +464,21 @@ func numbers(v any) any {
 		}
 	}
 	return v
+}
+
+// runCode runs a code node (spec 11.1). Worker crashes and unhandled
+// exceptions are retryable when the node declares retry (spec 11.6).
+func runCode(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
+	out, err := r.RunCode(ctx, in)
+	if err != nil {
+		var ce *rt.CodeError
+		if errors.As(err, &ce) {
+			err = fmt.Errorf("code node: %w", ce)
+			if ce.Retryable || ce.Unhandled {
+				return nil, &retryable{err}
+			}
+		}
+		return nil, err
+	}
+	return fromJSON(out)
 }

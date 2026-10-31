@@ -131,7 +131,7 @@ _Last updated: 2026-10-31_
 - Manifest activation is in-process only (single replica); multi-replica `manifest-activated` events
   and the 30 s fallback poll belong with the change log (phase 8/10).
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
-- `emit` node and code nodes: not registered yet (phase 12b).
+- `emit` node: not registered yet. Code nodes: process isolation only (container/microvm need Docker).
 - River `dead_letter` run status is not recorded yet (failures are recorded as failed per attempt).
 - Streaming resume replays nothing: an expired cursor sends reset, a valid one gets a fresh snapshot
   (clients treat both alike, §9.11). Gateway restart/multi-gateway tests need the Valkey log (phase 10).
@@ -164,16 +164,20 @@ _Last updated: 2026-10-31_
   ephemeral (≤5/s). Config `llm.provider`/`llm.providers` (FW_LLM_PROVIDER); `fw dev --llm fake` default.
   Tracker: project summary + summaryDraft (ephemeral), flow summarize-project (action summarize).
   e2e test/e2e/llm_test.go.
-- NEXT 12b: Python code nodes (proto, runner, fwnode, process isolation, ctx.llm via Router).
-  Then blobs, rate limits, OIDC/MFA, OTel.
-  **PAUSED 2026-10-31 waiting on the user** (they left; they will say "continue"). Two open questions
-  were asked and NOT answered yet; ask them again when resuming:
-  1. Runner↔Python worker transport: (recommended) gRPC engine↔runner on a Unix socket
-     (api/proto/codenode/v1/codenode.proto) + stdio length-prefixed JSON frames runner↔Python worker,
-     so fwnode is pure stdlib; or gRPC all the way (fwnode needs grpcio).
-  2. Python deps (spec 11.5, uv): (recommended) implement uv-built venvs keyed by lock hash, skip when
-     uv is absent (nodes without requirements use system python3); or wait for the user to install
-     uv; or stdlib-only for now.
+- 12b code nodes DONE (ADR 0009): api/proto/codenode/v1 (+ `make proto`; plugins in ~/go/bin);
+  runtime/api code port; runtime/application Runner + pools; runtime/interfaces/grpc server;
+  runtime/infrastructure/grpcrunner client; runtime/infrastructure/process (Envs: bundles read-only,
+  fwnode embedded from runner/python, uv venvs; Starter: sh ulimit + python -I -c bootstrap, egress
+  proxy per worker); platform/egress.Proxy; flow `python` node + host callbacks + ctx.llm; config
+  `runner.*` (runner role now in defaults; private unix socket). Tracker: task `label`, nodes/triage.py
+  + rules.py, flow triage-task (action triage). Tests: process_test (real python3), grpcrunner
+  round trip incl. restart, e2e code_test. Fake LLM calls cost 0 (Free marker).
+- Also fixed in 12b: (1) data race in flow engine execGraph (node goroutines wrote `states` while the
+  scheduler read it; now per-level results merged after Wait) — present since phase 5; (2) flaky
+  TestStreamingChildrenAndQuery: test helper `next` dropped messages of other subs (gateway serves a
+  connection's subs in map order); wsClient now keeps a backlog.
+- NEXT 12c: blobs (local fs) + uploads; then rate limits (§14.1), OIDC/MFA, OpenTelemetry + audit log,
+  `emit` node, python.allowedPackages check, dead_letter status.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with

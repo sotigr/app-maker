@@ -1,0 +1,112 @@
+// Code-node protocol between the flow engine and runner processes
+// (spec 11.1). JSON payloads travel as bytes; the engine validates every
+// output against the node's output schema.
+syntax = "proto3";
+
+package codenode.v1;
+
+option go_package = "app-maker/api/proto/codenode/v1;codenodev1";
+
+service Runner {
+  // Load makes a code bundle available; the runner prepares its
+  // environment once per bundle hash and reuses it afterwards.
+  rpc Load(LoadRequest) returns (LoadResponse);
+  // Run executes one node. The engine sends Execute first, then
+  // CallbackResult for each Callback, or Cancel; the runner ends with Result.
+  rpc Run(stream EngineMessage) returns (stream RunnerMessage);
+  // Stats reports worker pools: warm, busy, queued, cold-start time.
+  rpc Stats(StatsRequest) returns (StatsResponse);
+}
+
+message LoadRequest {
+  string node_id = 1;
+  string bundle_hash = 2;
+  // Files of the bundle by path relative to the bundle root (nodes/).
+  map<string, bytes> files = 3;
+  // Contents of requirements.lock; empty means standard library only.
+  bytes requirements = 4;
+}
+
+message LoadResponse {
+  bool cached = 1;
+}
+
+message Limits {
+  int64 timeout_ms = 1;
+  int64 memory_mb = 2;
+  double cpu = 3;
+  // host:port pairs the code may reach through the egress proxy.
+  repeated string network = 4;
+  int64 max_output_bytes = 5;
+}
+
+message Execute {
+  string run_id = 1;
+  string node_id = 2;
+  string bundle_hash = 3;
+  // Module path inside the bundle, e.g. "classify.py".
+  string entry = 4;
+  // Stable across retries of the same run and node (spec 11.6).
+  string idempotency_key = 5;
+  int64 deadline_unix_ms = 6;
+  bytes input_json = 7;
+  Limits limits = 8;
+}
+
+message CallbackResult {
+  uint64 id = 1;
+  bytes result_json = 2;
+  Error error = 3;
+}
+
+message Cancel {
+  string reason = 1;
+}
+
+message EngineMessage {
+  oneof msg {
+    Execute execute = 1;
+    CallbackResult callback_result = 2;
+    Cancel cancel = 3;
+  }
+}
+
+// Callback is a host call: feature.get, feature.query, llm.complete, log.
+message Callback {
+  uint64 id = 1;
+  string method = 2;
+  bytes args_json = 3;
+}
+
+message Error {
+  string code = 1;
+  string message = 2;
+  bool retryable = 3;
+}
+
+message Result {
+  bytes output_json = 1;
+  Error error = 2;
+}
+
+message RunnerMessage {
+  oneof msg {
+    Callback callback = 1;
+    Result result = 2;
+  }
+}
+
+message StatsRequest {}
+
+message PoolStats {
+  string node_id = 1;
+  string bundle_hash = 2;
+  int32 warm = 3;
+  int32 busy = 4;
+  int32 queued = 5;
+  int64 cold_start_ms = 6;
+}
+
+message StatsResponse {
+  repeated PoolStats pools = 1;
+}

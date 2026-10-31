@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -42,6 +44,9 @@ type CompileDeps struct {
 	Exprs      rt.Compiler
 	Nodes      *NodeRegistry
 	Validators ValidatorFactory
+	// CodeFiles lists the manifest's code files (nodes/...); nil skips the
+	// existence checks of code nodes.
+	CodeFiles map[string]bool
 }
 
 // ExprTree mirrors an `in` or `result` JSON value: string leaves are
@@ -97,6 +102,10 @@ type CompiledNode struct {
 	// OutputV validates the output of nodes declaring an outputSchema
 	// (spec 11.1) before downstream nodes see it.
 	OutputV schemaapi.Validator
+	// InputV validates the input of code nodes before it leaves the engine.
+	InputV schemaapi.Validator
+	// Limits of code nodes (spec 11.3).
+	Limits rt.CodeLimits
 }
 
 // Graph is a validated DAG with topological levels.
@@ -416,6 +425,9 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 				c.errf(ptr+"/outputSchema", "llm.complete output schemas must describe an object")
 			}
 		}
+		if nt.Kind() == KindCode {
+			c.compileCode(f, cn, ptr)
+		}
 		nodeFields[name] = rt.MapOf(map[string]*rt.Type{"out": out, "error": rt.OpenMap()})
 		g.Nodes[name] = cn
 	}
@@ -553,7 +565,11 @@ func (c *compiler) checkSameRepository(f *Flow, n *CompiledNode, ptr string) {
 // compileInputs checks `in` against the node's parameters and compiles it.
 func (c *compiler) compileInputs(ptr string, n *CompiledNode, env rt.Env) *ExprTree {
 	params := map[string]Param{}
-	for _, p := range n.Type.Inputs() {
+	inputs := n.Type.Inputs()
+	if n.Type.Kind() == KindCode {
+		inputs = schemaParams(n.Spec.InputSchema)
+	}
+	for _, p := range inputs {
 		params[p.Name] = p
 	}
 	tree := &ExprTree{Map: map[string]*ExprTree{}}
@@ -574,7 +590,7 @@ func (c *compiler) compileInputs(ptr string, n *CompiledNode, env rt.Env) *ExprT
 		}
 		tree.Map[k] = c.compileTree(ptr+"/in/"+k, v, env, p.Type)
 	}
-	for _, p := range n.Type.Inputs() {
+	for _, p := range inputs {
 		if _, ok := n.Spec.In[p.Name]; p.Required && !ok {
 			c.errf(ptr+"/in", "missing required input %q of %s", p.Name, n.Spec.Node)
 		}
@@ -767,4 +783,75 @@ func topoLevels(names []string, deps map[string]map[string]bool) ([][]string, st
 		levels = append(levels, level)
 	}
 	return levels, ""
+}
+
+// schemaParams derives the inputs of a code node from its inputSchema.
+func schemaParams(raw json.RawMessage) []Param {
+	var m map[string]any
+	if json.Unmarshal(raw, &m) != nil {
+		return nil
+	}
+	props, _ := m["properties"].(map[string]any)
+	req := map[string]bool{}
+	if l, ok := m["required"].([]any); ok {
+		for _, r := range l {
+			if s, ok := r.(string); ok {
+				req[s] = true
+			}
+		}
+	}
+	names := make([]string, 0, len(props))
+	for k := range props {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	out := make([]Param, 0, len(names))
+	for _, k := range names {
+		pm, _ := props[k].(map[string]any)
+		out = append(out, Param{Name: k, Type: SchemaType(pm), Required: req[k]})
+	}
+	return out
+}
+
+// compileCode checks a code node (spec 11.2, 11.3): typed input and
+// output, an existing code file and lock file, and well-formed limits.
+func (c *compiler) compileCode(f *Flow, n *CompiledNode, ptr string) {
+	spec := n.Spec
+	if len(spec.InputSchema) == 0 {
+		c.errf(ptr+"/inputSchema", "code nodes need an inputSchema")
+	} else {
+		n.InputV = c.validator(f.Name+ptr+"/inputSchema", ptr+"/inputSchema", spec.InputSchema)
+	}
+	if len(spec.OutputSchema) == 0 {
+		c.errf(ptr+"/outputSchema", "code nodes need an outputSchema")
+	}
+	switch {
+	case spec.Code == "":
+		c.errf(ptr+"/code", "code nodes need a code file (nodes/<name>.py)")
+	case !strings.HasSuffix(spec.Code, ".py") || !strings.Contains("/"+spec.Code, "/nodes/"):
+		c.errf(ptr+"/code", "code must be a .py file under nodes/")
+	case c.d.CodeFiles != nil && !c.d.CodeFiles[spec.Code]:
+		c.errf(ptr+"/code", "code file %s does not exist", spec.Code)
+	}
+	if spec.Requirements != "" && c.d.CodeFiles != nil && !c.d.CodeFiles[spec.Requirements] {
+		c.errf(ptr+"/requirements", "requirements file %s does not exist", spec.Requirements)
+	}
+	if len(spec.Limits) > 0 {
+		dec := json.NewDecoder(bytes.NewReader(spec.Limits))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&n.Limits); err != nil {
+			c.errf(ptr+"/limits", "invalid limits: %v", err)
+		}
+		for i, h := range n.Limits.Network {
+			if host, port, err := net.SplitHostPort(h); err != nil || host == "" || port == "" {
+				c.errf(fmt.Sprintf("%s/limits/network/%d", ptr, i), "network entries are host:port (port may be *)")
+			}
+		}
+		if n.Limits.TimeoutMs < 0 || n.Limits.MemoryMb < 0 || n.Limits.CPU < 0 {
+			c.errf(ptr+"/limits", "limits must not be negative")
+		}
+		if budget := int64(MaxBudgetMs[f.Trigger]); n.Limits.TimeoutMs > budget {
+			c.errf(ptr+"/limits/timeoutMs", "timeoutMs exceeds the %s budget of %d ms", f.Trigger, budget)
+		}
+	}
 }

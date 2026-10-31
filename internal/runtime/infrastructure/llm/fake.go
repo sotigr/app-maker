@@ -18,6 +18,9 @@ type Fake struct{}
 
 var _ rt.LLMProvider = Fake{}
 
+// Free marks the fake as costing nothing, whatever model it stands in for.
+func (Fake) Free() {}
+
 // Complete implements rt.LLMProvider.
 func (Fake) Complete(_ context.Context, req rt.LLMRequest) (rt.LLMResponse, error) {
 	prompt := ""

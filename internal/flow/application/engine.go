@@ -80,6 +80,10 @@ type Deps struct {
 	Nodes *domain.NodeRegistry
 	// LLM serves llm.complete (spec 11.7); nil disables the node at run time.
 	LLM rt.LLMClient
+	// Code runs code nodes on runners (spec 11.1); Bundle returns the code
+	// bundle and module path of a code file. Nil disables code nodes.
+	Code   rt.CodeRunner
+	Bundle func(code, requirements string) (rt.CodeBundle, string, error)
 	// Ephemeral publishes ephemeral field values (llm.complete streamTo).
 	Ephemeral func(ctx context.Context, p accessapi.Principal, id kernel.ID, values map[string]any) error
 }
@@ -355,7 +359,10 @@ func (r *run) execGraph(g *domain.Graph, base map[string]any, prefix []string) (
 			vars[k] = v
 		}
 		vars["nodes"] = nodesVar()
+		// Node goroutines record into results; states is only touched by
+		// this goroutine and merged once the level is done.
 		var mu sync.Mutex
+		results := map[string]*nodeState{}
 		eg, ctx := errgroup.WithContext(r.ctx)
 		for _, name := range level {
 			n := g.Nodes[name]
@@ -402,13 +409,16 @@ func (r *run) execGraph(g *domain.Graph, base map[string]any, prefix []string) (
 				}
 				r.note(prefix, name, status)
 				mu.Lock()
-				states[name] = st
+				results[name] = st
 				mu.Unlock()
 				return nil
 			})
 		}
 		if err := eg.Wait(); err != nil {
 			return nil, err
+		}
+		for name, st := range results {
+			states[name] = st
 		}
 	}
 	if g.Result == nil {
@@ -477,7 +487,7 @@ func (r *run) execNode(ctx context.Context, n *domain.CompiledNode, vars map[str
 	if n.Spec.Node == "forEach" {
 		return r.forEach(n, in, vars, prefix)
 	}
-	nr := &nodeRuntime{run: r, node: strings.Join(append(append([]string{}, prefix...), n.Name), "."), spec: n.Spec}
+	nr := &nodeRuntime{run: r, node: strings.Join(append(append([]string{}, prefix...), n.Name), "."), spec: n.Spec, cn: n}
 	attempts := 1
 	if n.Spec.Retry != nil && n.Spec.Retry.Max > 0 {
 		attempts = 1 + n.Spec.Retry.Max
@@ -538,6 +548,7 @@ type nodeRuntime struct {
 	run  *run
 	node string
 	spec domain.NodeSpec
+	cn   *domain.CompiledNode
 }
 
 func (n *nodeRuntime) Principal() accessapi.Principal { return n.run.principal }
@@ -560,6 +571,120 @@ func (n *nodeRuntime) LLM(ctx context.Context, req rt.LLMRequest, onDelta func(r
 		n.run.mu.Unlock()
 	}
 	return res, err
+}
+
+// RunCode executes a code node (spec 11.1-11.6).
+func (n *nodeRuntime) RunCode(ctx context.Context, input map[string]any) (json.RawMessage, error) {
+	d := n.run.e.d
+	if d.Code == nil || d.Bundle == nil {
+		return nil, kernel.NewError(kernel.CodeUnsupportedCapability, "no code runner is configured")
+	}
+	wire := toWire(input)
+	if n.cn.InputV != nil {
+		if errs := n.cn.InputV.Validate(wire); len(errs) > 0 {
+			return nil, kernel.NewValidationError(errs...)
+		}
+	}
+	raw, err := json.Marshal(wire)
+	if err != nil {
+		return nil, err
+	}
+	bundle, entry, err := d.Bundle(n.spec.Code, n.spec.Requirements)
+	if err != nil {
+		return nil, err
+	}
+	deadline, ok := ctx.Deadline()
+	if t := n.cn.Limits.TimeoutMs; t > 0 {
+		if lim := time.Now().Add(time.Duration(t) * time.Millisecond); !ok || lim.Before(deadline) {
+			deadline = lim
+		}
+	}
+	req := rt.CodeRequest{RunID: n.run.id.String(), NodeID: n.node, Entry: entry,
+		IdempotencyKey: n.run.id.String() + ":" + n.node, Deadline: deadline, Input: raw, Bundle: bundle, Limits: n.cn.Limits}
+	return d.Code.Run(ctx, req, n.host)
+}
+
+// host serves code callbacks as the run's principal (spec 11.1): reads go
+// through the write set; code cannot stage writes or effects.
+func (n *nodeRuntime) host(ctx context.Context, method string, args json.RawMessage) (json.RawMessage, error) {
+	var a map[string]any
+	if len(args) > 0 {
+		v, err := fromJSON(args)
+		if err != nil {
+			return nil, kernel.NewError(kernel.CodeBadRequest, "invalid callback arguments: %v", err)
+		}
+		a, _ = v.(map[string]any)
+	}
+	var out any
+	var err error
+	switch method {
+	case "feature.get":
+		var f contentapi.FlowFeature
+		f, err = n.Read(ctx, str(a["id"]))
+		out = map[string]any(f)
+	case "feature.query":
+		var fs []contentapi.FlowFeature
+		fs, err = n.Query(ctx, a)
+		list := make([]any, len(fs))
+		for i, f := range fs {
+			list[i] = map[string]any(f)
+		}
+		out = list
+	case "llm.complete":
+		out, err = n.codeLLM(ctx, a)
+	case "log":
+		kv := []any{}
+		if m, ok := a["kv"].(map[string]any); ok {
+			for k, v := range m {
+				kv = append(kv, k, v)
+			}
+		}
+		n.Log("code: "+str(a["msg"]), kv...)
+	default:
+		return nil, kernel.NewError(kernel.CodeBadRequest, "unknown host call %q", method)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(toWire(out))
+}
+
+// codeLLM serves ctx.llm: provider keys stay in the engine (spec 11.7).
+func (n *nodeRuntime) codeLLM(ctx context.Context, a map[string]any) (any, error) {
+	req := rt.LLMRequest{Model: str(a["model"]), System: str(a["system"])}
+	if req.Model == "" {
+		req.Model = "default"
+	}
+	if s, ok := a["schema"]; ok && s != nil {
+		raw, err := json.Marshal(s)
+		if err != nil {
+			return nil, err
+		}
+		req.OutputSchema = raw
+	}
+	if m, ok := a["maxTokens"].(int64); ok {
+		req.MaxTokens = int(m)
+	}
+	if msgs, ok := a["messages"].([]any); ok {
+		for _, m := range msgs {
+			mm, _ := m.(map[string]any)
+			req.Messages = append(req.Messages, rt.LLMMessage{Role: str(mm["role"]), Content: str(mm["content"])})
+		}
+	}
+	if p := str(a["prompt"]); p != "" {
+		req.Messages = append(req.Messages, rt.LLMMessage{Role: "user", Content: p})
+	}
+	if len(req.Messages) == 0 {
+		return nil, kernel.NewError(kernel.CodeBadRequest, "ctx.llm needs a prompt or messages")
+	}
+	res, err := n.LLM(ctx, req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if req.OutputSchema == nil {
+		return map[string]any{"text": res.Text}, nil
+	}
+	return fromJSON([]byte(res.Text))
 }
 
 // Ephemeral publishes ephemeral values as the run's principal.

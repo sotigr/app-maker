@@ -30,6 +30,14 @@
       "readOnly": true,
       "type": "boolean"
     },
+    "label": {
+      "description": "Set by the triage action (Python code node)",
+      "enum": [
+        "bug",
+        "feature",
+        "chore"
+      ]
+    },
     "owner": {
       "format": "uuid",
       "type": "string"

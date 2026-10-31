@@ -43,9 +43,18 @@ func TestRouterBudget(t *testing.T) {
 	if _, _, err := r.Complete(context.Background(), req, nil); err != nil {
 		t.Fatalf("new month: %v", err)
 	}
+	// The fake is free whatever model the alias names.
+	free := NewRouter(cfg, map[string]rt.LLMProvider{"fake": fakeFree{}}, "fake", clock, nil)
+	if _, call, err := free.Complete(context.Background(), req, nil); err != nil || call.CostUSD != 0 || call.Provider != "fake" {
+		t.Fatalf("fake call %+v %v", call, err)
+	}
 	// Forcing a provider (fw dev) and unknown providers.
 	f := NewRouter(cfg, map[string]rt.LLMProvider{"anthropic": priced{}}, "fake", clock, nil)
 	if _, _, err := f.Complete(context.Background(), req, nil); kernel.CodeOf(err) != kernel.CodeUnsupportedCapability {
 		t.Fatalf("unknown provider: %v", err)
 	}
 }
+
+type fakeFree struct{ priced }
+
+func (fakeFree) Free() {}

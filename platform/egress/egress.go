@@ -34,8 +34,9 @@ var ErrBlocked = errors.New("egress: destination not allowed")
 
 // Client performs outbound HTTP requests under the egress policy.
 type Client struct {
-	http *http.Client
-	cfg  Config
+	http   *http.Client
+	cfg    Config
+	dialer *net.Dialer
 }
 
 // New returns a client.
@@ -46,29 +47,10 @@ func New(cfg Config) *Client {
 	if cfg.MaxBytes == 0 {
 		cfg.MaxBytes = 5 << 20
 	}
-	c := &Client{cfg: cfg}
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	c := &Client{cfg: cfg, dialer: &net.Dialer{Timeout: 5 * time.Second}}
 	transport := &http.Transport{
-		Proxy: nil, // never route through environment proxies
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-			ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
-			if err != nil {
-				return nil, err
-			}
-			for _, ip := range ips {
-				if err := c.checkIP(ip); err != nil {
-					continue
-				}
-				// Dial the checked address, not the name, so a second
-				// resolution cannot swap in a private address.
-				return dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
-			}
-			return nil, fmt.Errorf("%w: %s resolves only to blocked addresses", ErrBlocked, host)
-		},
+		Proxy:                 nil, // never route through environment proxies
+		DialContext:           c.dial,
 		TLSHandshakeTimeout:   5 * time.Second,
 		ResponseHeaderTimeout: cfg.Timeout,
 		MaxIdleConns:          20,
@@ -84,6 +66,26 @@ func New(cfg Config) *Client {
 		},
 	}
 	return c
+}
+
+// dial resolves the host itself and connects to the first allowed
+// address, so a second resolution cannot swap in a private address.
+func (c *Client) dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return nil, err
+	}
+	for _, ip := range ips {
+		if err := c.checkIP(ip); err != nil {
+			continue
+		}
+		return c.dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+	}
+	return nil, fmt.Errorf("%w: %s resolves only to blocked addresses", ErrBlocked, host)
 }
 
 var metadata = []netip.Addr{netip.MustParseAddr("169.254.169.254"), netip.MustParseAddr("fd00:ec2::254")}

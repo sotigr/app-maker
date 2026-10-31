@@ -98,6 +98,9 @@ type Runtime interface {
 	Ephemeral(ctx context.Context, featureID string, values map[string]any) error
 	// OutputSchema is the node's declared output schema, if any.
 	OutputSchema() json.RawMessage
+	// RunCode executes the node's code on a runner (spec 11.1); host calls
+	// run as the run's principal through the write set.
+	RunCode(ctx context.Context, input map[string]any) (json.RawMessage, error)
 	Log(msg string, kv ...any)
 }
 

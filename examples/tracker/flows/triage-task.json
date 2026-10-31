@@ -1,0 +1,25 @@
+{
+  "flow": "triageTask",
+  "version": 1,
+  "title": "Label a task with a Python code node",
+  "trigger": { "action": "triage", "on": "urn:app:feature:task" },
+  "input":  { "type": "object", "properties": {}, "additionalProperties": false },
+  "output": { "type": "object", "properties": { "label": { "type": "string" }, "source": { "type": "string" } } },
+  "timeoutMs": 20000,
+  "nodes": {
+    "classify": {
+      "node": "python",
+      "in": { "taskId": "feature.id" },
+      "code": "nodes/triage.py",
+      "inputSchema":  { "type": "object", "properties": { "taskId": { "type": "string" } }, "required": ["taskId"] },
+      "outputSchema": { "type": "object",
+                        "properties": { "label": { "type": "string", "enum": ["bug", "feature", "chore"] },
+                                        "source": { "type": "string" } },
+                        "required": ["label", "source"] },
+      "limits": { "timeoutMs": 15000, "memoryMb": 512, "network": [] },
+      "retry": { "max": 1 }
+    },
+    "save": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/label": "nodes.classify.out.label" } } }
+  },
+  "result": { "label": "nodes.classify.out.label", "source": "nodes.classify.out.source" }
+}

@@ -44,8 +44,12 @@ func (h *editorHandler) compileOne(name string, def json.RawMessage) []flowdomai
 		b, _ := json.Marshal(f.Def)
 		srcs = append(srcs, flowdomain.Source{File: f.File, Data: b})
 	}
+	codeFiles := map[string]bool{}
+	for _, f := range c.Manifest.Nodes {
+		codeFiles[f.Path] = true
+	}
 	_, probs := flowdomain.Compile(flowdomain.CompileDeps{Types: c.Types, Exprs: expression.NewCompiler(), Nodes: c.Nodes,
-		Validators: jsonschema.Factory{}}, srcs)
+		Validators: jsonschema.Factory{}, CodeFiles: codeFiles}, srcs)
 	var mine []flowdomain.Problem
 	for _, p := range probs {
 		if p.File == srcs[0].File || p.Flow == name {

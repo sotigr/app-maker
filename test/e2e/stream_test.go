@@ -18,6 +18,9 @@ type wsClient struct {
 	c    *websocket.Conn
 	ctx  context.Context
 	msgs chan map[string]any
+	// backlog keeps messages skipped by next: subscriptions of one
+	// connection are served in no particular order.
+	backlog []map[string]any
 }
 
 func (c *client) ws(t *testing.T) *wsClient {
@@ -48,9 +51,16 @@ func (w *wsClient) send(m map[string]any) {
 	}
 }
 
-// next waits for a message matching pred.
+// next waits for a message matching pred; other messages stay queued
+// for later calls.
 func (w *wsClient) next(what string, pred func(map[string]any) bool) map[string]any {
 	w.t.Helper()
+	for i, m := range w.backlog {
+		if pred(m) {
+			w.backlog = append(w.backlog[:i:i], w.backlog[i+1:]...)
+			return m
+		}
+	}
 	timeout := time.After(5 * time.Second)
 	for {
 		select {
@@ -58,6 +68,7 @@ func (w *wsClient) next(what string, pred func(map[string]any) bool) map[string]
 			if pred(m) {
 				return m
 			}
+			w.backlog = append(w.backlog, m)
 		case <-timeout:
 			w.t.Fatalf("timed out waiting for %s", what)
 		}
@@ -66,6 +77,11 @@ func (w *wsClient) next(what string, pred func(map[string]any) bool) map[string]
 
 func (w *wsClient) quiet(d time.Duration, pred func(map[string]any) bool) {
 	w.t.Helper()
+	for _, m := range w.backlog {
+		if pred(m) {
+			w.t.Fatalf("unexpected message %v", m)
+		}
+	}
 	deadline := time.After(d)
 	for {
 		select {

@@ -18,6 +18,14 @@
       "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
       "type": "string"
     },
+    "label": {
+      "description": "Set by the triage action (Python code node)",
+      "enum": [
+        "bug",
+        "feature",
+        "chore"
+      ]
+    },
     "progress": {
       "maximum": 100,
       "minimum": 0,

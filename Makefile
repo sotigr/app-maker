@@ -1,4 +1,4 @@
-.PHONY: build test lint fuzz ui sdk depguard clean
+.PHONY: build test lint fuzz ui sdk depguard clean proto
 
 GO ?= go
 
@@ -31,3 +31,8 @@ sdk:
 	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/gen
 	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
 	cd sdk/ts && pnpm install && pnpm run typecheck
+
+# Regenerate the code-node protocol (spec 11.1); needs protoc,
+# protoc-gen-go and protoc-gen-go-grpc on PATH.
+proto:
+	protoc --go_out=. --go_opt=module=app-maker --go-grpc_out=. --go-grpc_opt=module=app-maker api/proto/codenode/v1/codenode.proto

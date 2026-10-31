@@ -75,6 +75,20 @@ type Config struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"` // json | text
 	} `yaml:"log"`
+	Runner struct {
+		// Isolation of code-node workers (spec 11.3): process | container |
+		// microvm. Only process is implemented; it is for development and
+		// single-replica deployments.
+		Isolation string `yaml:"isolation"`
+		// Listen is where the runner role serves: a Unix socket path or
+		// host:port; empty uses a private socket in the temp directory.
+		Listen string `yaml:"listen"`
+		// Addr is the runner the engine calls ("unix:///path" or host:port);
+		// empty uses the runner role of this process.
+		Addr       string `yaml:"addr"`
+		CacheDir   string `yaml:"cacheDir"`
+		MaxWorkers int    `yaml:"maxWorkers"`
+	} `yaml:"runner"`
 	LLM struct {
 		// Provider, when set, serves every model alias (fw dev: fake).
 		Provider string `yaml:"provider"`
@@ -97,7 +111,7 @@ type LLMProvider struct {
 // memory storage.
 func Default() Config {
 	var c Config
-	c.Roles = []string{RoleAPI, RoleGateway, RoleWorker}
+	c.Roles = []string{RoleAPI, RoleGateway, RoleWorker, RoleRunner}
 	c.Topology = TopologySingle
 	c.Env = "dev"
 	c.HTTP.Addr = ":8080"
@@ -108,6 +122,7 @@ func Default() Config {
 	c.Jobs.Driver = "inprocess"
 	c.Log.Level = "info"
 	c.Log.Format = "json"
+	c.Runner.Isolation = "process"
 	return c
 }
 
@@ -183,6 +198,9 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("FW_LOG_LEVEL", &c.Log.Level)
 	str("FW_LOG_FORMAT", &c.Log.Format)
 	str("FW_LLM_PROVIDER", &c.LLM.Provider)
+	str("FW_RUNNER_ISOLATION", &c.Runner.Isolation)
+	str("FW_RUNNER_LISTEN", &c.Runner.Listen)
+	str("FW_RUNNER_ADDR", &c.Runner.Addr)
 	return nil
 }
 
@@ -196,6 +214,18 @@ func (c Config) Validate() error {
 		if !slices.Contains([]string{RoleAPI, RoleGateway, RoleWorker, RoleRunner}, r) {
 			errs = append(errs, fmt.Errorf("roles: unknown role %q", r))
 		}
+	}
+	switch c.Runner.Isolation {
+	case "process":
+		if c.Topology == TopologyReplicated && c.HasRole(RoleRunner) {
+			errs = append(errs, fmt.Errorf("runner.isolation: process isolation is only for development and single-replica deployments (spec 11.3)"))
+		}
+	case "container", "microvm":
+		if c.HasRole(RoleRunner) {
+			errs = append(errs, fmt.Errorf("runner.isolation: %s isolation is not implemented yet", c.Runner.Isolation))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("runner.isolation: must be process, container, or microvm"))
 	}
 	for name, p := range c.LLM.Providers {
 		if !slices.Contains([]string{"anthropic", "openai-compatible", "fake"}, p.Kind) {

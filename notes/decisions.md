@@ -25,6 +25,7 @@
 | 0005 | Integer wire format | `type: integer` = Int64 with JSON number wire; `x-kind: int64` on string = string wire |
 | 0007 | Flow engine choices | inferred deps, actions served by Flow, flow commits skip before-write flows, webhook signature format, env secrets |
 | 0008 | LLM providers | port in runtime/api; anthropic (official SDK, fallbacks, output_config), openai-compatible (HTTP), fake; aliases "<provider>:<model>"; keys as secret refs; fw dev → fake |
+| 0009 | Code nodes | gRPC engine↔runner (codenode.proto), stdio JSON frames to stdlib-only fwnode, process isolation + egress proxy, uv venvs by lock hash, python node inputs from inputSchema |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)
@@ -43,3 +44,9 @@
 - Query view audience: system→system, app admin→admin, everyone else→public.
 - `expand` results are returned in a separate `expanded` map keyed by ID (data keeps ref IDs).
 - Move without a `move` policy = update on feature AND create on new parent.
+
+## 2026-11-01 (phase 12b, code nodes)
+- Runner transport: gRPC engine↔runner (Unix socket, api/proto/codenode/v1), stdio length-prefixed
+  JSON frames runner↔Python worker; fwnode is pure stdlib (no grpcio).
+- Python deps: uv builds a venv per requirements.lock hash when uv is on PATH; nodes without
+  requirements run on system python3; requirements without uv fail with a clear error.

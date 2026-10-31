@@ -7,7 +7,7 @@ func TestTrackerManifestCompiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Flows.All()) != 6 {
+	if len(c.Flows.All()) != 7 {
 		t.Fatalf("flows: %d", len(c.Flows.All()))
 	}
 	for _, w := range c.Warnings {

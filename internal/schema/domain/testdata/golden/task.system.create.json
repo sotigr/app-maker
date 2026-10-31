@@ -21,6 +21,14 @@
     "internalScore": {
       "type": "number"
     },
+    "label": {
+      "description": "Set by the triage action (Python code node)",
+      "enum": [
+        "bug",
+        "feature",
+        "chore"
+      ]
+    },
     "progress": {
       "maximum": 100,
       "minimum": 0,
