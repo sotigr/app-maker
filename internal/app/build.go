@@ -253,6 +253,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	rt.JobKinds.Register(contentapp.JobIndexFeatures, rt.Content.HandleIndexFeatures, time.Minute)
 	rt.JobKinds.Register(contentapp.JobRecomputeAggregate, rt.Content.HandleRecomputeAggregate, time.Minute)
 	rt.JobKinds.Register(flowapp.JobRunFlow, rt.Engine.HandleRunFlow, 15*time.Minute)
+	rt.JobKinds.Register(flowapp.JobEmitEvent, rt.Engine.HandleEmitEvent, time.Minute)
 	email := opt.Email
 	if email == nil {
 		email = integrationinfra.LogSender{Log: opt.Log}
@@ -370,6 +371,15 @@ func (rt *Runtime) sqlite(ctx context.Context, dsn string) (*sqlitedb.DB, error)
 // Start runs background workers until ctx ends.
 func (rt *Runtime) Start(ctx context.Context) error {
 	if rt.Cfg.HasRole(config.RoleWorker) {
+		// The embedded search index lives in memory: rebuild it from the
+		// repositories (spec 7.5).
+		go func() {
+			if n, err := rt.Content.ReindexAll(ctx); err != nil {
+				rt.Log.Error("search reindex failed", "err", err)
+			} else if n > 0 {
+				rt.Log.Info("search index rebuilt", "features", n)
+			}
+		}()
 		rt.Jobs.Start(ctx)
 		if rt.River != nil {
 			if err := rt.River.Start(ctx); err != nil {

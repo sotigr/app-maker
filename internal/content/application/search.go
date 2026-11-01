@@ -72,6 +72,48 @@ func (s *Service) HandleIndexFeatures(ctx context.Context, raw json.RawMessage) 
 	if err != nil {
 		return err
 	}
+	return s.indexFeature(ctx, f, ct)
+}
+
+// ReindexAll rebuilds the search index from the repositories, e.g. after a
+// restart with the in-memory Bleve index (spec 7.5). It returns how many
+// features were indexed.
+func (s *Service) ReindexAll(ctx context.Context) (int, error) {
+	if s.d.Search == nil {
+		return 0, nil
+	}
+	n := 0
+	for _, ct := range s.d.Types.All() {
+		if !searchable(ct) {
+			continue
+		}
+		repo, err := s.repoFor(ct)
+		if err != nil {
+			return n, err
+		}
+		var after *queryapi.Cursor
+		for {
+			page, err := repo.Query(ctx, queryapi.Plan{Types: []schemaapi.TypeID{ct.ID}, Limit: queryapi.MaxLimit, After: after, Sort: []queryapi.SortKey{{}}})
+			if err != nil {
+				return n, err
+			}
+			for _, f := range page.Items {
+				if err := s.indexFeature(ctx, f, ct); err != nil {
+					return n, err
+				}
+				n++
+			}
+			if page.Next == nil {
+				break
+			}
+			after = page.Next
+		}
+	}
+	return n, nil
+}
+
+// indexFeature writes one feature's documents, one per visibility tier.
+func (s *Service) indexFeature(ctx context.Context, f *domain.Feature, ct *schemaapi.CompiledType) error {
 	scope := append(f.Ancestors(), f.ID())
 	var owners []kernel.ID
 	if o := f.OwnerID(); o != nil {

@@ -3,10 +3,12 @@ package app
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 
 	codenodev1 "app-maker/api/proto/codenode/v1"
+	manifestdomain "app-maker/internal/manifest/domain"
 	rtapi "app-maker/internal/runtime/api"
 	runtimeapp "app-maker/internal/runtime/application"
 	"app-maker/internal/runtime/infrastructure/grpcrunner"
@@ -126,4 +129,52 @@ func (b *bundles) get(code, requirements string) (rtapi.CodeBundle, string, erro
 	out.Hash = hex.EncodeToString(h.Sum(nil))
 	b.cache[key] = out
 	return out, entry, nil
+}
+
+// pythonConfig is app.json python (spec 12.2).
+type pythonConfig struct {
+	AllowedPackages []string `json:"allowedPackages"`
+}
+
+var lockName = regexp.MustCompile(`^([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*(==|@|===|~=|>=|<=|!=|>|<|;|\\|$)`)
+
+// checkPython validates lock files against python.allowedPackages
+// (spec 11.5): every requirement must be allowed when the list is set.
+func checkPython(raw json.RawMessage, nodes []manifestdomain.File) []Problem {
+	if len(raw) == 0 {
+		return nil
+	}
+	var pc pythonConfig
+	if err := json.Unmarshal(raw, &pc); err != nil {
+		return []Problem{{File: "app.json", Pointer: "/python", Message: err.Error()}}
+	}
+	if pc.AllowedPackages == nil {
+		return nil
+	}
+	norm := func(s string) string { return strings.ToLower(strings.NewReplacer("_", "-", ".", "-").Replace(s)) }
+	allowed := map[string]bool{}
+	for _, p := range pc.AllowedPackages {
+		allowed[norm(p)] = true
+	}
+	var probs []Problem
+	for _, f := range nodes {
+		if !strings.HasSuffix(f.Path, ".lock") && !strings.HasSuffix(f.Path, ".txt") {
+			continue
+		}
+		for i, line := range strings.Split(string(f.Data), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "-") || strings.HasPrefix(line, "--hash") {
+				continue
+			}
+			m := lockName.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			if !allowed[norm(m[1])] {
+				probs = append(probs, Problem{File: f.Path, Pointer: fmt.Sprintf("/line/%d", i+1),
+					Message: "package " + m[1] + " is not in app.json python.allowedPackages"})
+			}
+		}
+	}
+	return probs
 }

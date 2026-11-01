@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	accessapi "app-maker/internal/access/api"
 	"app-maker/internal/content/application"
@@ -86,7 +87,14 @@ func testPermissionMatrix(t *testing.T, driver string) {
 		return r.Header.Get("ETag")
 	}
 	check("update project", all(200, 200, 200, 403, 404, 401), func(c *client) resp {
-		return c.do("PATCH", "/v1/features/project/"+w.project, map[string]any{"description": "x"}, "If-Match", version())
+		// Aggregate recomputes may bump the version in between: retry conflicts.
+		for i := 0; ; i++ {
+			r := c.do("PATCH", "/v1/features/project/"+w.project, map[string]any{"description": "x"}, "If-Match", version())
+			if r.Status != 409 || i == 20 {
+				return r
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
 	})
 
 	// Deletes (task: admin or owner; alice is an app editor, not admin).

@@ -16,7 +16,8 @@
     "error":       { "x-kind": "json", "x-write": "system" },
     "causation":   { "x-kind": "json", "x-write": "system" },
     "nodes":       { "x-kind": "json", "x-write": "system" },
-    "trace":       { "x-kind": "json", "x-write": "system", "x-visibility": "private" }
+    "trace":       { "x-kind": "json", "x-write": "system", "x-visibility": "private" },
+    "retryArgs":   { "x-kind": "json", "x-write": "system", "x-visibility": "private" }
   },
   "required": ["flow", "status"]
 }

@@ -257,6 +257,11 @@ func (p *InProcess) run(ctx context.Context, q string, j *pendingJob) {
 			timeout = p.cfg.DefaultTimeout
 		}
 		jctx, cancel := context.WithTimeout(ctx, timeout)
+		max := j.req.MaxAttempts
+		if max <= 0 {
+			max = DefaultMaxAttempts
+		}
+		jctx = kernel.WithJobAttempt(jctx, kernel.JobAttempt{Attempt: j.attempt, Max: max})
 		err = safeRun(jctx, h, j.req)
 		cancel()
 	}

@@ -29,6 +29,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/actions/{type}/{id}/{action}", h.action)
 	mux.HandleFunc("POST /v1/hooks/{name}", h.hook)
 	mux.HandleFunc("GET /v1/flows", h.list)
+	mux.HandleFunc("POST /v1/flows/runs/{id}/retry", h.retry)
 }
 
 func fail(w http.ResponseWriter, r *http.Request, err error) {
@@ -92,4 +93,18 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	flows, nodes := h.engine.Catalog()
 	httpserver.WriteJSON(w, http.StatusOK, map[string]any{"flows": flows, "nodes": nodes})
+}
+
+// retry re-enqueues a dead-lettered run (admins; spec 10.10).
+func (h *Handler) retry(w http.ResponseWriter, r *http.Request) {
+	id, err := kernel.ParseID(r.PathValue("id"))
+	if err != nil {
+		httpserver.WriteError(w, r, kernel.ErrNotFound)
+		return
+	}
+	if err := h.engine.RetryRun(r.Context(), accessapi.PrincipalFrom(r.Context()), id); err != nil {
+		httpserver.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
 }

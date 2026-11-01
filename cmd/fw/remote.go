@@ -267,7 +267,19 @@ func runsCmd() *cobra.Command {
 	list.Flags().StringVar(&flow, "flow", "", "flow name")
 	list.Flags().StringVar(&status, "status", "", "succeeded, failed, rejected, loop_stopped, dead_letter")
 	list.Flags().IntVar(&limit, "limit", 50, "rows")
-	r.AddCommand(list)
+	retry := &cobra.Command{
+		Use:   "retry <run-id>",
+		Short: "Retry a dead-lettered flow run with its original arguments",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			if err := newClient().do("POST", "/v1/flows/runs/"+args[0]+"/retry", nil, nil); err != nil {
+				return err
+			}
+			fmt.Println("retry queued")
+			return nil
+		},
+	}
+	r.AddCommand(list, retry)
 	return r
 }
 

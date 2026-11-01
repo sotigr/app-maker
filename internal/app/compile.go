@@ -124,6 +124,7 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 		}
 	}
 	probs = append(probs, checkAuth(m.App.Auth, m.App.Roles)...)
+	probs = append(probs, checkPython(m.App.Python, m.Nodes)...)
 	llmCfg, err := llmdomain.ParseConfig(m.App.LLM)
 	if err != nil {
 		probs = append(probs, Problem{File: "app.json", Pointer: "/llm", Message: err.Error()})

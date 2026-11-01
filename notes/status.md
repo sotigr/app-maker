@@ -200,9 +200,16 @@ _Last updated: 2026-10-31_
   spans/metrics in engine, LLM router, runner, gateway; content Batch.Audit + AuditStore (memory, sqlite
   content_audit, repotest AuditLog) + audit.go (auditRecords, AppendAudit, Audit, ExpireAudit) + GET
   /v1/audit; auth audit events; config observability.*, audit.retentionDays. e2e audit_test.go.
-- NEXT 12g (small items): `emit` node, python.allowedPackages check at validate, dead_letter run status,
-  search reindex at startup (Bleve in memory), admin console audit/blob views. S3 adapter + Phase 10
-  need Docker.
+- 12g DONE: `emit` Effect node + custom dotted event triggers (CustomEvent regexp) + emit_event job
+  (HandleEmitEvent, causation continues → loop_stopped); Runtime.Causation(); kernel JobAttempt ctx set by
+  both job adapters → final failed attempt recorded as dead_letter with retryArgs (private flowRun field);
+  POST /v1/flows/runs/{id}/retry (admin) + `fw runs retry`; checkPython (python.allowedPackages vs lock
+  files) at validate; Content.ReindexAll at worker start (Bleve in memory). Tests: emit_test,
+  deadletter_test (memory only: River retry scheduling ~5 s/attempt), river_test, python_test,
+  TestSearchReindexAfterRestart. Hardened e2e tests against aggregate-recompute version bumps (409 retry).
+- REMAINING (no Docker): admin console views for audit log / blob fields / dead-letter retry; React demo
+  UI; SDK SSE fallback; data migrations (§12.5); change-log events carrying trace context.
+  NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with

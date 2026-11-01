@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -340,7 +341,9 @@ func (c *compiler) compileTrigger(f *Flow) {
 		switch k {
 		case "created", "updated", "moved", "deleted", "purged":
 		default:
-			c.errf("/trigger/event", "unknown event kind %q", k)
+			if !CustomEvent.MatchString(k) {
+				c.errf("/trigger/event", "unknown event kind %q (custom events emitted by the emit node contain a dot, e.g. task.reminded)", k)
+			}
 		}
 	}
 	if t.When != "" {
@@ -368,7 +371,7 @@ func (c *compiler) triggerEnv(f *Flow) rt.Env {
 	ft := c.featureType(f)
 	return rt.Env{
 		Vars: map[string]*rt.Type{
-			"event": rt.MapOf(map[string]*rt.Type{"kind": rt.String, "changed": rt.ListOf(rt.String), "type": rt.String, "id": rt.String}),
+			"event": rt.MapOf(map[string]*rt.Type{"kind": rt.String, "changed": rt.ListOf(rt.String), "type": rt.String, "id": rt.String, "data": rt.Any}),
 			"op":    rt.String, "before": ft, "after": ft, "feature": ft,
 			"principal": accessapi.PrincipalExprType(),
 		},
@@ -784,6 +787,10 @@ func topoLevels(names []string, deps map[string]map[string]bool) ([][]string, st
 	}
 	return levels, ""
 }
+
+// CustomEvent names events raised by the emit node (spec 10.5, 14.5):
+// lower-case words joined by dots, so they cannot be lifecycle kinds.
+var CustomEvent = regexp.MustCompile(`^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)+$`)
 
 // schemaParams derives the inputs of a code node from its inputSchema.
 func schemaParams(raw json.RawMessage) []Param {

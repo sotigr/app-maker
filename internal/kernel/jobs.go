@@ -33,3 +33,25 @@ type JobRequest struct {
 type JobEnqueuer interface {
 	Enqueue(ctx context.Context, jobs []JobRequest) error
 }
+
+type attemptKey struct{}
+
+// JobAttempt is the attempt number of the running job and its maximum.
+type JobAttempt struct{ Attempt, Max int }
+
+// WithJobAttempt is set by job adapters before calling a handler.
+func WithJobAttempt(ctx context.Context, a JobAttempt) context.Context {
+	return context.WithValue(ctx, attemptKey{}, a)
+}
+
+// JobAttemptFrom returns the running job's attempt; ok is false outside jobs.
+func JobAttemptFrom(ctx context.Context) (JobAttempt, bool) {
+	a, ok := ctx.Value(attemptKey{}).(JobAttempt)
+	return a, ok
+}
+
+// FinalAttempt reports whether a failure now is the job's last.
+func FinalAttempt(ctx context.Context) bool {
+	a, ok := JobAttemptFrom(ctx)
+	return ok && a.Max > 0 && a.Attempt >= a.Max
+}

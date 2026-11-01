@@ -208,6 +208,24 @@ func Builtins() []domain.NodeType {
 				r.Effect(kernel.JobRequest{Kind: JobDeliverWebhook, Queue: kernel.QueueEffects, Args: args, MaxAttempts: 25})
 				return map[string]any{"queued": true}, nil
 			}},
+		&builtin{name: "emit", kind: domain.KindEffect,
+			desc: "Raises a custom event (e.g. task.reminded) about a feature after commit; flows with that event trigger run next.",
+			inputs: []domain.Param{param("event", rt.String, true, "event name with a dot"), param("feature", rt.String, true, "feature ID"),
+				mapParam("data", "event data")},
+			out: rt.MapOf(map[string]*rt.Type{"queued": rt.Bool}),
+			exec: func(_ context.Context, in map[string]any, r domain.Runtime) (any, error) {
+				name := str(in["event"])
+				if !domain.CustomEvent.MatchString(name) {
+					return nil, kernel.NewError(kernel.CodeValidationFailed, "event names are dotted lower-case words, got %q", name)
+				}
+				pid := r.Principal().ID
+				args, err := json.Marshal(emitArgs{Event: name, Feature: str(in["feature"]), Data: toWire(in["data"]), Principal: &pid, Causation: r.Causation()})
+				if err != nil {
+					return nil, err
+				}
+				r.Effect(kernel.JobRequest{Kind: JobEmitEvent, Queue: kernel.QueueEvents, Args: args, MaxAttempts: 10})
+				return map[string]any{"queued": true}, nil
+			}},
 		// External.
 		&builtin{name: "http.request", kind: domain.KindExternal, desc: "Calls an HTTP API through the egress policy (GET, HEAD, or idempotent calls).",
 			inputs: []domain.Param{param("url", rt.String, true, "URL"), param("method", rt.String, false, "GET by default"),

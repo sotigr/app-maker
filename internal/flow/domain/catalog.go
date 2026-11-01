@@ -11,6 +11,7 @@ import (
 
 	accessapi "app-maker/internal/access/api"
 	contentapi "app-maker/internal/content/api"
+	flowapi "app-maker/internal/flow/api"
 	"app-maker/internal/kernel"
 	rt "app-maker/internal/runtime/api"
 )
@@ -98,6 +99,8 @@ type Runtime interface {
 	Ephemeral(ctx context.Context, featureID string, values map[string]any) error
 	// OutputSchema is the node's declared output schema, if any.
 	OutputSchema() json.RawMessage
+	// Causation is the run's causation chain, ending with this run.
+	Causation() flowapi.CausationChain
 	// RunCode executes the node's code on a runner (spec 11.1); host calls
 	// run as the run's principal through the write set.
 	RunCode(ctx context.Context, input map[string]any) (json.RawMessage, error)

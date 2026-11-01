@@ -42,6 +42,7 @@ func (w *riverWorker) Work(ctx context.Context, job *river.Job[riverArgs]) error
 	if !ok {
 		return river.JobCancel(fmt.Errorf("%w: %s", ErrNoHandler, job.Args.JobKind))
 	}
+	ctx = kernel.WithJobAttempt(ctx, kernel.JobAttempt{Attempt: job.Attempt, Max: job.MaxAttempts})
 	err := traced(ctx, job.Args.JobKind, job.Queue, job.Args.Trace, func(ctx context.Context) error { return h(ctx, job.Args.Args) })
 	if IsPermanent(err) {
 		return river.JobCancel(err)
@@ -186,7 +187,7 @@ func (r *RiverSQLite) Committed(ctx context.Context) ([]kernel.JobRequest, error
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return nil, err
 		}
-		out = append(out, kernel.JobRequest{Kind: a.JobKind, UniqueKey: a.UniqueKey, Args: a.Args, Queue: q})
+		out = append(out, kernel.JobRequest{Kind: a.JobKind, UniqueKey: a.UniqueKey, Args: a.Args, Queue: q, Trace: a.Trace})
 	}
 	return out, rows.Err()
 }

@@ -158,7 +158,7 @@ func (e *Engine) HandleRunFlow(ctx context.Context, raw json.RawMessage) error {
 		}
 	}
 	req := Request{Flow: f, Principal: p, FeatureID: a.FeatureID, Input: a.Input, Event: a.Event,
-		Causation: a.Causation, Background: true, Trigger: map[string]any{"kind": a.Trigger}}
+		Causation: a.Causation, Background: true, Trigger: map[string]any{"kind": a.Trigger}, Job: raw}
 	if f.Trigger == domain.TriggerSchedule || f.Trigger == domain.TriggerWebhook {
 		req.Principal = accessapi.System() // spec 10.9: system principal for schedules
 	}
@@ -384,4 +384,85 @@ func (e *Engine) Schedules() ([]Schedule, error) {
 		out = append(out, Schedule{Name: "flow:" + f.Name, Next: f.Cron.Next, Job: j})
 	}
 	return out, nil
+}
+
+// JobEmitEvent delivers a custom event raised by an emit node.
+const JobEmitEvent = "emit_event"
+
+type emitArgs struct {
+	Event     string                 `json:"event"`
+	Feature   string                 `json:"feature"`
+	Data      any                    `json:"data,omitempty"`
+	Principal *kernel.ID             `json:"principal,omitempty"`
+	Causation flowapi.CausationChain `json:"causation,omitempty"`
+}
+
+// HandleEmitEvent starts the flows triggered by a custom event (spec 10.5,
+// 14.5: chaining effects through events). `event.data` carries the data;
+// the causation chain continues, so emit loops stop like write loops.
+func (e *Engine) HandleEmitEvent(ctx context.Context, raw json.RawMessage) error {
+	var a emitArgs
+	if err := json.Unmarshal(raw, &a); err != nil {
+		return err
+	}
+	id, err := kernel.ParseID(a.Feature)
+	if err != nil {
+		return nil // nothing to deliver to
+	}
+	doc, err := e.d.Content.Storage(ctx, id)
+	if errors.Is(err, kernel.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	typeName, _ := doc["type"].(string)
+	ct, ok := e.d.Types.ByName(typeName)
+	if !ok {
+		return nil
+	}
+	event := map[string]any{"kind": a.Event, "changed": []any{}, "type": typeName, "id": a.Feature, "data": a.Data}
+	vars := map[string]any{"event": event, "before": map[string]any(doc), "after": map[string]any(doc), "feature": map[string]any(doc),
+		"op": a.Event, "principal": map[string]any{"id": "", "kind": "", "roles": []any{}, "groups": []any{}},
+		rt.FnNow: e.d.Clock.Now, rt.FnChanged: func(string) bool { return false }}
+	var jobs []kernel.JobRequest
+	for _, f := range e.d.Flows.ByTrigger(domain.TriggerEvent) {
+		if !slices.Contains(f.Def.Trigger.Event, a.Event) || !f.Matches(ct) {
+			continue
+		}
+		if f.When != nil {
+			if ok, err := f.When.Eval(vars); err != nil || ok != true {
+				continue
+			}
+		}
+		j, err := runFlowJob(f, runFlowArgs{FeatureID: &id, Event: event, Principal: a.Principal, Causation: a.Causation})
+		if err != nil {
+			return err
+		}
+		jobs = append(jobs, j)
+	}
+	if len(jobs) == 0 {
+		return nil
+	}
+	return e.d.Jobs.Enqueue(ctx, jobs)
+}
+
+// RetryRun re-enqueues a dead-lettered run with its original arguments
+// (admins; spec 10.10).
+func (e *Engine) RetryRun(ctx context.Context, p accessapi.Principal, runRecord kernel.ID) error {
+	if !p.IsSystem() && !p.HasRole("admin") {
+		return kernel.ErrForbidden
+	}
+	doc, err := e.d.Content.Storage(ctx, runRecord)
+	if err != nil {
+		return err
+	}
+	if doc["type"] != "flowRun" || doc["status"] != "dead_letter" {
+		return kernel.NewError(kernel.CodeConflict, "only dead-lettered runs can be retried")
+	}
+	args, err := json.Marshal(doc["retryArgs"])
+	if err != nil || string(args) == "null" {
+		return kernel.NewError(kernel.CodeConflict, "the run has no retry arguments")
+	}
+	return e.d.Jobs.Enqueue(ctx, []kernel.JobRequest{{Kind: JobRunFlow, Queue: kernel.QueueFlows, Args: args, MaxAttempts: 5}})
 }

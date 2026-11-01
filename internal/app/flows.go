@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -68,6 +69,12 @@ func (r runRecorder) Record(ctx context.Context, rec flowapp.RunRecord) error {
 	}
 	if rec.Trace != nil {
 		data["trace"] = rec.Trace
+	}
+	if len(rec.RetryArgs) > 0 {
+		var args any
+		if json.Unmarshal(rec.RetryArgs, &args) == nil {
+			data["retryArgs"] = args
+		}
 	}
 	_, err := r.w.Create(ctx, "flowRun", nil, toJSONValue(data), nil)
 	return err

@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"app-maker/platform/config"
 )
 
 // Milestone 9: public search never matches owner or private text, and no
@@ -12,9 +14,16 @@ func TestSearchTiers(t *testing.T) {
 	eachDriver(t, func(t *testing.T, driver string) {
 		w := setup(t, driver)
 		// The admin owns project P; vera views it, sam sees nothing.
-		mustOK(t, w.admin.do("PATCH", "/v1/features/project/"+w.project,
-			map[string]any{"description": "public zebra roadmap", "notes": "secret giraffe plan"},
-			"If-Match", mustOK(t, w.admin.do("GET", "/v1/features/project/"+w.project, nil), 200).Header.Get("ETag")), 200)
+		// Aggregate recomputes may bump the project's version: retry conflicts.
+		eventually(t, "project update", func() bool {
+			r := w.admin.do("PATCH", "/v1/features/project/"+w.project,
+				map[string]any{"description": "public zebra roadmap", "notes": "secret giraffe plan"},
+				"If-Match", mustOK(t, w.admin.do("GET", "/v1/features/project/"+w.project, nil), 200).Header.Get("ETag"))
+			if r.Status != 200 && r.Status != 409 {
+				t.Fatalf("project update: %s", r.Raw)
+			}
+			return r.Status == 200
+		})
 		if _, err := w.s.rt.Content.Execute(context.Background(), systemFixture(), updateOp(w.task, w.taskVersionInt(t, w.task), map[string]any{"internalScore": 0.3})); err != nil {
 			t.Fatal(err)
 		}
@@ -39,5 +48,26 @@ func TestSearchTiers(t *testing.T) {
 		if r := search(w.admin, "0.3"); strings.Contains(r.Raw, "internalScore") {
 			t.Fatalf("private text searchable: %s", r.Raw)
 		}
+	})
+}
+
+// Spec 7.5: the in-memory index is rebuilt from SQLite after a restart.
+func TestSearchReindexAfterRestart(t *testing.T) {
+	dsn := t.TempDir() + "/app.db"
+	useDB := func(c *config.Config) {
+		c.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: dsn}}
+	}
+	s1 := startCfg(t, "sqlite", nil, useDB)
+	admin := s1.admin()
+	mustOK(t, admin.create("project", "", map[string]any{"title": "Zebra migration"}), 201)
+	eventually(t, "indexed", func() bool {
+		return strings.Contains(admin.do("GET", "/v1/search?q=zebra", nil).Raw, "Zebra migration")
+	})
+	s1.rt.Close(context.Background())
+
+	s2 := startCfg(t, "sqlite", nil, useDB)
+	admin2 := s2.admin()
+	eventually(t, "reindexed after restart", func() bool {
+		return strings.Contains(admin2.do("GET", "/v1/search?q=zebra", nil).Raw, "Zebra migration")
 	})
 }

@@ -51,6 +51,9 @@ type RunRecord struct {
 	Nodes     map[string]any // per-node status and timing
 	Trace     map[string]any // inputs and outputs when trace: true
 	Feature   *kernel.ID
+	// RetryArgs are the run_flow arguments of a dead-lettered run, kept so
+	// an admin can retry it (spec 10.10).
+	RetryArgs json.RawMessage
 }
 
 // RunRecorder stores run records as flowRun features.
@@ -125,6 +128,8 @@ type Request struct {
 	Stage bool
 	// Background runs retry on version conflicts (spec 10.6).
 	Background bool
+	// Job is the run_flow arguments of a background run (dead-letter retry).
+	Job json.RawMessage
 }
 
 // Result is a finished run.
@@ -184,6 +189,10 @@ func (e *Engine) Run(ctx context.Context, req Request) (res Result, err error) {
 	default:
 		rec.Status = "failed"
 		rec.Error = errInfo(err)
+		if req.Background && kernel.FinalAttempt(ctx) {
+			// The job will not be retried (spec 10.10).
+			rec.Status, rec.RetryArgs = "dead_letter", req.Job
+		}
 	}
 	if !req.Stage || err != nil {
 		e.record(ctx, rec) // successful beforeWrite runs are not recorded: they run on every write
@@ -256,7 +265,7 @@ func (e *Engine) runOnce(ctx context.Context, runID kernel.ID, req Request) (Res
 		link.FeatureID = *req.FeatureID
 	}
 	r := &run{e: e, ctx: ctx, id: runID, principal: principal, writes: newWriteSet(), depth: 0, nodes: map[string]any{}, trace: map[string]any{},
-		calls: map[string][]rt.LLMCall{}}
+		calls: map[string][]rt.LLMCall{}, chain: req.Causation.With(link)}
 	base := e.d.Authorizer.Bindings(ctx, principal)
 	base["principal"] = principal.ExprValue()
 	base["trigger"] = trigger
@@ -325,6 +334,7 @@ type run struct {
 	nodes     map[string]any // per-node status for the run record
 	trace     map[string]any
 	calls     map[string][]rt.LLMCall // LLM calls per node (spec 11.7)
+	chain     flowapi.CausationChain  // causation including this run
 }
 
 func (r *run) llmCalls(node string) []rt.LLMCall {
@@ -561,6 +571,9 @@ func (n *nodeRuntime) NewID() kernel.ID               { return n.run.e.d.IDs.New
 
 func (n *nodeRuntime) OutputSchema() json.RawMessage { return n.spec.OutputSchema }
 
+// Causation implements domain.Runtime.
+func (n *nodeRuntime) Causation() flowapi.CausationChain { return n.run.chain }
+
 // LLM calls the router and records the call on the run (spec 11.7).
 func (n *nodeRuntime) LLM(ctx context.Context, req rt.LLMRequest, onDelta func(rt.LLMDelta) error) (rt.LLMResponse, error) {
 	if n.run.e.d.LLM == nil {
@@ -789,7 +802,7 @@ func (n *nodeRuntime) Subflow(_ context.Context, name string, input map[string]a
 			return nil, kernel.NewValidationError(errs...)
 		}
 	}
-	child := &run{e: n.run.e, ctx: n.run.ctx, id: n.run.id, principal: n.run.principal, writes: n.run.writes, calls: n.run.calls,
+	child := &run{e: n.run.e, ctx: n.run.ctx, id: n.run.id, principal: n.run.principal, writes: n.run.writes, calls: n.run.calls, chain: n.run.chain,
 		depth: n.run.depth + 1, nodes: n.run.nodes, trace: n.run.trace}
 	base := n.run.e.d.Authorizer.Bindings(n.run.ctx, n.run.principal)
 	base["principal"] = n.run.principal.ExprValue()
