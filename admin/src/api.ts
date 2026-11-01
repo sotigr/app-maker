@@ -8,7 +8,7 @@ export type Problem = {
   detail?: string;
   errors?: { path: string; code: string; message: string }[];
   operation?: number;
-  problems?: FlowProblem[];
+  problems?: FlowProblem[] & UiProblem[];
 };
 
 export type FlowProblem = { file?: string; flow?: string; pointer: string; message: string };
@@ -122,7 +122,39 @@ export const Api = {
   validateFlow: (definition: FlowDefinition) => api<{ valid: boolean; problems: FlowProblem[] }>("POST", "/v1/flows/validate", { definition }),
   saveFlow: (definition: FlowDefinition) => api<{ saved: string }>("PUT", `/v1/dev/manifest/flows/${definition.flow}`, { definition }),
   deploys: () => api<{ deploys: { hash: string; actor: string; at: string }[] }>("GET", "/v1/deploy"),
+  // UI builder (ADR 0016).
+  uiSource: () => api<UiSource>("GET", "/v1/ui/source"),
+  uiCatalog: () => api<UiCatalog>("GET", "/v1/ui/catalog"),
+  validateUi: (files: Record<string, string | null>) => api<{ valid: boolean; problems: UiProblem[] }>("POST", "/v1/ui/validate", { files }),
+  savePage: (name: string, document: unknown, from?: string) => api<UiSaved>("PUT", `/v1/dev/manifest/ui/pages/${encodeURIComponent(name)}`, { document, from }),
+  deletePage: (name: string) => api<UiSaved>("DELETE", `/v1/dev/manifest/ui/pages/${encodeURIComponent(name)}`),
+  saveUiApp: (document: unknown) => api<UiSaved>("PUT", "/v1/dev/manifest/ui/app", { document }),
+  saveStyles: (css: string) => api<UiSaved>("PUT", "/v1/dev/manifest/ui/styles", { css }),
+  saveAsset: async (path: string, file: File) => {
+    const res = await fetch(`/v1/dev/manifest/ui/assets/${path.split("/").map(encodeURIComponent).join("/")}`, {
+      method: "PUT", body: file, credentials: "same-origin", headers: { "X-CSRF-Token": csrf(), "Content-Type": file.type || "application/octet-stream" },
+    });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : undefined;
+    if (!res.ok) throw new ApiError(data || { code: String(res.status), status: res.status });
+    return data as UiSaved;
+  },
 };
+
+export type UiProblem = { file: string; pointer?: string; message: string; warning?: boolean };
+export type UiSaved = { saved: string[]; removed?: string[]; problems: UiProblem[] };
+export type UiSource = {
+  dev: boolean;
+  app: any | null;
+  styles: string | null;
+  pages: { name: string; file: string; doc: any }[];
+  assets: string[];
+  types: Record<string, any>;
+};
+export type UiProp = { name: string; kind: string; required?: boolean; enum?: string[]; want?: string; doc?: string; item?: UiProp[]; row?: boolean };
+export type UiComponent = { name: string; family: string; doc: string; props: UiProp[] | null; events?: string[]; source?: string };
+export type UiStep = { name: string; doc: string; props: UiProp[] | null; api?: boolean };
+export type UiCatalog = { families: string[]; components: UiComponent[]; steps: UiStep[]; common: UiProp[] };
 
 export function describeError(e: unknown): string {
   if (e instanceof ApiError) {

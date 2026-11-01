@@ -13,7 +13,8 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
 # Pure Go (SQLite included), so the binaries are static. The admin console
-# (admin/dist) and the Python runtime (runner/python) are embedded.
+# (admin/dist), the UI renderer (web/dist), and the Python runtime
+# (runner/python) are embedded.
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/organon ./cmd/organon && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/organond ./cmd/organond

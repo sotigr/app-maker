@@ -34,6 +34,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/transactions", h.transaction)
 	mux.HandleFunc("GET /v1/search", h.search)
 	mux.HandleFunc("GET /v1/audit", h.audit)
+	mux.HandleFunc("POST /v1/permissions", h.permissions)
 }
 
 // fail writes err. Anonymous callers get 401 instead of 403/404, so they
@@ -215,6 +216,24 @@ func (h *Handler) query(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.WriteJSON(w, http.StatusOK, res)
+}
+
+// permissions answers the end-user UI's can(f, op) questions in one batch
+// (ADR 0016).
+func (h *Handler) permissions(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Checks []application.Permission `json:"checks"`
+	}
+	if err := httpserver.DecodeJSON(r, &body); err != nil {
+		fail(w, r, err)
+		return
+	}
+	res, err := h.svc.Can(r.Context(), accessapi.PrincipalFrom(r.Context()), body.Checks)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	httpserver.WriteJSON(w, http.StatusOK, map[string]any{"results": res})
 }
 
 func (h *Handler) transaction(w http.ResponseWriter, r *http.Request) {

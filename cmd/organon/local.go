@@ -36,7 +36,7 @@ func validateCmd() *cobra.Command {
 	var env string
 	c := &cobra.Command{
 		Use:   "validate [dir]",
-		Short: "Check schemas, policies, and flows; type-check every expression",
+		Short: "Check schemas, policies, flows, and UI pages; type-check every expression",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			c, err := app.Load(dirArg(args), env)
@@ -46,8 +46,8 @@ func validateCmd() *cobra.Command {
 			for _, w := range c.Warnings {
 				fmt.Println(w.String())
 			}
-			fmt.Printf("ok: %d types, %d policies, %d flows, %d tests (manifest %s)\n", len(c.Types.All()),
-				len(c.Policies.Targets()), len(c.Flows.All()), len(c.Manifest.Tests), c.Manifest.Hash[:12])
+			fmt.Printf("ok: %d types, %d policies, %d flows, %d ui pages, %d tests (manifest %s)\n", len(c.Types.All()),
+				len(c.Policies.Targets()), len(c.Flows.All()), len(c.UI.Pages), len(c.Manifest.Tests), c.Manifest.Hash[:12])
 			return nil
 		},
 	}

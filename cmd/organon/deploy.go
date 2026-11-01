@@ -44,6 +44,12 @@ func printPlan(p app.Plan) {
 		}
 		fmt.Printf("  flow %-40s %s%s\n", x.Name, x.Status, priv)
 	}
+	for _, x := range p.UI {
+		fmt.Printf("  ui %-42s %s\n", x.Name, x.Status)
+	}
+	for _, pg := range p.PublicPages {
+		fmt.Printf("  ! page visible without login (review): %s\n", pg)
+	}
 	for _, e := range p.Exposures {
 		fmt.Printf("  ! new public field (data exposure, review): %s\n", e)
 	}

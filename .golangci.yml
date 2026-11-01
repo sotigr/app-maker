@@ -37,6 +37,8 @@ linters:
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
             - pkg: organon/internal/manifest
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
+            - pkg: organon/internal/ui
+              desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
         schema-api:
           list-mode: strict
           files: ["**/internal/schema/api/**", "!$test"]
@@ -52,6 +54,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         schema-domain:
           list-mode: strict
           files: ["**/internal/schema/domain/**", "!$test"]
@@ -68,6 +71,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -89,6 +93,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -180,6 +185,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         schema-interfaces:
           list-mode: lax
           files: ["**/internal/schema/interfaces/**", "!$test"]
@@ -268,6 +283,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         content-api:
           list-mode: strict
           files: ["**/internal/content/api/**", "!$test"]
@@ -283,6 +308,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         content-domain:
           list-mode: strict
           files: ["**/internal/content/domain/**", "!$test"]
@@ -299,6 +325,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -320,6 +347,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -411,6 +439,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         content-interfaces:
           list-mode: lax
           files: ["**/internal/content/interfaces/**", "!$test"]
@@ -499,6 +537,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         access-api:
           list-mode: strict
           files: ["**/internal/access/api/**", "!$test"]
@@ -514,6 +562,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         access-domain:
           list-mode: strict
           files: ["**/internal/access/domain/**", "!$test"]
@@ -530,6 +579,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -551,6 +601,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -642,6 +693,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         access-interfaces:
           list-mode: lax
           files: ["**/internal/access/interfaces/**", "!$test"]
@@ -730,6 +791,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         query-api:
           list-mode: strict
           files: ["**/internal/query/api/**", "!$test"]
@@ -745,6 +816,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         query-domain:
           list-mode: strict
           files: ["**/internal/query/domain/**", "!$test"]
@@ -761,6 +833,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -782,6 +855,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -873,6 +947,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         query-interfaces:
           list-mode: lax
           files: ["**/internal/query/interfaces/**", "!$test"]
@@ -961,6 +1045,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         change-api:
           list-mode: strict
           files: ["**/internal/change/api/**", "!$test"]
@@ -976,6 +1070,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         change-domain:
           list-mode: strict
           files: ["**/internal/change/domain/**", "!$test"]
@@ -992,6 +1087,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1013,6 +1109,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1104,6 +1201,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         change-interfaces:
           list-mode: lax
           files: ["**/internal/change/interfaces/**", "!$test"]
@@ -1192,6 +1299,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         flow-api:
           list-mode: strict
           files: ["**/internal/flow/api/**", "!$test"]
@@ -1207,6 +1324,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         flow-domain:
           list-mode: strict
           files: ["**/internal/flow/domain/**", "!$test"]
@@ -1223,6 +1341,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1244,6 +1363,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1335,6 +1455,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         flow-interfaces:
           list-mode: lax
           files: ["**/internal/flow/interfaces/**", "!$test"]
@@ -1423,6 +1553,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         runtime-api:
           list-mode: strict
           files: ["**/internal/runtime/api/**", "!$test"]
@@ -1438,6 +1578,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         runtime-domain:
           list-mode: strict
           files: ["**/internal/runtime/domain/**", "!$test"]
@@ -1454,6 +1595,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1475,6 +1617,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1566,6 +1709,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         runtime-interfaces:
           list-mode: lax
           files: ["**/internal/runtime/interfaces/**", "!$test"]
@@ -1654,6 +1807,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         integration-api:
           list-mode: strict
           files: ["**/internal/integration/api/**", "!$test"]
@@ -1669,6 +1832,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         integration-domain:
           list-mode: strict
           files: ["**/internal/integration/domain/**", "!$test"]
@@ -1685,6 +1849,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1706,6 +1871,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1797,6 +1963,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         integration-interfaces:
           list-mode: lax
           files: ["**/internal/integration/interfaces/**", "!$test"]
@@ -1885,6 +2061,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         manifest-api:
           list-mode: strict
           files: ["**/internal/manifest/api/**", "!$test"]
@@ -1900,6 +2086,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
         manifest-domain:
           list-mode: strict
           files: ["**/internal/manifest/domain/**", "!$test"]
@@ -1916,6 +2103,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1937,6 +2125,7 @@ linters:
             - organon/internal/runtime/api
             - organon/internal/integration/api
             - organon/internal/manifest/api
+            - organon/internal/ui/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -2028,6 +2217,16 @@ linters:
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
         manifest-interfaces:
           list-mode: lax
           files: ["**/internal/manifest/interfaces/**", "!$test"]
@@ -2115,6 +2314,270 @@ linters:
             - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
             - pkg: organon/internal/integration/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/ui/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+        ui-api:
+          list-mode: strict
+          files: ["**/internal/ui/api/**", "!$test"]
+          allow:
+            - $gostd
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
+            - organon/internal/ui/api
+        ui-domain:
+          list-mode: strict
+          files: ["**/internal/ui/domain/**", "!$test"]
+          allow:
+            - $gostd
+            - organon/internal/kernel
+            - organon/internal/ui/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
+            - organon/internal/ui/api
+            - github.com/expr-lang/expr
+            - github.com/santhosh-tekuri/jsonschema/v6
+            - github.com/cockroachdb/apd/v3
+            - github.com/google/uuid
+        ui-application:
+          list-mode: strict
+          files: ["**/internal/ui/application/**", "!$test"]
+          allow:
+            - $gostd
+            - organon/internal/kernel
+            - organon/internal/ui/domain
+            - organon/internal/ui/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
+            - organon/internal/ui/api
+            - github.com/expr-lang/expr
+            - github.com/santhosh-tekuri/jsonschema/v6
+            - github.com/cockroachdb/apd/v3
+            - github.com/google/uuid
+            - golang.org/x/sync
+        ui-infrastructure:
+          list-mode: lax
+          files: ["**/internal/ui/infrastructure/**", "!$test"]
+          deny:
+            - pkg: organon/internal/ui/interfaces
+              desc: infrastructure must not import interfaces (spec 15.2)
+            - pkg: organon/internal/schema/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+        ui-interfaces:
+          list-mode: lax
+          files: ["**/internal/ui/interfaces/**", "!$test"]
+          deny:
+            - pkg: organon/internal/ui/infrastructure
+              desc: interfaces must not import infrastructure (spec 15.2)
+            - pkg: organon/internal/ui/domain
+              desc: interfaces use application DTOs, not domain internals (spec 15.2)
+            - pkg: organon/internal/schema/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/schema/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/content/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/access/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/query/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/change/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/flow/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/runtime/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/integration/repotest
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/domain
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/application
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/infrastructure
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/interfaces
+              desc: contexts talk only through api packages (spec 15.4)
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
 formatters:
   enable:

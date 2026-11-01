@@ -125,6 +125,12 @@ func LoadFiles(dir string, files map[string][]byte, env string) (*domain.Manifes
 			}
 		case "templates":
 			m.Templates = append(m.Templates, f)
+		case "ui":
+			// Modules contribute pages only; the shell, styles, and
+			// assets belong to the app (ADR 0016).
+			if !strings.HasPrefix(p, "modules/") || (parts[1] == "pages" && ext == ".json") {
+				m.UI = append(m.UI, f)
+			}
 		case "seed":
 			if ext == ".json" {
 				m.Seeds[strings.TrimSuffix(parts[len(parts)-1], ".json")] = f

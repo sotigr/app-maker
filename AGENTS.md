@@ -4,7 +4,8 @@ Instructions for AI agents working in this repository. There are two kinds
 of tasks; identify which one you have.
 
 1. **Building an application**: you write a *manifest* (JSON Schemas,
-   policies, flow graphs, optional Python nodes). You do not write Go.
+   policies, flow graphs, optional Python nodes, UI pages). You do not
+   write Go or JavaScript.
 2. **Changing the framework**: you change the Go server, CLI, SDK, or
    admin console.
 
@@ -45,6 +46,9 @@ re-run. Do not stop until validate and test pass.
 | Changing the shape of existing data | bump the type version + `migrations/<id>.json` | [migrations](docs/usage/08-testing-and-deploy.md#data-migrations) |
 | Behaviour checks | `tests/<name>.test.json` | [tests](docs/usage/08-testing-and-deploy.md#manifest-tests) |
 | Config values | `app.json` `settings` + `env/<env>.json`, read as `env.<key>` | [manifest](docs/usage/02-manifest.md) |
+| End-user UI shell (title, home, nav, login) | `ui/app.json` | [UI](docs/usage/11-ui.md) |
+| A screen of the end-user UI | `ui/pages/<name>.json` (component tree) | [UI](docs/usage/11-ui.md) |
+| UI look | `ui/styles.css` (override `--o-*` variables, `o-*` classes), `ui/assets/**` | [UI](docs/usage/11-ui.md#styling) |
 
 ### Rules that prevent most mistakes
 
@@ -75,6 +79,27 @@ re-run. Do not stop until validate and test pass.
 - Write at least one test per policy decision and per action, including a
   denied case (`"expect": {"error": "forbidden"}`).
 
+### UI pages
+
+- Run `bin/organon ui catalog` for the components, their props, and steps;
+  do not invent props (unknown members are errors).
+- In UI files, **text** props (`text`, `label`, `title`, `empty`, ...) are
+  literal text with `{{ expr }}` interpolations; **expression** props
+  (`value`, `visible`, `id`, `parent`, `params`, step inputs, query values)
+  follow the flow rule: `"'done'"`. Field props are JSON Pointers
+  (`"/status"`); `type`, `page`, `action`, `source` are plain names.
+- Load data in the page's `data` (`feature`, `children`, `query`,
+  `search`); components refer to sources by name. Rows (`table`, `list`,
+  `board`) see `item`; steps see `result` of the previous step.
+- Behaviour belongs in actions and flows: a button runs an `action` step.
+  UI expressions are a subset (no `filter`/`map`, pipes, `hasRole`); hide
+  controls with `can(data.x, 'update' | 'delete' | 'action:<name>' | 'create:<type>')`.
+  Policies still protect the data.
+- Give every route parameter a `params` entry, and every `link`/`navigate`
+  the target page's route parameters.
+- Add a `page` test step for each page restricted with `visible`.
+- `bin/organon ui schema` writes JSON Schemas for `"$schema"` completion.
+
 ### Minimal working examples
 
 Copy patterns from [examples/tracker](examples/tracker):
@@ -83,7 +108,10 @@ Copy patterns from [examples/tracker](examples/tracker):
 (beforeWrite), `flows/notify-assignee.json` (event),
 `flows/daily-digest.json` (schedule, forEach), `flows/inbound-issue.json`
 (webhook), `flows/summarize-project.json` (LLM), `flows/triage-task.json`
-+ `nodes/triage.py` (Python), `tests/task-permissions.test.json`.
++ `nodes/triage.py` (Python), `tests/task-permissions.test.json`,
+`ui/app.json`, `ui/pages/project.json` (sources, board, chart, tabs,
+dialog with a create form, action button), `ui/pages/task.json` (update
+form, transitions, menu, comments list), `tests/ui-pages.test.json`.
 
 The node catalog with inputs is in
 [docs/usage/05-flows.md](docs/usage/05-flows.md#node-reference); the server
@@ -104,15 +132,21 @@ also lists it at `GET /v1/flows` (admins).
 
 - `internal/<context>/{api,domain,application,infrastructure,interfaces}`
   for contexts schema, content, access, query, change, flow, runtime,
-  integration, manifest. `internal/kernel` holds shared value types.
+  integration, manifest, ui. `internal/kernel` holds shared value types.
   `internal/app` wires everything. `platform/` holds technical pieces with
   no domain logic. `cmd/organond`, `cmd/organon` are the binaries.
 - Layer rules are enforced by depguard (`make depguard` regenerates
   `.golangci.yml`): contexts talk only through `api` packages; domain code
   imports no infrastructure; application code may own goroutines.
-- `sdk/ts` (client, React hooks), `admin/` (React console, built into
-  `admin/dist` and embedded), `runner/python/organon` (Python runtime,
+- `sdk/ts` (client, React hooks, `ui` = the end-user renderer), `admin/`
+  (React console incl. flow editor and UI builder, built into `admin/dist`
+  and embedded), `web/` (the renderer app served at `/`, built into
+  `web/dist` and embedded), `runner/python/organon` (Python runtime,
   embedded), `api/proto` (code-node gRPC).
+- The UI component catalog lives in `internal/ui/domain/catalog.go`; a new
+  component needs its catalog entry, its checks in `compile.go`, its
+  renderer in `sdk/ts/ui/src/components/`, and a tracker usage. UI
+  expression semantics are shared through `testdata/uiexpr/cases.json`.
 
 ### Checks before you finish
 
@@ -121,8 +155,9 @@ go build ./...
 go test -race ./...           # all packages; e2e tests in test/e2e
 golangci-lint run ./...       # must report 0 issues (gofmt included)
 bin/organon test examples/tracker
-make sdk                      # when the SDK, codegen, or tracker types change
-make ui                       # when admin/src changes (commit admin/dist)
+make sdk                      # when the SDK, codegen, or tracker types change (runs the UI expression vectors)
+make ui                       # when admin/src or sdk/ts/ui changes (commit admin/dist)
+make web                      # when sdk/ts/ui or web/ changes (commit web/dist)
 make proto                    # when api/proto changes (needs protoc plugins)
 make docker                   # when the Dockerfile or runtime dependencies change (needs Docker)
 ```

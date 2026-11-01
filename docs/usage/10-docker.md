@@ -14,7 +14,7 @@ make docker            # = docker build -t organon .
 | `/data` | Server state: `app.db` (SQLite: features, credentials, jobs, deploys, audit), `blobs/`, `secrets/data.key`. **Must be a persistent volume.** |
 | `/usr/share/organon/examples/tracker` | The example app, for trying things out. |
 
-Ports: `8080` (API, admin console at `/admin`, streaming) and `9090`
+Ports: `8080` (API, the app's UI at `/`, admin console at `/admin`, streaming) and `9090`
 (health: `/livez`, `/readyz`, `/startupz`). The container runs as user
 `organon` (uid 10001) and starts `organond` by default.
 

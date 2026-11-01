@@ -72,6 +72,8 @@ type TestStep struct {
 	Delete string         `json:"delete,omitempty"`
 	Read   string         `json:"read,omitempty"`
 	Query  map[string]any `json:"query,omitempty"`
+	// Page checks whether the principal is offered a UI page (ADR 0016).
+	Page   string         `json:"page,omitempty"`
 	Data   map[string]any `json:"data,omitempty"`
 	Expect TestExpect     `json:"expect"`
 }
@@ -84,6 +86,8 @@ type TestExpect struct {
 	Output  map[string]any `json:"output,omitempty"`
 	Count   *int           `json:"count,omitempty"`
 	Effects []TestEffect   `json:"effects,omitempty"`
+	// Visible is the expectation of a page step.
+	Visible *bool `json:"visible,omitempty"`
 }
 
 // TestEffect counts effects staged by a step, by node type.
@@ -322,6 +326,9 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 			if id, err = kernel.ParseID(featureID); err == nil {
 				_, err = rt.Content.GetFeature(ctx, p, "", id)
 			}
+		case st.Page != "":
+			checkPage(rt, p, st, label, fail)
+			continue
 		case st.Query != nil:
 			raw, _ := json.Marshal(st.Query)
 			var qr contentapp.QueryResult
@@ -423,4 +430,29 @@ func deleteAs(ctx context.Context, rt *Runtime, p accessapi.Principal, id string
 	_, err = rt.Content.Execute(ctx, contentapp.WriteContext{Principal: p}, []contentapp.Op{
 		{Op: contentapp.OpDelete, Type: ct.Name, ID: id, Version: f.Version()}})
 	return err
+}
+
+// checkPage runs a page step: is the page in the principal's UI bundle?
+func checkPage(rt *Runtime, p accessapi.Principal, st TestStep, label string, fail func(string, ...any)) {
+	known := false
+	if ui := rt.App.UI; ui != nil {
+		for _, pg := range ui.Pages {
+			known = known || pg.Name == st.Page
+		}
+	}
+	if !known {
+		fail("%s: unknown page %q", label, st.Page)
+		return
+	}
+	if st.Expect.Visible == nil {
+		fail("%s: a page step expects visible", label)
+		return
+	}
+	visible := false
+	for _, pg := range rt.UI.Bundle(p).Pages {
+		visible = visible || pg.Name == st.Page
+	}
+	if visible != *st.Expect.Visible {
+		fail("%s: page %s visible = %v, want %v", label, st.Page, visible, *st.Expect.Visible)
+	}
 }

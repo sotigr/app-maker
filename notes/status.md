@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-10-31_
+_Last updated: 2026-11-01_
 
 ## Current phase: 10 – PostgreSQL + Valkey (next; needs Docker running).
 
@@ -236,3 +236,36 @@ _Last updated: 2026-10-31_
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
   fake/Anthropic/OpenAI-compatible adapters, blobs on local fs + uploads, rate limits, OIDC/MFA,
   OpenTelemetry). Phase 10 still blocked on Docker.
+
+## End-user UI (ADR 0016, 2026-11-01)
+Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–M5).
+- M1 DONE format + validation: manifest `UI` group (in hash; modules may add ui/pages only); `internal/ui/domain`
+  (catalog.go = components/steps/prop kinds; compile.go = pages, routes, params, sources, query fields vs public
+  query view, read/write paths vs owner views, actions, dialogs, state; expr.go = subset AST check + pipe/backtick
+  scan + `{{ }}` templates; schema.go = JSON Schemas from the catalog); rt built-ins can/formatDate/formatNumber
+  (type-check only); UI feature types map decimal + string-wire int64 to string. `organon ui catalog|schema`;
+  plan lists `ui` diffs + `newPublicPages`. Tests: rule table with pointers, tracker compile, schemas accept tracker,
+  shared vectors `testdata/uiexpr/cases.json` (Go half).
+- M2 DONE runtime: `internal/ui/application` (Bundle per principal: pages filtered by principal-only `visible`,
+  nav filtered, field metadata per audience incl. ref targets, action inputs), `internal/ui/interfaces/http`
+  (GET /v1/ui, /v1/ui/catalog, /assets/styles.css, /assets/app/*, /assets/organon/* (web/dist), GET / SPA
+  fallback with CSP; no ui → / redirects to /admin/); `POST /v1/permissions` (content `Service.Can`: policy +
+  state-machine from-state + guard; unreadable → false; ≤100). `/assets/` exempt from rate limits.
+  `sdk/ts/ui` (@organon/ui): expr.ts interpreter (vectors: `node sdk/ts/ui/test/expr.test.ts`), runtime/sources/
+  steps/render, components layout|data|forms|charts, base.css; `web/` (Vite, `make web`, dist committed, embedded
+  by `web/embed.go`). Tracker `ui/` (projects, project with board/chart/tabs/dialog, task, myTasks, styles.css).
+  e2e `test/e2e/ui_test.go`. Browser-checked with headless Brave (act.mjs-style CDP script): login, create via
+  dialog, board drag (allowed + refused), comments, transitions per user, live updates.
+- M3 DONE (board + chart shipped with M2).
+- M4 DONE builder: `internal/app/uieditor.go` (GET /v1/ui/source incl. all type metadata + dev flag, POST
+  /v1/ui/validate {files: path→content|null}, dev-only PUT/DELETE ui/pages/{name} (rename via `from`), PUT ui/app,
+  ui/styles, PUT/DELETE ui/assets/{path...}; every write validates the whole ui/ first → 422 with problems).
+  Admin: `admin/src/uitree.ts`, `pages/UiBuilder.tsx` (palette, outline DnD, iframe preview with its own React root
+  + @organon/ui editor frames, inspector from catalog prop kinds, steps/objects/map editors, page settings, live
+  validation, JSON view, param pickers, "as" principal), `pages/UiPages.tsx` (list, app shell, styles + assets).
+  Test `internal/app/uieditor_test.go`. Screenshot docs/img/ui-builder.png.
+- M5 DONE: manifest test `page` step (`expect.visible`), tracker `tests/ui-pages.test.json`, `organon init` scaffolds
+  ui/app.json + items/item pages + tests/ui.test.json, docs/usage/11-ui.md + README/02/07/08/10/quickstart, AGENTS.md
+  (UI rules, examples, layout, make web), root README.
+- Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
+  `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

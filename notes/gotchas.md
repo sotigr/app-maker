@@ -65,3 +65,9 @@
 - `sh -c 'ulimit ...'` adds PWD and SHLVL to the worker environment.
 - Regenerate protobuf with `PATH=$PATH:$HOME/go/bin make proto` (protoc 36 at /usr/bin).
 - The `organon` Python package keeps the protocol on dup'ed fds 0/1; user print() goes to stderr → runner log.
+- Vite alias objects match a key as a prefix followed by "/": `@organon/ui/base.css?inline` fell through to the
+  `@organon/ui` alias. Use anchored regex aliases (admin and web vite.config.js).
+- CDP scripts that log in with fetch must clear cookies first (`Network.clearBrowserCookies`): with a session cookie
+  present, POST /v1/auth/password needs the CSRF header, so a second login silently keeps the old user.
+- Node type stripping (node sdk/ts/ui/test/expr.test.ts) rejects TS parameter properties; declare fields.
+

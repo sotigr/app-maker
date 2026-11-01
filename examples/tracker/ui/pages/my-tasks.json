@@ -1,0 +1,22 @@
+{
+  "page": "myTasks",
+  "title": "My tasks",
+  "route": "/my-tasks",
+  "visible": "principal.kind == 'user'",
+  "data": {
+    "open": { "query": { "type": "task", "where": { "and": [
+      { "field": "/assignee", "op": "eq", "value": "principal.id" },
+      { "field": "/status", "op": "in", "value": "['todo', 'in_progress']" } ] }, "limit": 200 } }
+  },
+  "body": { "component": "stack", "children": [
+    { "component": "heading", "text": "My tasks", "level": 1 },
+    { "component": "chart", "kind": "bar", "source": "open", "groupBy": "/status", "height": 120 },
+    { "component": "table", "source": "open", "rowPage": "task", "rowParams": { "id": "item.id" }, "empty": "Nothing assigned to you.",
+      "columns": [
+        { "field": "/title" },
+        { "field": "/status", "display": "badge" },
+        { "field": "/dueAt", "label": "Due", "display": "date" },
+        { "value": "item.isLate == true ? 'late' : ''", "label": "" }
+      ] }
+  ] }
+}

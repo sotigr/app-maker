@@ -18,6 +18,7 @@ import (
 	"organon/internal/runtime/domain/expression"
 	schemadomain "organon/internal/schema/domain"
 	"organon/internal/schema/infrastructure/jsonschema"
+	uidomain "organon/internal/ui/domain"
 )
 
 // Problem is one validation finding across all manifest files.
@@ -65,7 +66,10 @@ type Compiled struct {
 	LLM      llmdomain.Config
 	// Migrations are the compiled data migrations (spec 12.5).
 	Migrations []*contentdomain.Migration
-	Warnings   []Problem
+	// UI is the compiled ui/ directory (ADR 0016); UI.App is nil when the
+	// app has no end-user UI.
+	UI       *uidomain.Compiled
+	Warnings []Problem
 }
 
 // NodeCatalog returns the registry of built-in node types.
@@ -166,8 +170,21 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	for _, p := range mp {
 		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
 	}
+	usrc := make([]uidomain.Source, len(m.UI))
+	for i, f := range m.UI {
+		usrc[i] = uidomain.Source{File: f.Path, Data: f.Data}
+	}
+	ui, up := uidomain.Compile(uiDeps(reg, flows), usrc)
+	for _, p := range up {
+		pr := Problem{File: p.File, Pointer: p.Pointer, Message: p.Message, Warning: p.Warning}
+		if p.Warning {
+			warnings = append(warnings, pr)
+		} else {
+			probs = append(probs, pr)
+		}
+	}
 	if len(probs) > 0 {
 		return nil, &ValidationError{Problems: append(probs, warnings...)}
 	}
-	return &Compiled{Migrations: migrations, Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
+	return &Compiled{UI: ui, Migrations: migrations, Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
 }

@@ -31,8 +31,11 @@ type Manifest struct {
 	Migrations []File
 	Nodes      []File
 	Templates  []File
-	Seeds      map[string]File // by environment name
-	Hash       string
+	// UI holds ui/app.json, ui/pages/*.json, ui/styles.css, and
+	// ui/assets/** (ADR 0016).
+	UI    []File
+	Seeds map[string]File // by environment name
+	Hash  string
 	// Files holds every manifest file by relative path (the deploy bundle).
 	Files map[string][]byte
 }
@@ -141,7 +144,7 @@ func (m *Manifest) ComputeHash(appJSON []byte) {
 	}
 	write("app.json", appJSON)
 	var all []File
-	for _, group := range [][]File{m.Types, m.Traits, m.Policies, m.Flows, m.Migrations, m.Nodes, m.Templates} {
+	for _, group := range [][]File{m.Types, m.Traits, m.Policies, m.Flows, m.Migrations, m.Nodes, m.Templates, m.UI} {
 		all = append(all, group...)
 	}
 	sort.Slice(all, func(i, j int) bool { return all[i].Path < all[j].Path })

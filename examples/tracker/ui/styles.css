@@ -1,0 +1,8 @@
+/* App styles, loaded after the Organon base theme. Override the theme
+   variables or style the o-* classes. */
+:root {
+  --o-accent: #4f46e5;
+}
+.o-board-card {
+  border-left: 3px solid var(--o-accent);
+}

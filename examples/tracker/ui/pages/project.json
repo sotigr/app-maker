@@ -1,0 +1,61 @@
+{
+  "page": "project",
+  "title": "{{ data.project.title }}",
+  "route": "/projects/:id",
+  "params": { "id": { "type": "string", "format": "uuid" } },
+  "state": { "tab": { "type": "integer", "default": 0 } },
+  "data": {
+    "project": { "feature": "params.id", "type": "project" },
+    "tasks": { "children": "params.id", "type": "task", "limit": 200 }
+  },
+  "body": { "component": "stack", "gap": "lg", "children": [
+    { "component": "row", "justify": "between", "children": [
+      { "component": "stack", "gap": "sm", "children": [
+        { "component": "heading", "text": "{{ data.project.title }}", "level": 1 },
+        { "component": "text", "text": "{{ data.project.description ?? '' }}", "tone": "muted" }
+      ] },
+      { "component": "row", "children": [
+        { "component": "button", "label": "New task", "variant": "primary", "visible": "can(data.project, 'create:task')",
+          "on": { "click": [ { "do": "open", "dialog": "newTask" } ] } },
+        { "component": "button", "label": "Summarize", "visible": "can(data.project, 'action:summarize')",
+          "on": { "click": [
+            { "do": "action", "type": "project", "id": "params.id", "action": "summarize" },
+            { "do": "toast", "text": "Risk: {{ result.output.risk }}" } ] } }
+      ] }
+    ] },
+    { "component": "columns", "children": [
+      { "component": "stat", "label": "Tasks", "value": "data.project.taskCount ?? 0" },
+      { "component": "stat", "label": "Done", "value": "data.project.taskCount > 0 ? (data.project.doneCount ?? 0) * 1.0 / data.project.taskCount : 0", "format": "percent" },
+      { "component": "chart", "kind": "pie", "title": "By label", "source": "tasks", "groupBy": "/label", "height": 140 }
+    ] },
+    { "component": "card", "title": "Summary", "visible": "data.project.summary != nil", "children": [
+      { "component": "markdown", "text": "{{ data.project.summary }}" }
+    ] },
+    { "component": "tabs", "state": "tab", "tabs": [
+      { "label": "Board", "children": [
+        { "component": "board", "source": "tasks", "field": "/status",
+          "card": { "component": "stack", "gap": "sm", "children": [
+            { "component": "link", "text": "{{ item.title }}", "page": "task", "params": { "id": "item.id" } },
+            { "component": "row", "children": [
+              { "component": "badge", "text": "{{ item.label }}", "visible": "item.label != nil" },
+              { "component": "badge", "text": "late", "tone": "danger", "visible": "item.isLate == true" }
+            ] }
+          ] } }
+      ] },
+      { "label": "List", "children": [
+        { "component": "table", "source": "tasks", "rowPage": "task", "rowParams": { "id": "item.id" }, "empty": "No tasks yet.",
+          "columns": [
+            { "field": "/title", "label": "Task" },
+            { "field": "/status", "display": "badge" },
+            { "field": "/assignee", "display": "ref" },
+            { "field": "/dueAt", "label": "Due", "display": "date" }
+          ] }
+      ] }
+    ] },
+    { "component": "dialog", "name": "newTask", "title": "New task", "children": [
+      { "component": "form", "mode": "create", "type": "task", "parent": "params.id", "submit": "Create",
+        "fields": [ { "path": "/title" }, { "path": "/assignee", "widget": "ref", "labelField": "displayName" }, { "path": "/dueAt" }, { "path": "/label" } ],
+        "on": { "submit": [ { "do": "close" }, { "do": "toast", "text": "Created {{ result.title }}", "tone": "success" } ] } }
+    ] }
+  ] }
+}

@@ -71,3 +71,21 @@ button:disabled { opacity: 0.5; cursor: default; }
 }
 .problems { max-height: 160px; overflow: auto; }
 .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+
+/* UI builder (ADR 0016) */
+.ui-editor { display: grid; grid-template-columns: 230px 1fr 340px; height: calc(100vh - 150px); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.ui-center { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+.ui-preview-bar { padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.ui-preview { flex: 1; width: 100%; border: 0; background: #fff; }
+.ui-center .problems { margin: 0; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; max-height: 140px; overflow: auto; padding: 8px 12px; }
+.ui-json { flex: 1; display: flex; flex-direction: column; padding: 8px; gap: 6px; }
+.ui-json textarea { flex: 1; font-size: 12px; }
+.ui-outline-item { padding: 3px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; border: 1px solid transparent; }
+.ui-outline-item:hover { background: var(--bg); }
+.ui-outline-item.selected { border-color: var(--accent); background: var(--bg); }
+.ui-outline-item.bad { color: var(--danger); }
+.ui-object { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin: 4px 0; background: var(--bg); }
+.ui-css { width: 100%; min-height: 40vh; }
+label.inline { display: inline-flex; gap: 6px; align-items: center; margin: 4px 8px 4px 0; }
+label.inline select, label.inline input:not([type=checkbox]) { width: auto; }
+.small { font-size: 11px; }

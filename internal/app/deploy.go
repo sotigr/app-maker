@@ -47,7 +47,11 @@ type Plan struct {
 	Exposures  []string    `json:"newPublicFields"`
 	Indexes    []string    `json:"indexBuilds"`
 	Migrations []string    `json:"migrations"`
-	Breaking   bool        `json:"breaking"`
+	// UI lists changed ui/ files; PublicPages lists pages newly visible
+	// to anonymous callers (ADR 0016).
+	UI          []NamedDiff `json:"ui"`
+	PublicPages []string    `json:"newPublicPages"`
+	Breaking    bool        `json:"breaking"`
 }
 
 // MakePlan compares the deployed and the new compiled manifest.
@@ -118,7 +122,29 @@ func MakePlan(cur, next *Compiled) Plan {
 	for _, m := range next.Manifest.Migrations {
 		p.Migrations = append(p.Migrations, m.Path)
 	}
+	p.UI = diffFiles(cur.Manifest.UI, next.Manifest.UI)
+	p.PublicPages = newPublicPages(cur, next)
 	return p
+}
+
+// newPublicPages lists pages anonymous callers may see now but not before.
+func newPublicPages(cur, next *Compiled) []string {
+	out := []string{}
+	if next.UI == nil || next.UI.App == nil || next.UI.App.RequireLogin {
+		return out
+	}
+	was := map[string]bool{}
+	if cur.UI != nil && cur.UI.App != nil && !cur.UI.App.RequireLogin {
+		for _, pg := range cur.UI.Pages {
+			was[pg.Name] = pg.Public
+		}
+	}
+	for _, pg := range next.UI.Pages {
+		if pg.Public && !was[pg.Name] {
+			out = append(out, pg.Name)
+		}
+	}
+	return out
 }
 
 type manifestFile = manifestdomain.File

@@ -16,6 +16,9 @@ myapp/
   migrations/*.json        # data migrations                      → 8. Testing and deploying
   seed/dev.json            # data loaded by organon dev / organon seed
   tests/*.test.json        # manifest tests                       → 8. Testing and deploying
+  ui/app.json              # end-user UI shell                    → 11. User interface
+  ui/pages/*.json          # UI pages (component trees)           → 11. User interface
+  ui/styles.css, ui/assets/**  # app CSS, images, fonts           → 11. User interface
   modules/<name>/...       # optional: groups of types/traits/policies/flows/nodes
 ```
 
@@ -90,6 +93,6 @@ directory in version control; production servers are changed only through
 ## Modules
 
 `modules/<name>/` may contain its own `types/`, `traits/`, `policies/`,
-`flows/`, and `nodes/`. Type IDs in a module carry its name
+`flows/`, `nodes/`, and `ui/pages/`. Type IDs in a module carry its name
 (`urn:app:crm:feature:contact/v1`). Modules share one tree, one set of
 principals, and one deployment; they organize files, they do not isolate.

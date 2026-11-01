@@ -15,6 +15,7 @@ framework reads it at startup; there is nothing to compile.
 | [8. Testing, deploying, migrating](08-testing-and-deploy.md) | Manifest tests, plan/apply, data migrations, operations CLI |
 | [9. Running the server](09-operations.md) | `organond`, configuration, roles, observability, limits |
 | [10. Docker](10-docker.md) | The framework image: developing and deploying apps in containers |
+| [11. User interface](11-ui.md) | End-user pages in `ui/`, components, data, steps, styling, the visual builder |
 
 The running example throughout is [`examples/tracker`](../../examples/tracker):
 projects contain tasks, tasks contain comments.

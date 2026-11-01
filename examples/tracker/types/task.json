@@ -101,6 +101,7 @@
       "x-contentTypes": [
         "image/*",
         "application/pdf",
+        "application/json",
         "text/plain"
       ],
       "x-thumbnails": [

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "signed-in users get the app's pages; anonymous callers must sign in first",
+    "given": { "principals": { "ana": { "kind": "user", "roles": ["editor"] } } },
+    "steps": [
+      { "as": "ana", "page": "myTasks", "expect": { "visible": true } },
+      { "as": "ana", "page": "project", "expect": { "visible": true } },
+      { "page": "projects", "expect": { "visible": false } },
+      { "page": "myTasks", "expect": { "visible": false } }
+    ]
+  }
+]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	contentsqlite "organon/internal/content/infrastructure/sqlite"
 	contenthttp "organon/internal/content/interfaces/http"
 	flowapp "organon/internal/flow/application"
+	flowdomain "organon/internal/flow/domain"
 	flowhttp "organon/internal/flow/interfaces/http"
 	integrationapp "organon/internal/integration/application"
 	integrationdomain "organon/internal/integration/domain"
@@ -40,6 +42,8 @@ import (
 	runtimeapp "organon/internal/runtime/application"
 	schemaapi "organon/internal/schema/api"
 	schemahttp "organon/internal/schema/interfaces/http"
+	uiapp "organon/internal/ui/application"
+	uihttp "organon/internal/ui/interfaces/http"
 	"organon/platform/config"
 	"organon/platform/egress"
 	"organon/platform/health"
@@ -47,6 +51,7 @@ import (
 	"organon/platform/jobs"
 	"organon/platform/observability"
 	"organon/platform/sqlitedb"
+	webui "organon/web"
 )
 
 // Options tune a Runtime beyond the server configuration (tests, organon test).
@@ -84,6 +89,7 @@ type Runtime struct {
 	LLM        *runtimeapp.Router
 	ChangeLog  *changemem.Log
 	Deploys    DeployStore
+	UI         *uiapp.Service
 	Log        *slog.Logger
 	repos      *contentdomain.RepositoryRegistry
 	dbs        map[string]*sqlitedb.DB
@@ -318,6 +324,18 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	(&editorHandler{rt: rt}).register(mux)
 	mux.Handle("GET /admin/", adminui.Handler())
 	mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusFound))
+	rt.UI = uiapp.New(uiapp.Deps{UI: c.UI, Types: c.Types, Clock: opt.Clock, Version: c.Manifest.Hash[:12],
+		FlowActions: func(ct *schemaapi.CompiledType) map[string]json.RawMessage {
+			out := map[string]json.RawMessage{}
+			for _, f := range c.Flows.ByTrigger(flowdomain.TriggerAction) {
+				if f.Matches(ct) {
+					out[f.Def.Trigger.Action] = f.Def.Input
+				}
+			}
+			return out
+		}})
+	(&uiEditor{rt: rt}).register(mux)
+	uihttp.New(rt.UI, webui.FS()).Register(mux)
 	maxBody := cfg.HTTP.MaxBodyBytes
 	if maxBody == 0 {
 		maxBody = 1 << 20
@@ -447,7 +465,7 @@ func rateConfig(cfg config.Config, c *Compiled) httpserver.RateConfig {
 		per = app
 	}
 	return httpserver.RateConfig{PerPrincipal: per, PerIP: cfg.Limits.AnonymousPerMinute, TrustProxy: cfg.HTTP.TrustProxyHeaders,
-		Exempt: []string{"/v1/blobs/"},
+		Exempt: []string{"/v1/blobs/", "/assets/"},
 		Key: func(r *http.Request) string {
 			p := accessapi.PrincipalFrom(r.Context())
 			if p.ID.IsZero() {

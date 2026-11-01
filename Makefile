@@ -1,4 +1,4 @@
-.PHONY: build test lint fuzz ui sdk depguard clean proto docker
+.PHONY: build test lint fuzz ui web sdk depguard clean proto docker
 
 GO ?= go
 
@@ -23,6 +23,10 @@ fuzz:
 ui:
 	cd admin && pnpm install --frozen-lockfile && pnpm run build
 
+# Build the end-user UI renderer (ADR 0016); output is embedded into organond.
+web:
+	cd web && pnpm install --frozen-lockfile && pnpm run build
+
 clean:
 	rm -rf bin
 
@@ -31,6 +35,7 @@ sdk:
 	$(GO) run ./cmd/organon codegen ts examples/tracker --out sdk/ts/gen
 	$(GO) run ./cmd/organon codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
 	cd sdk/ts && pnpm install && pnpm run typecheck
+	node sdk/ts/ui/test/expr.test.ts
 
 # Regenerate the code-node protocol (spec 11.1); needs protoc,
 # protoc-gen-go and protoc-gen-go-grpc on PATH.

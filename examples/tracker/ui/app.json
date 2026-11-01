@@ -1,0 +1,10 @@
+{
+  "title": "Tracker",
+  "home": "projects",
+  "requireLogin": true,
+  "nav": [
+    { "label": "Projects", "page": "projects" },
+    { "label": "My tasks", "page": "myTasks", "visible": "principal.kind == 'user'" }
+  ],
+  "notFound": "This page does not exist."
+}

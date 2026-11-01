@@ -17,7 +17,7 @@ func main() {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(initCmd(), validateCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
+	root.AddCommand(initCmd(), validateCmd(), uiCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
 		exportCmd(), importCmd(), planCmd(), applyCmd(), codegenCmd())
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "organon:", err)

@@ -32,6 +32,10 @@ var builtinSigs = map[string]types.Type{
 	rt.FnHasRole: types.TypeOf(func(any, string) bool { return false }),
 	rt.FnInGroup: types.TypeOf(func(string) bool { return false }),
 	rt.FnUUID:    types.TypeOf(func() string { return "" }),
+
+	rt.FnCan:          types.TypeOf(func(any, string) bool { return false }),
+	rt.FnFormatDate:   types.TypeOf(func(any, string) string { return "" }),
+	rt.FnFormatNumber: types.TypeOf(func(any, int) string { return "" }),
 }
 
 // Compiler compiles expressions with expr. It is stateless and safe for

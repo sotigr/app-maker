@@ -68,6 +68,61 @@ func scaffold(name string) map[string]string {
   "features": [ { "ref": "i", "type": "item", "owner": "ana", "data": { "title": "Hello" } } ]
 }
 `,
+		"ui/app.json": `{
+  "title": "{{name}}",
+  "home": "items",
+  "nav": [ { "label": "Items", "page": "items" } ]
+}
+`,
+		"ui/pages/items.json": `{
+  "page": "items",
+  "title": "Items",
+  "route": "/",
+  "data": { "items": { "query": { "type": "item", "sort": [ { "field": "/title" } ], "limit": 100 } } },
+  "body": { "component": "stack", "children": [
+    { "component": "row", "justify": "between", "children": [
+      { "component": "heading", "text": "Items", "level": 1 },
+      { "component": "button", "label": "New item", "variant": "primary",
+        "on": { "click": [ { "do": "open", "dialog": "new" } ] } }
+    ] },
+    { "component": "table", "source": "items", "rowPage": "item", "rowParams": { "id": "item.id" }, "empty": "No items yet.",
+      "columns": [ { "field": "/title" }, { "field": "/status", "display": "badge" }, { "field": "/updatedAt", "label": "Updated", "display": "date" } ] },
+    { "component": "dialog", "name": "new", "title": "New item", "children": [
+      { "component": "form", "mode": "create", "type": "item", "fields": [ { "path": "/title" } ], "submit": "Create",
+        "on": { "submit": [ { "do": "close" }, { "do": "navigate", "page": "item", "params": { "id": "result.id" } } ] } }
+    ] }
+  ] }
+}
+`,
+		"ui/pages/item.json": `{
+  "page": "item",
+  "title": "{{ data.item.title }}",
+  "route": "/items/:id",
+  "params": { "id": { "type": "string", "format": "uuid" } },
+  "data": { "item": { "feature": "params.id", "type": "item" } },
+  "body": { "component": "stack", "children": [
+    { "component": "link", "text": "← Items", "page": "items" },
+    { "component": "row", "justify": "between", "children": [
+      { "component": "heading", "text": "{{ data.item.title }}", "level": 1 },
+      { "component": "transitions", "source": "item" }
+    ] },
+    { "component": "detail", "source": "item", "fields": ["/status", "/createdAt", "/updatedAt"] },
+    { "component": "card", "title": "Edit", "visible": "can(data.item, 'update')", "children": [
+      { "component": "form", "mode": "update", "type": "item", "id": "params.id", "fields": [ { "path": "/title" } ],
+        "on": { "submit": [ { "do": "toast", "text": "Saved", "tone": "success" } ] } }
+    ] }
+  ] }
+}
+`,
+		"tests/ui.test.json": `{
+  "name": "the item pages are offered to signed-in users only",
+  "given": { "principals": { "ana": { "kind": "user" } } },
+  "steps": [
+    { "as": "ana", "page": "items", "expect": { "visible": true } },
+    { "page": "items", "expect": { "visible": false } }
+  ]
+}
+`,
 		".gitignore": ".organon/\n",
 	}
 	out := map[string]string{}

@@ -12,6 +12,8 @@ import { FlowEditor } from "./pages/FlowEditor";
 import { Runs } from "./pages/Runs";
 import { Deploys } from "./pages/Deploys";
 import { Audit } from "./pages/Audit";
+import { UiBuilder } from "./pages/UiBuilder";
+import { UiApp, UiPages, UiStyles } from "./pages/UiPages";
 
 export type Principal = { id: string; kind: string; roles: string[] };
 
@@ -45,6 +47,10 @@ function App() {
     case "flows":
       page = parts[1] !== undefined ? <FlowEditor name={decodeURIComponent(parts[1])} /> : <Flows />;
       break;
+    case "ui":
+      page = parts[1] === "pages" && parts[2] ? <UiBuilder key={parts[2]} name={decodeURIComponent(parts[2])} />
+        : parts[1] === "app" ? <UiApp /> : parts[1] === "styles" ? <UiStyles /> : <UiPages />;
+      break;
     case "runs":
       page = <Runs />;
       break;
@@ -70,6 +76,7 @@ function App() {
         <nav>
           {nav("#/types", "Data")}
           {admin && nav("#/flows", "Flows")}
+          {admin && nav("#/ui", "UI")}
           {admin && nav("#/runs", "Runs")}
           {admin && nav("#/deploys", "Deploys")}
           {admin && nav("#/audit", "Audit")}

@@ -1,0 +1,28 @@
+{
+  "page": "projects",
+  "title": "Projects",
+  "route": "/",
+  "data": {
+    "projects": { "query": { "type": "project", "sort": [ { "field": "/title", "dir": "asc" } ], "limit": 100 } }
+  },
+  "body": { "component": "stack", "children": [
+    { "component": "row", "justify": "between", "children": [
+      { "component": "heading", "text": "Projects", "level": 1 },
+      { "component": "button", "label": "New project", "variant": "primary",
+        "visible": "'admin' in principal.roles || 'editor' in principal.roles",
+        "on": { "click": [ { "do": "open", "dialog": "newProject" } ] } }
+    ] },
+    { "component": "table", "source": "projects", "rowPage": "project", "rowParams": { "id": "item.id" },
+      "empty": "No projects yet.",
+      "columns": [
+        { "field": "/title", "label": "Project" },
+        { "value": "string(item.doneCount ?? 0) + ' / ' + string(item.taskCount ?? 0)", "label": "Done" },
+        { "field": "/updatedAt", "label": "Updated", "display": "date" }
+      ] },
+    { "component": "dialog", "name": "newProject", "title": "New project", "children": [
+      { "component": "form", "mode": "create", "type": "project", "submit": "Create",
+        "fields": [ { "path": "/title" }, { "path": "/slug", "help": "Lower case letters, digits, and dashes" }, { "path": "/description", "widget": "textarea" } ],
+        "on": { "submit": [ { "do": "close" }, { "do": "navigate", "page": "project", "params": { "id": "result.id" } } ] } }
+    ] }
+  ] }
+}

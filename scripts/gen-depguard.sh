@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MOD=organon
-CONTEXTS=(schema content access query change flow runtime integration manifest)
+CONTEXTS=(schema content access query change flow runtime integration manifest ui)
 PURE_LIBS=(
   github.com/expr-lang/expr
   github.com/santhosh-tekuri/jsonschema/v6

@@ -263,3 +263,21 @@ func TestStreamingSSE(t *testing.T) {
 		t.Fatalf("sse delta: %s", got)
 	}
 }
+
+// Spec 9.4: a live query on a ref field (eq on an ID) has the same
+// snapshot as POST /v1/query.
+func TestStreamingQueryOnRef(t *testing.T) {
+	eachDriver(t, func(t *testing.T, driver string) {
+		w := setup(t, driver)
+		w.assign(t, w.task, w.editor)
+		q := map[string]any{"type": "task", "where": map[string]any{"field": "/assignee", "op": "eq", "value": w.editor.id}}
+		if n := len(mustOK(t, w.editor.do("POST", "/v1/query", q), 200).Body["items"].([]any)); n != 1 {
+			t.Fatalf("http query: %d items", n)
+		}
+		e := w.editor.ws(t)
+		e.send(map[string]any{"t": "subscribe", "sid": "mine", "target": "query", "query": q})
+		if m := e.next("snapshot", is("snapshot", "mine")); len(m["features"].([]any)) != 1 {
+			t.Fatalf("live snapshot: %v", m)
+		}
+	})
+}

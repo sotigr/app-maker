@@ -119,6 +119,12 @@ Uploads never committed are deleted after 24 hours.
 
 ## Other endpoints
 
+`GET /v1/ui` (the UI bundle for the caller, [guide 11](11-ui.md)),
+`POST /v1/permissions {"checks": [{"id", "op"}]}` (up to 100 `can()` answers:
+`update`, `delete`, `action:<name>`, `create:<type>`; `false` for features
+you cannot read), `GET /v1/ui/catalog`, `GET /v1/ui/source`, and
+`POST /v1/ui/validate` (admins; the builder), `PUT|DELETE
+/v1/dev/manifest/ui/...` (builder saves, `organon dev` only),
 `GET /v1/schema/types` and `/v1/schema/types/<name>` (types and their views),
 `GET /v1/flows`, `POST /v1/flows/validate`, `POST /v1/flows/runs/<id>/retry`,
 `POST /v1/hooks/<name>` (webhook triggers), `GET /v1/audit` (admins:
@@ -151,4 +157,6 @@ const blob = await client.upload({ type: "task", field: "attachment", feature: t
   (`createClient({ transport: "auto" | "ws" | "sse" })`).
 - `@organon/react` hooks: `useFeature`, `useQuery`, `useChildren`,
   `useAction`, `useSession`.
+- `@organon/ui` renders manifest UI pages (`OrganonApp`, `PageView`); it is
+  what `organond` serves at `/`.
 - Scripts: `createClient({ baseUrl: "https://app.example.com", token })`.

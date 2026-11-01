@@ -32,6 +32,7 @@
 | 0013 | Data migrations | migrations/*.json validated; upcast in typeOf; migrate_batch chain per type with migration records; flow steps as system; repos accept forward type changes |
 | 0014 | Docker image + startup deploys | one image (organon, organond, python3, uv); apps via /app mount or FROM; never-seen manifest dirs deploy at startup with breaking check; ORGANON_ALLOW_BREAKING, ORGANON_CREATE_DATA_KEY |
 | 0015 | Name: Organon | module organon; binaries organon/organond; ORGANON_* env; @organon/* SDK; Python package organon; wire names renamed |
+| 0016 | End-user UI from manifest | ui/app.json + ui/pages/*.json + styles.css + assets; runtime interpreter (@organon/ui, web/dist) at `/`; text vs expr props; expression subset checked in Go, evaluated in TS; builder in /admin via dev endpoints |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)
@@ -62,3 +63,14 @@
   development (`organon dev` in the container) and deployment (`organond`).
 - Project name (2026-11-01): Organon. CLI `organon`, server `organond` (ADR 0015). The design document and
   older ADRs still say fw/fwd.
+
+## 2026-11-01 (end-user UI, ADR 0016)
+| Topic | Decision |
+|---|---|
+| Audience | End-user app served by organond; the admin console holds only the builder |
+| Rendering | Runtime interpreter of JSON component trees (no code generation) |
+| UI logic | Expression subset, type-checked by validate, evaluated by a TS interpreter |
+| Styling | Base theme (CSS variables, `o-*` classes) + optional raw `ui/styles.css`; no token file, no custom components |
+| Builder | Palette + outline tree, live preview with the real renderer, inspector, JSON view |
+| Mount | Site root `/` |
+| v1 components | Layout + text, data display, forms + actions, board + charts |

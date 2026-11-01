@@ -96,6 +96,12 @@ const (
 	FnHasRole = "hasRole" // func(f any, role string) bool
 	FnInGroup = "inGroup" // func(id string) bool
 	FnUUID    = "uuid"    // func() string
+
+	// UI built-ins (ADR 0016) are only type-checked on the server; the
+	// browser renderer implements them.
+	FnCan          = "can"          // func(f any, op string) bool
+	FnFormatDate   = "formatDate"   // func(t any, style string) string
+	FnFormatNumber = "formatNumber" // func(n any, digits int) string
 )
 
 // Env is the typed environment an expression is compiled against.

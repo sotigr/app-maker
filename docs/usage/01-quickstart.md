@@ -17,10 +17,10 @@ bin/organon init myapp
 ```
 
 This creates `myapp/` with one type (`item`), its policy, a flow, an email
-template, seed data, and a test. Check and test it:
+template, two UI pages, seed data, and tests. Check and test it:
 
 ```sh
-bin/organon validate myapp   # schemas, policies, flows; every expression is type-checked
+bin/organon validate myapp   # schemas, policies, flows, UI pages; every expression is type-checked
 bin/organon test myapp       # runs tests/*.test.json against in-memory instances
 ```
 
@@ -36,9 +36,10 @@ when you edit the manifest. Default admin login: `admin@localhost` /
 `admin-password-dev` (override with `ORGANON_BOOTSTRAP_ADMIN_EMAIL` and
 `ORGANON_BOOTSTRAP_ADMIN_PASSWORD`).
 
-Open <http://localhost:8080/admin> for the admin console: browse and edit
-data with generated forms, edit flows visually, inspect runs, deploys, and
-the audit log.
+Open <http://localhost:8080/> for the app's own UI (sign in as `ana@example.com` /
+`ana-password-123`), and <http://localhost:8080/admin> for the admin console:
+browse and edit data with generated forms, edit flows and UI pages
+visually, inspect runs, deploys, and the audit log.
 
 ## Call the API
 
@@ -63,4 +64,5 @@ curl -s -H "$H" localhost:8080/v1/query \
 - Change the data model: [3. Types](03-types.md)
 - Decide who may do what: [4. Policies](04-policies.md)
 - Add behaviour: [5. Flows](05-flows.md)
+- Design the user interface: [11. User interface](11-ui.md)
 - Study a complete app: [`examples/tracker`](../../examples/tracker)

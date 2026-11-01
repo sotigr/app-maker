@@ -45,3 +45,36 @@ func TestMigrationValidation(t *testing.T) {
 		})
 	}
 }
+
+// ADR 0016: plans list ui/ changes and pages that become visible without
+// logging in.
+func TestPlanUI(t *testing.T) {
+	m, err := manifestfs.Load("../../examples/tracker", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui := m.UI
+	m.UI = nil
+	cur, err := Compile(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, _ := manifestfs.Load("../../examples/tracker", "dev")
+	for i, f := range m2.UI {
+		if f.Path == "ui/app.json" {
+			m2.UI[i].Data = []byte(strings.Replace(string(f.Data), `"requireLogin": true`, `"requireLogin": false`, 1))
+		}
+	}
+	next, err := Compile(m2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := MakePlan(cur, next)
+	if len(p.UI) != len(ui) || p.UI[0].Status != "added" {
+		t.Fatalf("ui diff: %+v", p.UI)
+	}
+	// projects, project, and task have no visible rule; myTasks needs a user.
+	if strings.Join(p.PublicPages, ",") != "project,projects,task" {
+		t.Fatalf("public pages: %v", p.PublicPages)
+	}
+}
