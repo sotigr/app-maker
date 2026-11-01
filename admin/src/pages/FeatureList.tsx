@@ -54,6 +54,7 @@ export function FeatureList({ type }: { type: string }) {
           <SchemaForm
             schema={desc.views.create}
             submitLabel="Create"
+            upload={{ type, parent: parent || undefined }}
             onSubmit={async (data) => {
               const f = await Api.create(type, data, parent || undefined).catch((e) => Promise.reject(new Error(describeError(e))));
               location.hash = `#/features/${f.type}/${f.id}`;

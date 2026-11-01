@@ -11,6 +11,7 @@ import { Flows } from "./pages/Flows";
 import { FlowEditor } from "./pages/FlowEditor";
 import { Runs } from "./pages/Runs";
 import { Deploys } from "./pages/Deploys";
+import { Audit } from "./pages/Audit";
 
 export type Principal = { id: string; kind: string; roles: string[] };
 
@@ -50,6 +51,9 @@ function App() {
     case "deploys":
       page = <Deploys />;
       break;
+    case "audit":
+      page = <Audit />;
+      break;
     default:
       page = <Types />;
   }
@@ -68,6 +72,7 @@ function App() {
           {admin && nav("#/flows", "Flows")}
           {admin && nav("#/runs", "Runs")}
           {admin && nav("#/deploys", "Deploys")}
+          {admin && nav("#/audit", "Audit")}
         </nav>
         <span className="who">
           {me.kind} {me.id.slice(0, 8)} {me.roles.length ? `(${me.roles.join(", ")})` : ""}

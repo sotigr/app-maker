@@ -1,12 +1,17 @@
 import { useState } from "react";
+import { Api } from "./api";
+
+// UploadTarget says where uploaded blobs will be set (spec 14.4).
+export type UploadTarget = { type: string; feature?: string; parent?: string };
 
 // SchemaForm renders a form from a create or update view (JSON Schema,
 // spec 13.3: forms are generated from the caller's views).
-export function SchemaForm({ schema, initial, onSubmit, submitLabel }: {
+export function SchemaForm({ schema, initial, onSubmit, submitLabel, upload }: {
   schema: any;
   initial?: Record<string, any>;
   onSubmit: (data: Record<string, any>) => Promise<void>;
   submitLabel: string;
+  upload?: UploadTarget;
 }) {
   const props: Record<string, any> = schema?.properties || {};
   const required: string[] = schema?.required || [];
@@ -46,7 +51,8 @@ export function SchemaForm({ schema, initial, onSubmit, submitLabel }: {
               {props[k].title || k}
               {required.includes(k) ? " *" : ""}
             </label>
-            <Field schema={props[k]} value={values[k]} onChange={(v) => set(k, v)} />
+            <Field schema={props[k]} value={values[k]} onChange={(v) => set(k, v)}
+              upload={upload && { ...upload, field: k }} />
           </div>
         ))}
       </div>
@@ -63,7 +69,31 @@ function baseType(s: any): string {
   return s.type || (s.enum ? "enum" : "json");
 }
 
-function Field({ schema, value, onChange }: { schema: any; value: any; onChange: (v: any) => void }) {
+function isBlob(s: any): boolean {
+  const p = s?.properties;
+  return !!p && Object.keys(p).length === 3 && "id" in p && "size" in p && "contentType" in p;
+}
+
+function BlobField({ value, onChange, target }: { value: any; onChange: (v: any) => void; target?: UploadTarget & { field: string } }) {
+  const [state, setState] = useState("");
+  if (!target) return <Value v={value} />;
+  return (
+    <div>
+      {value?.id && <div className="muted"><Value v={value} /></div>}
+      <input type="file" onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setState("uploading…");
+        Api.upload(target, file).then((b) => { onChange(b); setState(`uploaded ${file.name}; save to keep it`); },
+          (x) => setState(String(x?.message || x)));
+      }} />
+      {state && <div className="muted">{state}</div>}
+    </div>
+  );
+}
+
+function Field({ schema, value, onChange, upload }: { schema: any; value: any; onChange: (v: any) => void; upload?: UploadTarget & { field: string } }) {
+  if (isBlob(schema)) return <BlobField value={value} onChange={onChange} target={upload} />;
   const t = baseType(schema);
   if (schema.enum) {
     return (
@@ -111,6 +141,14 @@ function Field({ schema, value, onChange }: { schema: any; value: any; onChange:
 
 export function Value({ v }: { v: any }) {
   if (v === null || v === undefined) return <span className="muted">—</span>;
+  if (typeof v === "object" && typeof v.url === "string") {
+    const thumb = v.thumbnails && Object.values(v.thumbnails)[0];
+    return (
+      <a href={v.url} target="_blank" rel="noreferrer">
+        {thumb ? <img src={thumb as string} alt="" style={{ maxHeight: 48, verticalAlign: "middle" }} /> : null} {v.contentType}, {Math.ceil(v.size / 1024)} KiB
+      </a>
+    );
+  }
   if (typeof v === "object") return <span className="mono">{JSON.stringify(v)}</span>;
   if (typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(v)) return <span className="mono">{v.slice(0, 8)}…</span>;
   return <>{String(v)}</>;

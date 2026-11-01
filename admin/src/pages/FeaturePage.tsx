@@ -78,6 +78,7 @@ export function FeaturePage({ type, id }: { type: string; id: string }) {
             schema={desc.views.update}
             initial={f.data}
             submitLabel="Save"
+            upload={{ type: f.type, feature: f.id }}
             onSubmit={async (data) => {
               if (Object.keys(data).length === 0) return;
               const n = await Api.update(f, data).catch((e) => Promise.reject(new Error(describeError(e))));

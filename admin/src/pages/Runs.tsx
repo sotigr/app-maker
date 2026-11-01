@@ -7,11 +7,17 @@ export function Runs() {
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string>();
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const q: any = { type: "flowRun", sort: [{ field: "/startedAt", dir: "desc" }], limit: 100 };
     if (status) q.where = { field: "/status", op: "eq", value: status };
     Api.query(q).then((r) => setRuns(r.items), (e) => setErr(describeError(e)));
-  }, [status]);
+  }, [status, tick]);
+  const retry = (id: string) => {
+    setErr("");
+    Api.retryRun(id).then(() => { setNote("Retry queued."); setTick((t) => t + 1); }, (e) => setErr(describeError(e)));
+  };
   return (
     <>
       <div className="toolbar">
@@ -22,6 +28,7 @@ export function Runs() {
         </select>
       </div>
       <p className="error">{err}</p>
+      {note && <p className="muted">{note}</p>}
       <table>
         <thead>
           <tr><th>Started</th><th>Flow</th><th>Trigger</th><th>Status</th><th>Error</th></tr>
@@ -33,7 +40,12 @@ export function Runs() {
                 <td>{new Date(r.data.startedAt).toLocaleString()}</td>
                 <td>{r.data.flow}</td>
                 <td>{r.data.trigger}</td>
-                <td><span className="pill">{r.data.status}</span></td>
+                <td>
+                  <span className="pill">{r.data.status}</span>
+                  {r.data.status === "dead_letter" && (
+                    <button className="link" onClick={(e) => { e.stopPropagation(); retry(r.id); }}>retry</button>
+                  )}
+                </td>
                 <td><Value v={r.data.error?.message} /></td>
               </tr>
               {open === r.id && (

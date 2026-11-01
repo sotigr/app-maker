@@ -210,8 +210,10 @@ _Last updated: 2026-10-31_
   migrateOne, persistMigrated, recordMigration), system type migration, Engine.RunForFeature, repos
   accept forward type IDs (sqlite UPDATE sets type_id). Tests: e2e migration_test.go (sqlite restart
   v2→v3), app TestMigrationValidation.
-- REMAINING (no Docker): admin console views for audit log / blob fields / dead-letter retry / migration
-  progress; React demo UI; SDK SSE fallback; change-log events carrying trace context.
+- Admin console: Audit page (#/audit, filters, paging), dead_letter retry button on Runs, migration
+  progress on Deploys, Blob fields upload via file input (Api.upload) and render as links/thumbnails.
+  admin has no tsconfig (never typechecked; vite build only).
+- REMAINING (no Docker): React demo UI; SDK SSE fallback; change-log events carrying trace context.
   NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 

@@ -95,6 +95,16 @@ export const Api = {
   login: (login: string, password: string) =>
     api<{ mfa?: "verify" | "enroll"; ticket?: string }>("POST", "/v1/auth/password", { login, password }),
   providers: () => api<{ providers: string[] }>("GET", "/v1/auth/oidc"),
+  audit: (params: Record<string, string>) =>
+    api<{ items: AuditRecord[]; next?: string }>("GET", "/v1/audit?" + new URLSearchParams(params).toString()),
+  retryRun: (id: string) => api("POST", `/v1/flows/runs/${id}/retry`),
+  upload: async (target: { type: string; field: string; feature?: string; parent?: string }, file: File) => {
+    const t = await api<{ blob: { id: string; size: number; contentType: string }; uploadUrl: string; method: string; headers: Record<string, string> }>(
+      "POST", "/v1/uploads", { ...target, size: file.size, contentType: file.type || "application/octet-stream" });
+    const res = await fetch(t.uploadUrl, { method: t.method, headers: t.headers, body: file, credentials: "omit" });
+    if (!res.ok) throw new Error(`upload failed: HTTP ${res.status}`);
+    return t.blob;
+  },
   verifyMfa: (code: string, ticket?: string) => api("POST", "/v1/auth/mfa/verify", { code, ticket }),
   enrollTotp: (ticket?: string) => api<{ secret: string; uri: string; ticket?: string }>("POST", "/v1/auth/mfa/totp/enroll", { ticket }),
   confirmTotp: (code: string, ticket?: string) => api("POST", "/v1/auth/mfa/totp/confirm", { code, ticket }),
@@ -122,3 +132,17 @@ export function describeError(e: unknown): string {
   }
   return String(e);
 }
+
+export type AuditRecord = {
+  id: string;
+  at: string;
+  actor: string;
+  actorKind?: string;
+  action: string;
+  target?: string;
+  type?: string;
+  version?: number;
+  changed?: string[];
+  run?: string;
+  detail?: string;
+};
