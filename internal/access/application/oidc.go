@@ -98,6 +98,7 @@ func (s *AuthService) OIDCCallback(ctx context.Context, provider, sealedState, c
 	if err != nil {
 		return LoginResult{}, st.Redirect, ErrNoLinkedAccount
 	}
+	s.audit(ctx, pid, "login", "oidc:"+provider)
 	res, err := s.finish(ctx, p)
 	return res, st.Redirect, err
 }
@@ -112,6 +113,9 @@ func (s *AuthService) linkedPrincipal(ctx context.Context, provider string, pc O
 	}
 	link := func(pid kernel.ID) (kernel.ID, error) {
 		err := s.store.PutIdentity(ctx, domain.Identity{Provider: provider, Subject: c.Subject, PrincipalID: pid, CreatedAt: s.clock.Now()})
+		if err == nil {
+			s.audit(ctx, pid, "identity_linked", "oidc:"+provider)
+		}
 		return pid, err
 	}
 	if invite != "" {

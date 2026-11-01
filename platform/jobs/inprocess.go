@@ -103,7 +103,8 @@ func NewInProcess(reg *Registry, cfg InProcessConfig, log *slog.Logger) *InProce
 
 // Enqueue adds jobs. Jobs with a UniqueKey equal to a pending job's key are
 // dropped (spec 2.5: bursts coalesce).
-func (p *InProcess) Enqueue(_ context.Context, jobs []kernel.JobRequest) error {
+func (p *InProcess) Enqueue(ctx context.Context, jobs []kernel.JobRequest) error {
+	jobs = withTrace(ctx, jobs)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	now := time.Now()
@@ -287,7 +288,7 @@ func safeRun(ctx context.Context, h Handler, req kernel.JobRequest) (err error) 
 			err = Permanent(errPanic{r})
 		}
 	}()
-	return h(ctx, req.Args)
+	return traced(ctx, req.Kind, req.Queue, req.Trace, func(ctx context.Context) error { return h(ctx, req.Args) })
 }
 
 type errPanic struct{ v any }

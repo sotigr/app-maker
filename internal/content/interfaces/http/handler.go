@@ -5,6 +5,7 @@ package http
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	accessapi "app-maker/internal/access/api"
 	contentapi "app-maker/internal/content/api"
@@ -32,6 +33,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/query", h.query)
 	mux.HandleFunc("POST /v1/transactions", h.transaction)
 	mux.HandleFunc("GET /v1/search", h.search)
+	mux.HandleFunc("GET /v1/audit", h.audit)
 }
 
 // fail writes err. Anonymous callers get 401 instead of 403/404, so they
@@ -242,4 +244,50 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.WriteJSON(w, http.StatusOK, res)
+}
+
+// audit lists audit records for admins (spec 14.3):
+// ?actor=&target=&action=&since=RFC3339&before=<id>&limit=.
+func (h *Handler) audit(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	f := kernel.AuditFilter{Action: q.Get("action")}
+	for _, p := range []struct {
+		name string
+		dst  **kernel.ID
+	}{{"actor", &f.Actor}, {"target", &f.Target}, {"before", &f.Before}} {
+		if v := q.Get(p.name); v != "" {
+			id, err := kernel.ParseID(v)
+			if err != nil {
+				httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "invalid %s", p.name))
+				return
+			}
+			*p.dst = &id
+		}
+	}
+	if v := q.Get("since"); v != "" {
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "since must be RFC 3339"))
+			return
+		}
+		f.Since = t
+	}
+	if v := q.Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "invalid limit"))
+			return
+		}
+		f.Limit = n
+	}
+	items, err := h.svc.Audit(r.Context(), accessapi.PrincipalFrom(r.Context()), f)
+	if err != nil {
+		httpserver.WriteError(w, r, err)
+		return
+	}
+	body := map[string]any{"items": items}
+	if f.Limit > 0 && len(items) == f.Limit {
+		body["next"] = items[len(items)-1].ID.String()
+	}
+	httpserver.WriteJSON(w, http.StatusOK, body)
 }

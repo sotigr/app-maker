@@ -92,6 +92,15 @@ type Config struct {
 		RequestsPerMinute  int `yaml:"requestsPerMinute"`
 		AnonymousPerMinute int `yaml:"anonymousPerMinute"`
 	} `yaml:"limits"`
+	Observability struct {
+		// OTLPEndpoint is the OTLP/HTTP collector; empty also honours
+		// OTEL_EXPORTER_OTLP_ENDPOINT, otherwise nothing is exported.
+		OTLPEndpoint string  `yaml:"otlpEndpoint"`
+		SampleRatio  float64 `yaml:"sampleRatio"`
+	} `yaml:"observability"`
+	Audit struct {
+		RetentionDays int `yaml:"retentionDays"` // default 90 (spec 14.3)
+	} `yaml:"audit"`
 	Blobs struct {
 		Driver string `yaml:"driver"` // fs (s3 later)
 		// Dir holds fs blobs; empty uses a directory in the temp directory.
@@ -147,6 +156,7 @@ func Default() Config {
 	c.Runner.Isolation = "process"
 	c.Blobs.Driver = "fs"
 	c.Limits.RequestsPerMinute = 600
+	c.Audit.RetentionDays = 90
 	c.Limits.AnonymousPerMinute = 60
 	return c
 }
@@ -220,6 +230,7 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("FW_CURSOR_KEY", &c.Secrets.CursorKey)
 	str("FW_DATA_KEY_FILE", &c.Secrets.DataKeyFile)
 	str("FW_PUBLIC_URL", &c.HTTP.PublicURL)
+	str("FW_OTLP_ENDPOINT", &c.Observability.OTLPEndpoint)
 	str("FW_BOOTSTRAP_ADMIN_EMAIL", &c.Bootstrap.AdminEmail)
 	str("FW_BOOTSTRAP_ADMIN_PASSWORD", &c.Bootstrap.AdminPassword)
 	str("FW_LOG_LEVEL", &c.Log.Level)

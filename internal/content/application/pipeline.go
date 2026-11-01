@@ -664,6 +664,7 @@ func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.Featu
 		b.Mutations = append(b.Mutations, domain.Mutation{Kind: kind, Feature: f.Snapshot(), Expected: f.Version(), UniqueKey: w.unique})
 		b.Events = append(b.Events, f.DrainEvents()...)
 	}
+	b.Audit = s.auditRecords(wc, b.Events)
 	events := s.toChangeEvents(b.Events, wc.Causation)
 	if len(events) > 0 {
 		jobs, err := publishJobs(events)

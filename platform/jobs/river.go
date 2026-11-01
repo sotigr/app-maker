@@ -25,6 +25,8 @@ type riverArgs struct {
 	JobKind   string          `json:"kind" river:"unique"`
 	UniqueKey string          `json:"key,omitempty" river:"unique"`
 	Args      json.RawMessage `json:"args"`
+	// Trace continues the enqueuing request's trace (spec 14.3).
+	Trace map[string]string `json:"trace,omitempty"`
 }
 
 func (riverArgs) Kind() string { return RiverKind }
@@ -40,7 +42,7 @@ func (w *riverWorker) Work(ctx context.Context, job *river.Job[riverArgs]) error
 	if !ok {
 		return river.JobCancel(fmt.Errorf("%w: %s", ErrNoHandler, job.Args.JobKind))
 	}
-	err := h(ctx, job.Args.Args)
+	err := traced(ctx, job.Args.JobKind, job.Queue, job.Args.Trace, func(ctx context.Context) error { return h(ctx, job.Args.Args) })
 	if IsPermanent(err) {
 		return river.JobCancel(err)
 	}
@@ -142,7 +144,7 @@ func toParams(jobs []kernel.JobRequest) []river.InsertManyParams {
 		// a recompute runs would lose its job. Unique-key jobs recompute from
 		// current state and are idempotent, so across batches they are not
 		// deduplicated (only within a batch, above).
-		out = append(out, river.InsertManyParams{Args: riverArgs{JobKind: j.Kind, UniqueKey: j.UniqueKey, Args: args}, InsertOpts: opts})
+		out = append(out, river.InsertManyParams{Args: riverArgs{JobKind: j.Kind, UniqueKey: j.UniqueKey, Args: args, Trace: j.Trace}, InsertOpts: opts})
 	}
 	return out
 }
@@ -152,7 +154,7 @@ func (r *RiverSQLite) InsertTx(ctx context.Context, tx *sql.Tx, jobs []kernel.Jo
 	if len(jobs) == 0 {
 		return nil
 	}
-	_, err := r.client.InsertManyTx(ctx, tx, toParams(jobs))
+	_, err := r.client.InsertManyTx(ctx, tx, toParams(withTrace(ctx, jobs)))
 	return err
 }
 
@@ -161,7 +163,7 @@ func (r *RiverSQLite) Enqueue(ctx context.Context, jobs []kernel.JobRequest) err
 	if len(jobs) == 0 {
 		return nil
 	}
-	_, err := r.client.InsertMany(ctx, toParams(jobs))
+	_, err := r.client.InsertMany(ctx, toParams(withTrace(ctx, jobs)))
 	return err
 }
 

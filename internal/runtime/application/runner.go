@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"app-maker/internal/kernel"
 	rt "app-maker/internal/runtime/api"
 )
 
@@ -162,7 +163,9 @@ func (r *Runner) Load(ctx context.Context, b rt.CodeBundle) (bool, error) {
 
 // Execute runs one node on a pooled worker; req.Bundle.Files may be empty
 // (only the hash is used).
-func (r *Runner) Execute(ctx context.Context, req rt.CodeRequest, host rt.CodeHost) (json.RawMessage, error) {
+func (r *Runner) Execute(ctx context.Context, req rt.CodeRequest, host rt.CodeHost) (out json.RawMessage, err error) {
+	ctx, end := kernel.Tel.StartSpan(ctx, "code "+req.NodeID, kernel.A("code.node", req.NodeID), kernel.A("code.run", req.RunID))
+	defer func() { end(err) }()
 	r.mu.Lock()
 	env, ok := r.bundles[req.Bundle.Hash]
 	r.mu.Unlock()
@@ -273,6 +276,7 @@ func (r *Runner) start(ctx context.Context, p *pool, spec WorkerSpec) (*worker, 
 		return nil, &rt.CodeError{Code: "load_error", Message: msg}
 	}
 	ms := time.Since(t0).Milliseconds()
+	kernel.Tel.Record(ctx, "codenode.cold_start_ms", float64(ms), kernel.A("node", p.key.node))
 	p.mu.Lock()
 	p.coldMs = ms
 	p.mu.Unlock()

@@ -45,6 +45,7 @@ import (
 	"app-maker/platform/health"
 	"app-maker/platform/httpserver"
 	"app-maker/platform/jobs"
+	"app-maker/platform/observability"
 	"app-maker/platform/sqlitedb"
 )
 
@@ -229,6 +230,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if err != nil {
 		return nil, err
 	}
+	authCfg.Audit = rt.Content.AppendAudit
 	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 	settings := c.Manifest.App.Settings
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
@@ -266,6 +268,11 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if err != nil {
 		return nil, err
 	}
+	retention := time.Duration(cfg.Audit.RetentionDays) * 24 * time.Hour
+	rt.JobKinds.Register(contentapp.JobExpireAudit, rt.Content.ExpireAudit(retention), 5*time.Minute)
+	schedules = append(schedules, flowapp.Schedule{Name: contentapp.JobExpireAudit,
+		Next: func(t time.Time) time.Time { return t.Truncate(24 * time.Hour).Add(24*time.Hour + 3*time.Hour) },
+		Job:  kernel.JobRequest{Kind: contentapp.JobExpireAudit, Queue: kernel.QueueMaintenance, Args: []byte("{}"), MaxAttempts: 3}})
 	schedules = append(schedules, flowapp.Schedule{Name: integrationapp.JobCleanupBlobs,
 		Next: func(t time.Time) time.Time { return t.Truncate(time.Hour).Add(time.Hour) },
 		Job:  kernel.JobRequest{Kind: integrationapp.JobCleanupBlobs, Queue: kernel.QueueMaintenance, Args: []byte("{}"), MaxAttempts: 3}})
@@ -312,7 +319,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if maxBody == 0 {
 		maxBody = 1 << 20
 	}
-	rt.Handler = httpserver.Chain(mux,
+	rt.Handler = httpserver.Chain(observability.Route(mux),
 		httpserver.WithRequestID,
 		httpserver.Recover,
 		httpserver.AccessLog(opt.Log),
@@ -323,6 +330,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 			return accessapi.PrincipalFrom(r.Context()).ID.String()
 		}),
 	)
+	rt.Handler = observability.HTTP(rt.Handler)
 
 	// Health (spec 14.10).
 	for _, name := range rt.repos.Names() {

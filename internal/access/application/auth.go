@@ -35,6 +35,8 @@ type AuthConfig struct {
 	StateSealer domain.SecretSealer
 	// OIDC providers by name.
 	OIDC map[string]OIDCConfig
+	// Audit records authentication events (spec 14.3); optional.
+	Audit func(ctx context.Context, recs []kernel.AuditRecord) error
 }
 
 // OIDCConfig is one provider of app.json auth.oidc.
@@ -128,8 +130,10 @@ func (s *AuthService) Login(ctx context.Context, login, password, ip string) (Lo
 	if err != nil || verr != nil || !ok {
 		s.limiter.Fail(acct)
 		s.limiter.Fail(ipKey)
+		s.audit(ctx, cred.PrincipalID, "login_failed", "password")
 		return LoginResult{}, ErrInvalidCredentials
 	}
+	s.audit(ctx, cred.PrincipalID, "login", "password")
 	p, err := s.Resolve(ctx, cred.PrincipalID)
 	if err != nil {
 		s.limiter.Fail(acct)
@@ -282,6 +286,7 @@ func (s *AuthService) CreateAPIKey(ctx context.Context, actor accessapi.Principa
 	if err != nil {
 		return "", err
 	}
+	s.audit(ctx, actor.ID, "api_key_created", "for "+principal.String()+" prefix "+prefix)
 	return key, nil
 }
 
@@ -301,4 +306,12 @@ func (s *AuthService) BootstrapAdmin(ctx context.Context, email, password string
 		return false, nil // another replica won the race
 	}
 	return err == nil, err
+}
+
+// audit records an authentication event; failures do not block logins.
+func (s *AuthService) audit(ctx context.Context, actor kernel.ID, action, detail string) {
+	if s.cfg.Audit == nil {
+		return
+	}
+	_ = s.cfg.Audit(ctx, []kernel.AuditRecord{{At: s.clock.Now(), Actor: actor, ActorKind: string(accessapi.KindUser), Action: action, Detail: detail}})
 }

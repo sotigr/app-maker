@@ -23,6 +23,9 @@ type JobRequest struct {
 	UniqueKey   string // optional; deduplicates pending jobs with the same key
 	ScheduledAt *time.Time
 	MaxAttempts int
+	// Trace carries the trace context of the request that caused the job
+	// (spec 14.3), so a trace follows a write through its jobs.
+	Trace map[string]string
 }
 
 // JobEnqueuer enqueues jobs outside a repository commit (for example from

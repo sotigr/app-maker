@@ -18,6 +18,7 @@ import (
 
 	"app-maker/internal/app"
 	"app-maker/platform/config"
+	"app-maker/platform/observability"
 )
 
 func printProblems(err error) error {
@@ -102,7 +103,12 @@ func devCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			dir := dirArg(args)
-			log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+			log := slog.New(observability.LogHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
+			shutdown, err := observability.Setup(context.Background(), observability.Config{ServiceName: "fw-dev"})
+			if err != nil {
+				return err
+			}
+			defer func() { _ = shutdown(context.Background()) }()
 			cfg := config.Default()
 			cfg.Dev, cfg.Manifest, cfg.Env = true, dir, env
 			cfg.HTTP.Addr = addr

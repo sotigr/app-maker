@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"sync"
+	"time"
 
 	"app-maker/internal/content/domain"
 	"app-maker/internal/kernel"
@@ -29,9 +30,13 @@ type Repository struct {
 	features map[kernel.ID]*record
 	children map[kernel.ID]map[kernel.ID]struct{}
 	jobs     kernel.JobEnqueuer
+	audit    []kernel.AuditRecord // ordered by ID (time)
 }
 
-var _ domain.FeatureRepository = (*Repository)(nil)
+var (
+	_ domain.FeatureRepository = (*Repository)(nil)
+	_ domain.AuditStore        = (*Repository)(nil)
+)
 
 // New returns an empty repository. jobs receives each committed batch's
 // jobs after commit; it may be nil.
@@ -267,6 +272,9 @@ func (r *Repository) Apply(ctx context.Context, b domain.Batch) (domain.CommitRe
 	}
 	r.mu.Lock()
 	result, err := r.apply(b)
+	if err == nil {
+		r.appendAudit(b.Audit)
+	}
 	r.mu.Unlock()
 	if err != nil {
 		return domain.CommitResult{}, err
@@ -440,4 +448,54 @@ func splitPath(p string) []string {
 		cur += string(c)
 	}
 	return append(out, cur)
+}
+
+func (r *Repository) appendAudit(recs []kernel.AuditRecord) {
+	r.audit = append(r.audit, recs...)
+	sort.SliceStable(r.audit, func(i, j int) bool { return r.audit[i].ID.String() < r.audit[j].ID.String() })
+}
+
+// AppendAudit implements domain.AuditStore.
+func (r *Repository) AppendAudit(_ context.Context, recs []kernel.AuditRecord) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.appendAudit(recs)
+	return nil
+}
+
+// Audit implements domain.AuditStore.
+func (r *Repository) Audit(_ context.Context, f kernel.AuditFilter) ([]kernel.AuditRecord, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []kernel.AuditRecord
+	for i := len(r.audit) - 1; i >= 0 && len(out) < f.Limit; i-- {
+		a := r.audit[i]
+		switch {
+		case f.Before != nil && a.ID.String() >= f.Before.String(),
+			f.Actor != nil && a.Actor != *f.Actor,
+			f.Target != nil && (a.Target == nil || *a.Target != *f.Target),
+			f.Action != "" && a.Action != f.Action,
+			!f.Since.IsZero() && a.At.Before(f.Since):
+			continue
+		}
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+// PurgeAudit implements domain.AuditStore.
+func (r *Repository) PurgeAudit(_ context.Context, before time.Time) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	kept := r.audit[:0]
+	n := 0
+	for _, a := range r.audit {
+		if a.At.Before(before) {
+			n++
+			continue
+		}
+		kept = append(kept, a)
+	}
+	r.audit = kept
+	return n, nil
 }

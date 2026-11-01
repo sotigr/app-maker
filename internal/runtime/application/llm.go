@@ -58,6 +58,7 @@ func (r *Router) Complete(ctx context.Context, req rt.LLMRequest, onDelta func(r
 		return rt.LLMResponse{}, rt.LLMCall{}, err
 	}
 	req.Model = target.Model
+	ctx, end := kernel.Tel.StartSpan(ctx, "llm "+alias, kernel.A("llm.alias", alias), kernel.A("llm.provider", target.Provider), kernel.A("llm.model", target.Model))
 	start := r.clock.Now()
 	var res rt.LLMResponse
 	if onDelta != nil {
@@ -71,6 +72,11 @@ func (r *Router) Complete(ctx context.Context, req rt.LLMRequest, onDelta func(r
 		call.CostUSD = llm.Cost(target.Model, res.Usage.InputTokens, res.Usage.OutputTokens)
 	}
 	r.charge(call.CostUSD)
+	end(err)
+	m := []kernel.Attr{kernel.A("llm.provider", call.Provider), kernel.A("llm.model", call.Model)}
+	kernel.Tel.Count(ctx, "llm.tokens", call.Usage.InputTokens, append(m, kernel.A("direction", "input"))...)
+	kernel.Tel.Count(ctx, "llm.tokens", call.Usage.OutputTokens, append(m, kernel.A("direction", "output"))...)
+	kernel.Tel.Record(ctx, "llm.cost_usd", call.CostUSD, m...)
 	r.log.Info("llm call", "alias", alias, "provider", call.Provider, "model", call.Model,
 		"inputTokens", call.Usage.InputTokens, "outputTokens", call.Usage.OutputTokens,
 		"latencyMs", call.LatencyMs, "costUsd", call.CostUSD, "err", err)

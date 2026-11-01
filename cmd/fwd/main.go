@@ -19,6 +19,7 @@ import (
 
 	"app-maker/internal/app"
 	"app-maker/platform/config"
+	"app-maker/platform/observability"
 )
 
 func main() {
@@ -60,6 +61,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	shutdown, err := observability.Setup(context.Background(), observability.Config{Endpoint: cfg.Observability.OTLPEndpoint,
+		SampleRatio: cfg.Observability.SampleRatio, ServiceName: "fwd/" + compiled.Manifest.App.App, ServiceVersion: compiled.Manifest.App.Version})
+	if err != nil {
+		return fmt.Errorf("observability: %w", err)
+	}
+	defer func() { _ = shutdown(context.Background()) }()
 	for _, w := range compiled.Warnings {
 		log.Warn(w.String())
 	}
@@ -124,7 +131,7 @@ func newLogger(cfg config.Config) *slog.Logger {
 	_ = level.UnmarshalText([]byte(cfg.Log.Level))
 	opts := &slog.HandlerOptions{Level: level}
 	if cfg.Log.Format == "text" {
-		return slog.New(slog.NewTextHandler(os.Stderr, opts))
+		return slog.New(observability.LogHandler(slog.NewTextHandler(os.Stderr, opts)))
 	}
-	return slog.New(slog.NewJSONHandler(os.Stderr, opts))
+	return slog.New(observability.LogHandler(slog.NewJSONHandler(os.Stderr, opts)))
 }

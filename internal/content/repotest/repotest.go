@@ -60,6 +60,7 @@ func Run(t *testing.T, f Factory) {
 		{"UniqueName", testUniqueName},
 		{"ConcurrentWriters", testConcurrentWriters},
 		{"Unsupported", testUnsupported},
+		{"AuditLog", testAuditLog},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { tc.fn(t, f(t)) })
@@ -591,5 +592,51 @@ func testUnsupported(t *testing.T, h Harness) {
 		if _, err := h.Repo.Apply(ctx, domain.Batch{Mutations: muts}); !errors.Is(err, kernel.ErrUnsupported) {
 			t.Fatalf("batch above MaxBatchSize: %v", err)
 		}
+	}
+}
+
+// Spec 14.3: audit rows are written in the commit transaction.
+func testAuditLog(t *testing.T, h Harness) {
+	ctx := context.Background()
+	store, ok := h.Repo.(domain.AuditStore)
+	if !ok {
+		t.Skip("no audit store")
+	}
+	r := root(t, h)
+	a := create(t, h, TypeA, &r, nil)
+	actor := ids.NewID()
+	rec := func(action string, target kernel.ID, at time.Time) kernel.AuditRecord {
+		return kernel.AuditRecord{ID: ids.NewID(), At: at, Actor: actor, Action: action, Target: &target, Type: string(TypeA)}
+	}
+	if _, err := h.Repo.Apply(ctx, domain.Batch{Mutations: []domain.Mutation{update(a, map[string]kernel.Value{"/title": kernel.String("x")})},
+		Audit: []kernel.AuditRecord{rec("updated", a.ID, epoch.Add(time.Hour))}}); err != nil {
+		t.Fatal(err)
+	}
+	// A failed commit writes no audit rows.
+	stale := update(a, nil)
+	stale.Expected, stale.Feature.Version = 9, 10
+	if _, err := h.Repo.Apply(ctx, domain.Batch{Mutations: []domain.Mutation{stale},
+		Audit: []kernel.AuditRecord{rec("updated", a.ID, epoch.Add(2*time.Hour))}}); err == nil {
+		t.Fatal("stale update applied")
+	}
+	if err := store.AppendAudit(ctx, []kernel.AuditRecord{{ID: ids.NewID(), At: epoch.Add(3 * time.Hour), Actor: actor, Action: "login"}}); err != nil {
+		t.Fatal(err)
+	}
+	all, err := store.Audit(ctx, kernel.AuditFilter{Limit: 10})
+	if err != nil || len(all) != 2 || all[0].Action != "login" || all[1].Action != "updated" || *all[1].Target != a.ID {
+		t.Fatalf("audit: %+v %v", all, err)
+	}
+	byTarget, _ := store.Audit(ctx, kernel.AuditFilter{Target: &a.ID, Limit: 10})
+	byAction, _ := store.Audit(ctx, kernel.AuditFilter{Action: "login", Limit: 10})
+	older, _ := store.Audit(ctx, kernel.AuditFilter{Before: &all[0].ID, Limit: 10})
+	if len(byTarget) != 1 || len(byAction) != 1 || len(older) != 1 || older[0].ID != all[1].ID {
+		t.Fatalf("filters: %d %d %d", len(byTarget), len(byAction), len(older))
+	}
+	n, err := store.PurgeAudit(ctx, epoch.Add(150*time.Minute))
+	if err != nil || n != 1 {
+		t.Fatalf("purge: %d %v", n, err)
+	}
+	if left, _ := store.Audit(ctx, kernel.AuditFilter{Limit: 10}); len(left) != 1 || left[0].Action != "login" {
+		t.Fatalf("after purge: %+v", left)
 	}
 }

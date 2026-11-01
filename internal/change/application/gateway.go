@@ -609,6 +609,10 @@ func (c *Conn) deliver(ctx context.Context, s *Sub, ev changeapi.Event) {
 		m["ephemeral"] = true
 	}
 	c.offer(s, id, m)
+	if !ev.At.IsZero() {
+		// Commit-to-delivery latency (spec 14.3).
+		kernel.Tel.Record(ctx, "stream.delivery_latency_s", time.Since(ev.At).Seconds(), kernel.A("target", s.t.Target))
+	}
 }
 
 func orEmpty(s []string) []string {

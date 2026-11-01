@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	flowapi "app-maker/internal/flow/api"
 	"app-maker/internal/kernel"
@@ -43,6 +44,16 @@ type Batch struct {
 	Events    []DomainEvent
 	Jobs      []kernel.JobRequest
 	Causation flowapi.CausationChain
+	// Audit rows are written in the commit transaction (spec 14.3).
+	Audit []kernel.AuditRecord
+}
+
+// AuditStore keeps the audit log next to the features (spec 14.3).
+type AuditStore interface {
+	AppendAudit(ctx context.Context, records []kernel.AuditRecord) error
+	Audit(ctx context.Context, f kernel.AuditFilter) ([]kernel.AuditRecord, error)
+	// PurgeAudit deletes records older than before and returns how many.
+	PurgeAudit(ctx context.Context, before time.Time) (int, error)
 }
 
 // CommitResult reports each affected feature's new version.

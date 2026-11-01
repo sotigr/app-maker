@@ -11,6 +11,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"app-maker/internal/kernel"
 )
 
 // Handler runs one job. It must be idempotent: jobs run at least once.
@@ -89,3 +91,36 @@ func Backoff(base time.Duration, n int) time.Duration {
 
 // ErrNoHandler is recorded for jobs whose kind has no handler.
 var ErrNoHandler = fmt.Errorf("no handler registered")
+
+// traced runs a job handler in a span continuing the trace of the request
+// that enqueued it, and records job.duration (spec 14.3).
+func traced(ctx context.Context, kind, queue string, carrier map[string]string, fn func(context.Context) error) error {
+	ctx = kernel.Tel.Extract(ctx, carrier)
+	ctx, end := kernel.Tel.StartSpan(ctx, "job "+kind, kernel.A("job.kind", kind), kernel.A("job.queue", queue))
+	start := time.Now()
+	err := fn(ctx)
+	end(err)
+	outcome := "ok"
+	if err != nil {
+		outcome = "error"
+	}
+	kernel.Tel.Record(ctx, "job.duration", time.Since(start).Seconds(),
+		kernel.A("job.kind", kind), kernel.A("job.queue", queue), kernel.A("outcome", outcome))
+	return err
+}
+
+// withTrace fills missing trace carriers from ctx.
+func withTrace(ctx context.Context, jobs []kernel.JobRequest) []kernel.JobRequest {
+	carrier := kernel.Tel.Inject(ctx)
+	if carrier == nil {
+		return jobs
+	}
+	out := make([]kernel.JobRequest, len(jobs))
+	for i, j := range jobs {
+		if j.Trace == nil {
+			j.Trace = carrier
+		}
+		out[i] = j
+	}
+	return out
+}

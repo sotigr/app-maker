@@ -140,9 +140,12 @@ type Result struct {
 var ErrLoopStopped = kernel.NewError(kernel.CodeConflict, "flow loop stopped")
 
 // Run executes a flow (spec 10.6) and records the run.
-func (e *Engine) Run(ctx context.Context, req Request) (Result, error) {
+func (e *Engine) Run(ctx context.Context, req Request) (res Result, err error) {
 	f := req.Flow
 	runID := e.d.IDs.NewID()
+	ctx, end := kernel.Tel.StartSpan(ctx, "flow "+f.Name, kernel.A("flow.name", f.Name), kernel.A("flow.trigger", string(f.Trigger)),
+		kernel.A("flow.run", runID.String()))
+	defer func() { end(err) }()
 	start := e.d.Clock.Now()
 	rec := RunRecord{RunID: runID, Flow: f.Name, Version: f.Version, Trigger: f.Trigger, Principal: req.Principal.ID,
 		Started: start, Causation: req.Causation, Feature: req.FeatureID}
@@ -158,8 +161,6 @@ func (e *Engine) Run(ctx context.Context, req Request) (Result, error) {
 	if req.Background {
 		attempts = 3
 	}
-	var res Result
-	var err error
 	var nodes, trace map[string]any
 	for attempt := 1; attempt <= attempts; attempt++ {
 		res, nodes, trace, err = e.runOnce(ctx, runID, req)
@@ -187,6 +188,7 @@ func (e *Engine) Run(ctx context.Context, req Request) (Result, error) {
 	if !req.Stage || err != nil {
 		e.record(ctx, rec) // successful beforeWrite runs are not recorded: they run on every write
 	}
+	kernel.Tel.Count(ctx, "flow.runs", 1, kernel.A("flow.name", f.Name), kernel.A("flow.trigger", string(f.Trigger)), kernel.A("status", rec.Status))
 	return res, err
 }
 

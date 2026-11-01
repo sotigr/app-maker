@@ -110,8 +110,10 @@ func (s *AuthService) VerifyMFA(ctx context.Context, ticket, code string) (Login
 	totp, err := s.store.TOTP(ctx, t.PrincipalID)
 	if err != nil || !totp.Confirmed || !s.checkCode(ctx, totp, code) {
 		s.retry(ctx, t)
+		s.audit(ctx, t.PrincipalID, "mfa_failed", "totp")
 		return LoginResult{}, ErrInvalidCode
 	}
+	s.audit(ctx, t.PrincipalID, "mfa_verified", "totp")
 	s.limiter.Reset("mfa:" + t.PrincipalID.String())
 	p, err := s.Resolve(ctx, t.PrincipalID)
 	if err != nil {
@@ -188,6 +190,7 @@ func (s *AuthService) ConfirmTOTP(ctx context.Context, principal kernel.ID, code
 	if !s.checkCode(ctx, t, code) {
 		return ErrInvalidCode
 	}
+	s.audit(ctx, principal, "totp_enabled", "")
 	return nil
 }
 
@@ -221,5 +224,6 @@ func (s *AuthService) DisableTOTP(ctx context.Context, p accessapi.Principal, co
 	if t.Confirmed && !s.checkCode(ctx, t, code) {
 		return ErrInvalidCode
 	}
+	s.audit(ctx, p.ID, "totp_disabled", "")
 	return s.store.DeleteTOTP(ctx, p.ID)
 }

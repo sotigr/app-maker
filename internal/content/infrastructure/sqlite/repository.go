@@ -7,6 +7,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -36,7 +37,10 @@ type Repository struct {
 	indexes map[string]string
 }
 
-var _ domain.FeatureRepository = (*Repository)(nil)
+var (
+	_ domain.FeatureRepository = (*Repository)(nil)
+	_ domain.AuditStore        = (*Repository)(nil)
+)
 
 const schemaSQL = `
 CREATE TABLE IF NOT EXISTS content_features (
@@ -65,6 +69,17 @@ CREATE TABLE IF NOT EXISTS content_feature_ancestors (
   PRIMARY KEY (feature_id, ancestor_id)
 );
 CREATE INDEX IF NOT EXISTS content_feature_ancestors_anc ON content_feature_ancestors (ancestor_id);
+CREATE TABLE IF NOT EXISTS content_audit (
+  id     TEXT PRIMARY KEY,
+  at     TEXT NOT NULL,
+  actor  TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target TEXT,
+  record TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS content_audit_at ON content_audit (at);
+CREATE INDEX IF NOT EXISTS content_audit_actor ON content_audit (actor, id);
+CREATE INDEX IF NOT EXISTS content_audit_target ON content_audit (target, id);
 `
 
 // New creates the tables if needed. jobs may be nil (no job insertion).
@@ -382,6 +397,9 @@ func (r *Repository) Apply(ctx context.Context, b domain.Batch) (domain.CommitRe
 		return domain.CommitResult{}, err
 	}
 	res, err := r.apply(ctx, tx, b)
+	if err == nil {
+		err = insertAudit(ctx, tx, b.Audit)
+	}
 	if err != nil {
 		_ = tx.Rollback()
 		return domain.CommitResult{}, err
@@ -657,4 +675,80 @@ func (r *Repository) rewriteSubtree(ctx context.Context, tx *sql.Tx, id kernel.I
 		}
 	}
 	return nil
+}
+
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func insertAudit(ctx context.Context, db execer, recs []kernel.AuditRecord) error {
+	for _, a := range recs {
+		raw, err := json.Marshal(a)
+		if err != nil {
+			return err
+		}
+		var target any
+		if a.Target != nil {
+			target = a.Target.String()
+		}
+		if _, err := db.ExecContext(ctx, `INSERT INTO content_audit (id, at, actor, action, target, record) VALUES (?, ?, ?, ?, ?, ?)`,
+			a.ID.String(), a.At.UTC().Format(time.RFC3339Nano), a.Actor.String(), a.Action, target, string(raw)); err != nil {
+			return fmt.Errorf("audit: %w", err)
+		}
+	}
+	return nil
+}
+
+// AppendAudit implements domain.AuditStore.
+func (r *Repository) AppendAudit(ctx context.Context, recs []kernel.AuditRecord) error {
+	return insertAudit(ctx, r.db, recs)
+}
+
+// Audit implements domain.AuditStore.
+func (r *Repository) Audit(ctx context.Context, f kernel.AuditFilter) ([]kernel.AuditRecord, error) {
+	where, args := []string{"1=1"}, []any{}
+	if f.Actor != nil {
+		where, args = append(where, "actor = ?"), append(args, f.Actor.String())
+	}
+	if f.Target != nil {
+		where, args = append(where, "target = ?"), append(args, f.Target.String())
+	}
+	if f.Action != "" {
+		where, args = append(where, "action = ?"), append(args, f.Action)
+	}
+	if !f.Since.IsZero() {
+		where, args = append(where, "at >= ?"), append(args, f.Since.UTC().Format(time.RFC3339Nano))
+	}
+	if f.Before != nil {
+		where, args = append(where, "id < ?"), append(args, f.Before.String())
+	}
+	rows, err := r.db.QueryContext(ctx, `SELECT record FROM content_audit WHERE `+strings.Join(where, " AND ")+` ORDER BY id DESC LIMIT ?`,
+		append(args, f.Limit)...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []kernel.AuditRecord
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			return nil, err
+		}
+		var a kernel.AuditRecord
+		if err := json.Unmarshal([]byte(raw), &a); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// PurgeAudit implements domain.AuditStore.
+func (r *Repository) PurgeAudit(ctx context.Context, before time.Time) (int, error) {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM content_audit WHERE at < ?`, before.UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
 }

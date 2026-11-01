@@ -195,8 +195,14 @@ _Last updated: 2026-10-31_
   mfa.go endpoints; app/auth.go (checkAuth in compile, authConfig, dataKey); config secrets.dataKeyFile,
   http.publicURL (FW_DATA_KEY_FILE, FW_PUBLIC_URL); manifest AuthConfig typed OIDC/MFA. SDK auth
   helpers; admin Login handles MFA + OIDC buttons. e2e auth_test.go (fake IdP with RSA JWKS).
-- NEXT 12f: OpenTelemetry tracing/metrics + audit log (§14.3); then `emit` node, python.allowedPackages
-  check, dead_letter status, S3 adapter (needs Docker/minio).
+- 12f observability + audit DONE (ADR 0012): kernel/telemetry.go (Tel facade), kernel/audit.go;
+  platform/observability (Setup, Tel, HTTP + Route, LogHandler); JobRequest.Trace + jobs traced();
+  spans/metrics in engine, LLM router, runner, gateway; content Batch.Audit + AuditStore (memory, sqlite
+  content_audit, repotest AuditLog) + audit.go (auditRecords, AppendAudit, Audit, ExpireAudit) + GET
+  /v1/audit; auth audit events; config observability.*, audit.retentionDays. e2e audit_test.go.
+- NEXT 12g (small items): `emit` node, python.allowedPackages check at validate, dead_letter run status,
+  search reindex at startup (Bleve in memory), admin console audit/blob views. S3 adapter + Phase 10
+  need Docker.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with
