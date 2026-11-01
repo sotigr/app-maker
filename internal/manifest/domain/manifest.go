@@ -57,8 +57,26 @@ type AuthConfig struct {
 		Enabled   bool `json:"enabled"`
 		MinLength int  `json:"minLength,omitempty"`
 	} `json:"password"`
-	OIDC []json.RawMessage `json:"oidc,omitempty"`
-	MFA  json.RawMessage   `json:"mfa,omitempty"`
+	OIDC []OIDCProvider `json:"oidc,omitempty"`
+	MFA  MFAConfig      `json:"mfa"`
+}
+
+// OIDCProvider is one entry of auth.oidc (spec 8.3, 12.2).
+type OIDCProvider struct {
+	Provider     string `json:"provider"`
+	Issuer       string `json:"issuer,omitempty"` // defaults for well-known providers
+	ClientID     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"` // ${secret:<name>}
+	// Signup creates users on first login (default false: admin invites).
+	Signup         bool     `json:"signup,omitempty"`
+	AllowedDomains []string `json:"allowedDomains,omitempty"`
+	Scopes         []string `json:"scopes,omitempty"`
+}
+
+// MFAConfig is auth.mfa: TOTP for all users or for some roles.
+type MFAConfig struct {
+	RequiredForRoles []string `json:"requiredForRoles,omitempty"`
+	RequiredForAll   bool     `json:"requiredForAll,omitempty"`
 }
 
 // Limits may only lower the server defaults (spec 14.1).

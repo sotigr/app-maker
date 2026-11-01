@@ -13,15 +13,19 @@ import (
 
 // Store is an in-memory CredentialStore.
 type Store struct {
-	mu        sync.RWMutex
-	passwords map[string]domain.PasswordCredential
-	sessions  map[string]domain.Session
-	keys      map[string]domain.APIKey
+	mu         sync.RWMutex
+	passwords  map[string]domain.PasswordCredential
+	sessions   map[string]domain.Session
+	keys       map[string]domain.APIKey
+	identities map[[2]string]domain.Identity
+	totp       map[kernel.ID]domain.TOTP
+	tickets    map[string]domain.Ticket
 }
 
 // NewStore returns an empty store.
 func NewStore() *Store {
-	return &Store{passwords: map[string]domain.PasswordCredential{}, sessions: map[string]domain.Session{}, keys: map[string]domain.APIKey{}}
+	return &Store{passwords: map[string]domain.PasswordCredential{}, sessions: map[string]domain.Session{}, keys: map[string]domain.APIKey{},
+		identities: map[[2]string]domain.Identity{}, totp: map[kernel.ID]domain.TOTP{}, tickets: map[string]domain.Ticket{}}
 }
 
 var _ domain.CredentialStore = (*Store)(nil)
@@ -184,4 +188,74 @@ func (l *Limiter) Reset(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	delete(l.fails, key)
+}
+
+// PutIdentity implements domain.CredentialStore.
+func (s *Store) PutIdentity(_ context.Context, i domain.Identity) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	k := [2]string{i.Provider, i.Subject}
+	if existing, ok := s.identities[k]; ok && existing.PrincipalID != i.PrincipalID {
+		return &kernel.ConstraintError{Path: "/identity", Code: "duplicate_identity"}
+	}
+	s.identities[k] = i
+	return nil
+}
+
+// Identity implements domain.CredentialStore.
+func (s *Store) Identity(_ context.Context, provider, subject string) (domain.Identity, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	i, ok := s.identities[[2]string{provider, subject}]
+	if !ok {
+		return i, kernel.ErrNotFound
+	}
+	return i, nil
+}
+
+// PutTOTP implements domain.CredentialStore.
+func (s *Store) PutTOTP(_ context.Context, t domain.TOTP) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.totp[t.PrincipalID] = t
+	return nil
+}
+
+// TOTP implements domain.CredentialStore.
+func (s *Store) TOTP(_ context.Context, p kernel.ID) (domain.TOTP, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	t, ok := s.totp[p]
+	if !ok {
+		return t, kernel.ErrNotFound
+	}
+	return t, nil
+}
+
+// DeleteTOTP implements domain.CredentialStore.
+func (s *Store) DeleteTOTP(_ context.Context, p kernel.ID) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.totp, p)
+	return nil
+}
+
+// CreateTicket implements domain.CredentialStore.
+func (s *Store) CreateTicket(_ context.Context, t domain.Ticket) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tickets[t.IDHash] = t
+	return nil
+}
+
+// TakeTicket implements domain.CredentialStore.
+func (s *Store) TakeTicket(_ context.Context, h string) (domain.Ticket, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.tickets[h]
+	if !ok {
+		return t, kernel.ErrNotFound
+	}
+	delete(s.tickets, h)
+	return t, nil
 }

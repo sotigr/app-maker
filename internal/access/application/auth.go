@@ -23,6 +23,28 @@ type AuthConfig struct {
 	MinPasswordLength int
 	SessionIdle       time.Duration // default 24h
 	SessionAbsolute   time.Duration // default 30 days
+	// MFA (spec 8.3): TOTP required for all users or for these roles.
+	MFAAll   bool
+	MFARoles []string
+	// Issuer names the app in authenticator apps.
+	Issuer string
+	// Sealer encrypts TOTP secrets with the instance data key; nil
+	// disables enrollment.
+	Sealer domain.SecretSealer
+	// StateSealer encrypts the short-lived OIDC state cookie.
+	StateSealer domain.SecretSealer
+	// OIDC providers by name.
+	OIDC map[string]OIDCConfig
+}
+
+// OIDCConfig is one provider of app.json auth.oidc.
+type OIDCConfig struct {
+	Provider domain.OIDCProvider
+	// Signup creates a user on the first login of an unlinked identity;
+	// otherwise only identities linked through an admin invite log in
+	// (decided 2026-11-01).
+	Signup         bool
+	AllowedDomains []string
 }
 
 // AuthService authenticates principals and manages credentials.
@@ -76,12 +98,15 @@ func HashToken(t string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// LoginResult is a new session.
+// LoginResult is a new session, or a pending second factor: MFA is
+// "verify" or "enroll" and Ticket continues the login.
 type LoginResult struct {
 	Token     string
 	CSRF      string
 	Principal accessapi.Principal
 	ExpiresAt time.Time
+	MFA       string
+	Ticket    string
 }
 
 // Login checks a password and opens a session (spec 8.3).
@@ -111,6 +136,11 @@ func (s *AuthService) Login(ctx context.Context, login, password, ip string) (Lo
 		return LoginResult{}, ErrInvalidCredentials
 	}
 	s.limiter.Reset(acct)
+	return s.finish(ctx, p)
+}
+
+// openSession creates a session for an authenticated principal.
+func (s *AuthService) openSession(ctx context.Context, p accessapi.Principal) (LoginResult, error) {
 	now := s.clock.Now()
 	tok := randomToken("fws_", 32)
 	sess := domain.Session{IDHash: HashToken(tok), PrincipalID: p.ID, CSRF: randomToken("", 24),

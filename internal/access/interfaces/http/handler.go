@@ -24,6 +24,9 @@ const (
 type Handler struct {
 	auth   *application.AuthService
 	secure bool
+	// PublicURL is the external base URL for OIDC redirect URIs; empty
+	// derives it from the request.
+	PublicURL string
 	// Signed lists path prefixes whose URLs carry their own signature
 	// (blob uploads and downloads): requests there stay anonymous and skip
 	// cookie and CSRF handling.
@@ -103,6 +106,14 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/auth/session", h.session)
 	mux.HandleFunc("POST /v1/auth/users", h.createUser)
 	mux.HandleFunc("POST /v1/auth/tokens", h.createToken)
+	mux.HandleFunc("POST /v1/auth/mfa/verify", h.mfaVerify)
+	mux.HandleFunc("POST /v1/auth/mfa/totp/enroll", h.totpEnroll)
+	mux.HandleFunc("POST /v1/auth/mfa/totp/confirm", h.totpConfirm)
+	mux.HandleFunc("POST /v1/auth/mfa/totp/disable", h.totpDisable)
+	mux.HandleFunc("GET /v1/auth/oidc", h.oidcProviders)
+	mux.HandleFunc("GET /v1/auth/oidc/{provider}/start", h.oidcStart)
+	mux.HandleFunc("GET /v1/auth/oidc/{provider}/callback", h.oidcCallback)
+	mux.HandleFunc("POST /v1/auth/users/{id}/oidc-invite", h.oidcInvite)
 }
 
 type principalDTO struct {
@@ -141,15 +152,29 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, err)
 		return
 	}
-	if body.CLI {
+	h.writeLogin(w, res, body.CLI)
+}
+
+// writeLogin answers a completed first or second factor: a pending MFA
+// step, a CLI token, or browser cookies.
+func (h *Handler) writeLogin(w http.ResponseWriter, res application.LoginResult, cli bool) {
+	if res.MFA != "" {
+		httpserver.WriteJSON(w, http.StatusOK, map[string]any{"mfa": res.MFA, "ticket": res.Ticket})
+		return
+	}
+	if cli {
 		httpserver.WriteJSON(w, http.StatusOK, map[string]any{"principal": toDTO(res.Principal), "token": res.Token})
 		return
 	}
+	h.setSession(w, res)
+	httpserver.WriteJSON(w, http.StatusOK, map[string]any{"principal": toDTO(res.Principal), "csrf": res.CSRF})
+}
+
+func (h *Handler) setSession(w http.ResponseWriter, res application.LoginResult) {
 	http.SetCookie(w, &http.Cookie{Name: SessionCookie, Value: res.Token, Path: "/", HttpOnly: true, Secure: h.secure,
 		SameSite: http.SameSiteLaxMode, Expires: res.ExpiresAt})
 	http.SetCookie(w, &http.Cookie{Name: CSRFCookie, Value: res.CSRF, Path: "/", Secure: h.secure,
 		SameSite: http.SameSiteLaxMode, Expires: res.ExpiresAt})
-	httpserver.WriteJSON(w, http.StatusOK, map[string]any{"principal": toDTO(res.Principal), "csrf": res.CSRF})
 }
 
 func (h *Handler) clearCookies(w http.ResponseWriter) {

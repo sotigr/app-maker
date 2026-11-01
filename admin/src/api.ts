@@ -92,7 +92,12 @@ export type FlowInfo = { name: string; version: number; trigger: string; on?: st
 
 export const Api = {
   session: () => api<{ principal: { id: string; kind: string; roles: string[] } }>("GET", "/v1/auth/session"),
-  login: (login: string, password: string) => api("POST", "/v1/auth/password", { login, password }),
+  login: (login: string, password: string) =>
+    api<{ mfa?: "verify" | "enroll"; ticket?: string }>("POST", "/v1/auth/password", { login, password }),
+  providers: () => api<{ providers: string[] }>("GET", "/v1/auth/oidc"),
+  verifyMfa: (code: string, ticket?: string) => api("POST", "/v1/auth/mfa/verify", { code, ticket }),
+  enrollTotp: (ticket?: string) => api<{ secret: string; uri: string; ticket?: string }>("POST", "/v1/auth/mfa/totp/enroll", { ticket }),
+  confirmTotp: (code: string, ticket?: string) => api("POST", "/v1/auth/mfa/totp/confirm", { code, ticket }),
   logout: () => api("POST", "/v1/auth/logout"),
   types: () => api<{ types: TypeDescription[] }>("GET", "/v1/schema/types"),
   type: (name: string) => api<TypeDescription>("GET", `/v1/schema/types/${name}`),

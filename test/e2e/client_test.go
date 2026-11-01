@@ -33,8 +33,11 @@ type server struct {
 
 // testSecrets resolves the secrets used by tracker flows in tests.
 func testSecrets(ref string) (string, bool) {
-	if ref == "${secret:issues-webhook}" {
+	switch ref {
+	case "${secret:issues-webhook}":
 		return "s3cret", true
+	case "${secret:oidc-test}":
+		return "client-secret", true
 	}
 	return "", false
 }
@@ -57,9 +60,18 @@ func startWith(t *testing.T, driver string, extraFlows map[string]string) *serve
 // startCfg starts the tracker with a configuration change.
 func startCfg(t *testing.T, driver string, extraFlows map[string]string, change func(*config.Config)) *server {
 	t.Helper()
+	return startFull(t, driver, extraFlows, nil, change)
+}
+
+// startFull starts the tracker with manifest and configuration changes.
+func startFull(t *testing.T, driver string, extraFlows map[string]string, edit func(*manifestdomain.Manifest), change func(*config.Config)) *server {
+	t.Helper()
 	m, err := manifestfs.Load("../../examples/tracker", "dev")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if edit != nil {
+		edit(m)
 	}
 	for name, src := range extraFlows {
 		m.Flows = append(m.Flows, manifestdomain.File{Path: "flows/" + name, Data: []byte(src)})

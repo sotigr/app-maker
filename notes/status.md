@@ -188,7 +188,14 @@ _Last updated: 2026-10-31_
   limits.requestsPerMinute/anonymousPerMinute, http.trustProxyHeaders; gateway MaxConnsPerUser 20
   (Connect returns error; WS connects before Accept); content checkShape (nesting 8, list 1000).
   e2e limits_test.go (startCfg helper). Memory limiter only → replicated topology needs Valkey (phase 10).
-- NEXT 12e: OIDC + MFA (TOTP); then OpenTelemetry + audit log, `emit` node, python.allowedPackages
+- 12e OIDC + MFA DONE (ADR 0011): access/domain TOTP + SecretSealer + OIDCProvider/ExternalClaims +
+  Identity/TOTP/Ticket store methods (memory, sqlite, storetest suite); access/infrastructure/crypto
+  Sealer (AES-GCM), oidc client; application mfa.go (finish → session|ticket, VerifyMFA, Begin/Confirm
+  TOTP [with ticket], DisableTOTP) and oidc.go (OIDCStart/Callback, invites, signup rules); HTTP
+  mfa.go endpoints; app/auth.go (checkAuth in compile, authConfig, dataKey); config secrets.dataKeyFile,
+  http.publicURL (FW_DATA_KEY_FILE, FW_PUBLIC_URL); manifest AuthConfig typed OIDC/MFA. SDK auth
+  helpers; admin Login handles MFA + OIDC buttons. e2e auth_test.go (fake IdP with RSA JWKS).
+- NEXT 12f: OpenTelemetry tracing/metrics + audit log (§14.3); then `emit` node, python.allowedPackages
   check, dead_letter status, S3 adapter (needs Docker/minio).
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 

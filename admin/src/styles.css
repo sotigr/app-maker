@@ -48,6 +48,8 @@ button:disabled { opacity: 0.5; cursor: default; }
 .mono { font-family: ui-monospace, monospace; font-size: 12px; }
 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; }
 .login { max-width: 340px; margin: 12vh auto; }
+.login code.secret { display: block; padding: 8px; margin: 8px 0; word-break: break-all; background: var(--panel, #f4f4f5); border-radius: 6px; }
+.login a.button { display: block; text-align: center; margin-top: 8px; padding: 8px; border: 1px solid currentColor; border-radius: 6px; text-decoration: none; }
 
 /* Flow editor */
 .editor { display: grid; grid-template-columns: 200px 1fr 340px; gap: 0; height: calc(100vh - 100px); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }

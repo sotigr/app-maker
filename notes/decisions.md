@@ -27,6 +27,7 @@
 | 0008 | LLM providers | port in runtime/api; anthropic (official SDK, fallbacks, output_config), openai-compatible (HTTP), fake; aliases "<provider>:<model>"; keys as secret refs; fw dev → fake |
 | 0009 | Code nodes | gRPC engine↔runner (codenode.proto), stdio JSON frames to stdlib-only fwnode, process isolation + egress proxy, uv venvs by lock hash, python node inputs from inputSchema |
 | 0010 | Blob storage | intents as urn:sys:feature:blob features, BlobFS, signed PUT/GET URLs, Verify on write, commit/release jobs, thumbnails, hourly cleanup_blobs |
+| 0011 | OIDC + MFA | PKCE RP with JWKS verify via egress; sealed state cookie; signup per provider (default off) + admin invite links; TOTP tickets verify/enroll; data key file |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)
@@ -51,3 +52,5 @@
   JSON frames runner↔Python worker; fwnode is pure stdlib (no grpcio).
 - Python deps: uv builds a venv per requirements.lock hash when uv is on PATH; nodes without
   requirements run on system python3; requirements without uv fail with a clear error.
+- OIDC first login (2026-11-01): per-provider `signup` (default false) + optional `allowedDomains`; with
+  signup off an admin issues a one-time invite link that binds the first OIDC login. Never match by email.

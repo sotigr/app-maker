@@ -52,6 +52,9 @@ type Config struct {
 		InternalAddr  string `yaml:"internalAddr"`
 		SecureCookies bool   `yaml:"secureCookies"`
 		MaxBodyBytes  int64  `yaml:"maxBodyBytes"`
+		// PublicURL is the external base URL (OIDC redirect URIs); empty
+		// derives it from each request.
+		PublicURL string `yaml:"publicURL"`
 		// TrustProxyHeaders takes the client IP from X-Forwarded-For (only
 		// behind a trusted reverse proxy).
 		TrustProxyHeaders bool `yaml:"trustProxyHeaders"`
@@ -69,6 +72,11 @@ type Config struct {
 	Secrets struct {
 		// CursorKey signs pagination cursors; shared by all replicas.
 		CursorKey string `yaml:"cursorKey"`
+		// DataKeyFile holds the 32-byte instance data key that encrypts
+		// TOTP secrets (spec 8.2); fw dev creates one under .fw/.
+		DataKeyFile string `yaml:"dataKeyFile"`
+		// CreateDataKey creates DataKeyFile when missing (development).
+		CreateDataKey bool `yaml:"-"`
 	} `yaml:"secrets"`
 	Bootstrap struct {
 		AdminEmail    string `yaml:"adminEmail"`
@@ -210,6 +218,8 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("FW_CREDENTIALS_DSN", &c.Credentials.DSN)
 	str("FW_JOBS_DRIVER", &c.Jobs.Driver)
 	str("FW_CURSOR_KEY", &c.Secrets.CursorKey)
+	str("FW_DATA_KEY_FILE", &c.Secrets.DataKeyFile)
+	str("FW_PUBLIC_URL", &c.HTTP.PublicURL)
 	str("FW_BOOTSTRAP_ADMIN_EMAIL", &c.Bootstrap.AdminEmail)
 	str("FW_BOOTSTRAP_ADMIN_PASSWORD", &c.Bootstrap.AdminPassword)
 	str("FW_LOG_LEVEL", &c.Log.Level)

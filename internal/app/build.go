@@ -209,8 +209,6 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	default:
 		return nil, fmt.Errorf("credentials.driver: %q is not available yet", cfg.Credentials.Driver)
 	}
-	authCfg := accessapp.AuthConfig{PasswordEnabled: c.Manifest.App.Auth.Password.Enabled, MinPasswordLength: c.Manifest.App.Auth.Password.MinLength}
-	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 
 	// Flows (spec 10) and effects (spec 14.5).
 	rt.Content.SetJobs(rt.Enqueuer)
@@ -227,6 +225,11 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		return nil, err
 	}
 	out := egress.New(egress.Config{AllowPrivate: cfg.Dev})
+	authCfg, err := authConfig(cfg, c, cursorKey, secrets, out, opt.Clock)
+	if err != nil {
+		return nil, err
+	}
+	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 	settings := c.Manifest.App.Settings
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
 		return nil, err
@@ -281,6 +284,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	mux := http.NewServeMux()
 	accessH := accesshttp.New(rt.Auth, cfg.HTTP.SecureCookies)
 	accessH.Signed = []string{"/v1/blobs/"}
+	accessH.PublicURL = cfg.HTTP.PublicURL
 	accessH.Register(mux)
 	integrationhttp.New(blobs).Register(mux)
 	contenthttp.New(rt.Content).Register(mux)

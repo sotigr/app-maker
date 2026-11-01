@@ -8,6 +8,14 @@ export type FeatureId<T extends string = string> = string & { readonly __type?: 
 export type Decimal = string;
 /** RFC 3339 timestamps in UTC. */
 export type Timestamp = string;
+/** The answer of a login step: a session, or the next MFA step. */
+export interface LoginResult {
+  principal?: { id: string; kind: string; roles: string[] };
+  csrf?: string;
+  mfa?: "verify" | "enroll";
+  ticket?: string;
+}
+
 /** A Blob field value (spec 14.4). Reads add short-lived signed URLs. */
 export interface BlobRef {
   id: string;
@@ -193,7 +201,26 @@ export class FwClient {
 
   // Auth (spec 13.2): browser sessions use the HttpOnly cookie only.
   readonly auth = {
-    login: (login: string, password: string) => this.request("POST", "/v1/auth/password", { login, password }),
+    /** login answers a session, or `{mfa: "verify" | "enroll", ticket}` when a TOTP step follows. */
+    login: (login: string, password: string) =>
+      this.request<LoginResult>("POST", "/v1/auth/password", { login, password }),
+    /** providers lists the configured OIDC providers. */
+    providers: () => this.request<{ providers: string[] }>("GET", "/v1/auth/oidc"),
+    /** oidcStart navigates the browser to the provider; it comes back to `redirect` (a same-origin path),
+     * with `?mfa=verify|enroll` when a second factor is needed. */
+    oidcStart: (provider: string, redirect = "/", invite?: string) => {
+      const q = new URLSearchParams({ redirect });
+      if (invite) q.set("invite", invite);
+      globalThis.location.assign(`${this.base}/v1/auth/oidc/${encodeURIComponent(provider)}/start?${q}`);
+    },
+    /** verifyMfa completes a login with a TOTP code (the ticket comes from login, or a cookie after OIDC). */
+    verifyMfa: (code: string, ticket?: string) => this.request<LoginResult>("POST", "/v1/auth/mfa/verify", { code, ticket }),
+    /** enrollTotp starts TOTP enrollment (signed in, or with an enroll ticket during login). */
+    enrollTotp: (ticket?: string) =>
+      this.request<{ secret: string; uri: string; ticket?: string }>("POST", "/v1/auth/mfa/totp/enroll", { ticket }),
+    /** confirmTotp activates the enrollment; with a ticket it also opens the session. */
+    confirmTotp: (code: string, ticket?: string) => this.request<LoginResult | undefined>("POST", "/v1/auth/mfa/totp/confirm", { code, ticket }),
+    disableTotp: (code: string) => this.request<void>("POST", "/v1/auth/mfa/totp/disable", { code }),
     logout: async () => {
       await this.request("POST", "/v1/auth/logout");
       if (typeof BroadcastChannel !== "undefined") new BroadcastChannel("fw-auth").postMessage("logout");

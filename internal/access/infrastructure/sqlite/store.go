@@ -36,6 +36,25 @@ CREATE TABLE IF NOT EXISTS access_api_keys (
   created_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS access_api_keys_principal ON access_api_keys (principal_id);
+CREATE TABLE IF NOT EXISTS access_identities (
+  provider     TEXT NOT NULL,
+  subject      TEXT NOT NULL,
+  principal_id TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  PRIMARY KEY (provider, subject)
+);
+CREATE TABLE IF NOT EXISTS access_totp (
+  principal_id TEXT PRIMARY KEY,
+  secret       BLOB NOT NULL,
+  confirmed    INTEGER NOT NULL,
+  last_step    INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS access_tickets (
+  id_hash      TEXT PRIMARY KEY,
+  principal_id TEXT NOT NULL,
+  purpose      TEXT NOT NULL,
+  expires_at   TEXT NOT NULL
+);
 `
 
 // Store is a CredentialStore on SQLite.
@@ -169,4 +188,71 @@ func (s *Store) APIKey(ctx context.Context, h string) (domain.APIKey, error) {
 func (s *Store) DeleteAPIKeysOf(ctx context.Context, p kernel.ID) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM access_api_keys WHERE principal_id = ?`, p.String())
 	return err
+}
+
+// PutIdentity implements domain.CredentialStore.
+func (s *Store) PutIdentity(ctx context.Context, i domain.Identity) error {
+	res, err := s.db.ExecContext(ctx, `INSERT INTO access_identities (provider, subject, principal_id, created_at) VALUES (?, ?, ?, ?)
+		ON CONFLICT (provider, subject) DO UPDATE SET created_at = excluded.created_at WHERE principal_id = excluded.principal_id`,
+		i.Provider, i.Subject, i.PrincipalID.String(), ts(i.CreatedAt))
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return &kernel.ConstraintError{Path: "/identity", Code: "duplicate_identity"}
+	}
+	return nil
+}
+
+// Identity implements domain.CredentialStore.
+func (s *Store) Identity(ctx context.Context, provider, subject string) (domain.Identity, error) {
+	var pid, created string
+	err := s.db.QueryRowContext(ctx, `SELECT principal_id, created_at FROM access_identities WHERE provider = ? AND subject = ?`,
+		provider, subject).Scan(&pid, &created)
+	if err != nil {
+		return domain.Identity{}, notFound(err)
+	}
+	id, err := kernel.ParseID(pid)
+	return domain.Identity{Provider: provider, Subject: subject, PrincipalID: id, CreatedAt: parseTS(created)}, err
+}
+
+// PutTOTP implements domain.CredentialStore.
+func (s *Store) PutTOTP(ctx context.Context, t domain.TOTP) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO access_totp (principal_id, secret, confirmed, last_step) VALUES (?, ?, ?, ?)
+		ON CONFLICT (principal_id) DO UPDATE SET secret = excluded.secret, confirmed = excluded.confirmed, last_step = excluded.last_step`,
+		t.PrincipalID.String(), t.Secret, t.Confirmed, t.LastStep)
+	return err
+}
+
+// TOTP implements domain.CredentialStore.
+func (s *Store) TOTP(ctx context.Context, p kernel.ID) (domain.TOTP, error) {
+	t := domain.TOTP{PrincipalID: p}
+	err := s.db.QueryRowContext(ctx, `SELECT secret, confirmed, last_step FROM access_totp WHERE principal_id = ?`, p.String()).
+		Scan(&t.Secret, &t.Confirmed, &t.LastStep)
+	return t, notFound(err)
+}
+
+// DeleteTOTP implements domain.CredentialStore.
+func (s *Store) DeleteTOTP(ctx context.Context, p kernel.ID) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM access_totp WHERE principal_id = ?`, p.String())
+	return err
+}
+
+// CreateTicket implements domain.CredentialStore.
+func (s *Store) CreateTicket(ctx context.Context, t domain.Ticket) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO access_tickets (id_hash, principal_id, purpose, expires_at) VALUES (?, ?, ?, ?)`,
+		t.IDHash, t.PrincipalID.String(), t.Purpose, ts(t.ExpiresAt))
+	return err
+}
+
+// TakeTicket implements domain.CredentialStore.
+func (s *Store) TakeTicket(ctx context.Context, h string) (domain.Ticket, error) {
+	var pid, purpose, exp string
+	err := s.db.QueryRowContext(ctx, `DELETE FROM access_tickets WHERE id_hash = ? RETURNING principal_id, purpose, expires_at`, h).
+		Scan(&pid, &purpose, &exp)
+	if err != nil {
+		return domain.Ticket{}, notFound(err)
+	}
+	id, err := kernel.ParseID(pid)
+	return domain.Ticket{IDHash: h, PrincipalID: id, Purpose: purpose, ExpiresAt: parseTS(exp)}, err
 }
