@@ -124,7 +124,11 @@ export class Cache {
     return this.features.get(id);
   }
   put(f: Feature): void {
+    const cur = this.features.get(f.id);
     this.features.set(f.id, f);
+    // Re-reading an unchanged feature notifies nobody; otherwise lists
+    // that reload on changes would reload on their own results forever.
+    if (cur && !cur.pending && !f.pending && cur.version === f.version && JSON.stringify(cur) === JSON.stringify(f)) return;
     this.emit(f.id);
   }
   remove(id: string): void {

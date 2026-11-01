@@ -287,5 +287,8 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   user `locale` field → `Principal.Locale` → session; language switch in header/login, `<html lang dir>`, locale
   formatting, logical CSS properties. Tracker: en (labels, `@projects.intro`) + el. Not done: plurals, server
   messages, editing translations in the builder.
+- Fixed: a page with a non-streamable query source (sorted, e.g. the tracker's projects list) re-queried every
+  400 ms forever, because each reload's cache puts notified the reload listener. `Cache.put` now notifies only
+  when the feature changed (version, pending, or content).
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.
