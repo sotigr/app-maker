@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	codenodev1 "app-maker/api/proto/codenode/v1"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	codenodev1 "organon/api/proto/codenode/v1"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // Client implements rt.CodeRunner.

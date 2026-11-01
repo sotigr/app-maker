@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/platform/config"
+	"organon/platform/config"
 )
 
 // Milestone 9: public search never matches owner or private text, and no

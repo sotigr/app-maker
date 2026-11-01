@@ -1,8 +1,8 @@
 package app
 
 import (
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/domain/expression"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/domain/expression"
 )
 
 func exprCompiler() rt.Compiler { return expression.NewCompiler() }

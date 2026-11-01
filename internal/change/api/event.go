@@ -5,9 +5,9 @@ package api
 import (
 	"time"
 
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // EventKind is the kind of a change event.

@@ -7,16 +7,16 @@ import (
 	"net/http"
 	"strings"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/access/application"
-	"app-maker/internal/kernel"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/access/application"
+	"organon/internal/kernel"
+	"organon/platform/httpserver"
 )
 
 // Cookie and header names.
 const (
-	SessionCookie = "fw_session"
-	CSRFCookie    = "fw_csrf"
+	SessionCookie = "organon_session"
+	CSRFCookie    = "organon_csrf"
 	CSRFHeader    = "X-CSRF-Token"
 )
 
@@ -55,9 +55,9 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 		authz := r.Header.Get("Authorization")
 		if authz == "" {
 			// WebSocket clients outside browsers cannot set headers; they
-			// pass the bearer token as a subprotocol "fw.bearer.<token>".
+			// pass the bearer token as a subprotocol "organon.bearer.<token>".
 			for _, proto := range strings.Split(r.Header.Get("Sec-WebSocket-Protocol"), ",") {
-				if tok, ok := strings.CutPrefix(strings.TrimSpace(proto), "fw.bearer."); ok {
+				if tok, ok := strings.CutPrefix(strings.TrimSpace(proto), "organon.bearer."); ok {
 					authz = "Bearer " + tok
 				}
 			}

@@ -16,20 +16,20 @@ guide for the area you touch before editing.
 ### Workflow
 
 ```sh
-make build                              # bin/fw, bin/fwd
-bin/fw init <app>                       # or copy examples/tracker
+make build                              # bin/organon, bin/organond
+bin/organon init <app>                       # or copy examples/tracker
 # edit files, then after every change:
-bin/fw validate <app>                   # must print "ok: ..."
-bin/fw test <app>                       # must print "N passed, 0 failed"
-bin/fw dev <app> --addr 127.0.0.1:8080  # optional: run and try it
+bin/organon validate <app>                   # must print "ok: ..."
+bin/organon test <app>                       # must print "N passed, 0 failed"
+bin/organon dev <app> --addr 127.0.0.1:8080  # optional: run and try it
 ```
 
-Without a Go toolchain, use the image (`docker build -t app-maker .`) and
+Without a Go toolchain, use the image (`docker build -t organon .`) and
 run the same commands as
-`docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work app-maker fw validate <app>`
+`docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work organon organon validate <app>`
 ([Docker guide](docs/usage/10-docker.md)).
 
-`fw validate` errors name the file and a JSON Pointer
+`organon validate` errors name the file and a JSON Pointer
 (`flows/x.json#/nodes/a/in/id: ...`). Fix exactly that location and
 re-run. Do not stop until validate and test pass.
 
@@ -106,12 +106,12 @@ also lists it at `GET /v1/flows` (admins).
   for contexts schema, content, access, query, change, flow, runtime,
   integration, manifest. `internal/kernel` holds shared value types.
   `internal/app` wires everything. `platform/` holds technical pieces with
-  no domain logic. `cmd/fwd`, `cmd/fw` are the binaries.
+  no domain logic. `cmd/organond`, `cmd/organon` are the binaries.
 - Layer rules are enforced by depguard (`make depguard` regenerates
   `.golangci.yml`): contexts talk only through `api` packages; domain code
   imports no infrastructure; application code may own goroutines.
 - `sdk/ts` (client, React hooks), `admin/` (React console, built into
-  `admin/dist` and embedded), `runner/python/fwnode` (Python runtime,
+  `admin/dist` and embedded), `runner/python/organon` (Python runtime,
   embedded), `api/proto` (code-node gRPC).
 
 ### Checks before you finish
@@ -120,7 +120,7 @@ also lists it at `GET /v1/flows` (admins).
 go build ./...
 go test -race ./...           # all packages; e2e tests in test/e2e
 golangci-lint run ./...       # must report 0 issues (gofmt included)
-bin/fw test examples/tracker
+bin/organon test examples/tracker
 make sdk                      # when the SDK, codegen, or tracker types change
 make ui                       # when admin/src changes (commit admin/dist)
 make proto                    # when api/proto changes (needs protoc plugins)

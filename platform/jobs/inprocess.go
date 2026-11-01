@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // InProcessConfig configures the in-process adapter.

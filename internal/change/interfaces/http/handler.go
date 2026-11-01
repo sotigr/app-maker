@@ -14,11 +14,11 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/change/application"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/change/application"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	"organon/platform/httpserver"
 )
 
 // Handler serves streaming endpoints.
@@ -155,7 +155,7 @@ func (h *Handler) ws(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{"fw"}})
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{"organon"}})
 	if err != nil {
 		return
 	}

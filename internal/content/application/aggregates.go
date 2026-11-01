@@ -6,14 +6,14 @@ import (
 	"errors"
 	"math"
 
-	accessapi "app-maker/internal/access/api"
-	changeapi "app-maker/internal/change/api"
-	"app-maker/internal/content/domain"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	changeapi "organon/internal/change/api"
+	"organon/internal/content/domain"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // JobRecomputeAggregate recomputes x-aggregate fields of one parent

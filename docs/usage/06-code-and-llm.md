@@ -39,13 +39,13 @@ def run(input, ctx):
 Rules:
 
 - `inputSchema` and `outputSchema` are required. The node's `in` keys are
-  the `inputSchema` properties (type-checked by `fw validate`); the output
+  the `inputSchema` properties (type-checked by `organon validate`); the output
   is validated before later nodes see it.
 - `ctx` provides `get_feature(id)`, `query(type, where=, sort=, scope=, limit=)`,
   `llm(prompt=, model=, system=, schema=, max_tokens=, messages=)`,
   `log(msg, **fields)`, `idempotency_key` (stable across retries of the
   same run and node), and `remaining_ms()`. Host calls fail with
-  `fwnode.HostError` (attribute `code`, e.g. `not_found`).
+  `organon.HostError` (attribute `code`, e.g. `not_found`).
 - Code cannot write. Return data and let `feature.update`/`feature.create`
   nodes write it, so every write is visible in the graph.
 - Code may run more than once (retries, worker crashes). Pass
@@ -105,15 +105,15 @@ Configured on the server (not in the manifest):
 
 ```yaml
 llm:
-  provider: ""            # force one provider for every alias (fw dev uses fake)
+  provider: ""            # force one provider for every alias (organon dev uses fake)
   providers:
     anthropic: { kind: anthropic, apiKey: "${secret:anthropic-key}" }
     local:     { kind: openai-compatible, baseURL: "http://localhost:11434/v1" }
 ```
 
 - `fake` (always available): deterministic; with a schema it returns the
-  simplest valid document. `fw dev` and `fw test` use it by default
-  (`fw dev --llm anthropic` to use a real model).
+  simplest valid document. `organon dev` and `organon test` use it by default
+  (`organon dev --llm anthropic` to use a real model).
 - `anthropic` (always available): the Claude API; without `apiKey` it uses
   the SDK's own credentials (`ANTHROPIC_API_KEY`).
 - `openai-compatible`: any chat-completions server, including local ones.

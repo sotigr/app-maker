@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 func TestInProcessRunsRetriesAndDiscards(t *testing.T) {

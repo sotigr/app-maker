@@ -4,12 +4,12 @@
 
 | Topic | Decision |
 |---|---|
-| Binaries | Follow the spec: `cmd/fwd` (server, takes the manifest dir as input) + `cmd/fw` (CLI) |
+| Binaries | Follow the spec: `cmd/organond` (server, takes the manifest dir as input) + `cmd/organon` (CLI) |
 | "Graph programming tool" | Flows are JSON DAG files (§10.4) **plus** a visual node-graph editor that reads/writes them |
 | Ordering | Vertical slice first (deviates from §15.9.2, see ADR 0001), then remaining milestones |
 | Toolchain | User installs Go (latest stable) and starts Docker |
-| Module path | `app-maker` |
-| Editor / admin tech | React + React Flow (xyflow), Vite build, embedded in `fwd` via `go:embed` |
+| Module path | `organon` |
+| Editor / admin tech | React + React Flow (xyflow), Vite build, embedded in `organond` via `go:embed` |
 | Slice storage | Memory repo + SQLite repo with River (`riversqlite`) |
 | Non-Go scope | TS SDK + codegen, Python code-node runner, admin console. Helm chart / OCI image excluded for now |
 | Commits | One commit per phase; commit at each phase boundary without asking again (approved 2026-10-31) |
@@ -24,13 +24,14 @@
 | 0004 | Layer import rules | Domain may import other contexts' `api` (published language) and pure libs (expr, jsonschema, apd, uuid); tests exempt |
 | 0005 | Integer wire format | `type: integer` = Int64 with JSON number wire; `x-kind: int64` on string = string wire |
 | 0007 | Flow engine choices | inferred deps, actions served by Flow, flow commits skip before-write flows, webhook signature format, env secrets |
-| 0008 | LLM providers | port in runtime/api; anthropic (official SDK, fallbacks, output_config), openai-compatible (HTTP), fake; aliases "<provider>:<model>"; keys as secret refs; fw dev → fake |
-| 0009 | Code nodes | gRPC engine↔runner (codenode.proto), stdio JSON frames to stdlib-only fwnode, process isolation + egress proxy, uv venvs by lock hash, python node inputs from inputSchema |
+| 0008 | LLM providers | port in runtime/api; anthropic (official SDK, fallbacks, output_config), openai-compatible (HTTP), fake; aliases "<provider>:<model>"; keys as secret refs; organon dev → fake |
+| 0009 | Code nodes | gRPC engine↔runner (codenode.proto), stdio JSON frames to the stdlib-only `organon` Python package, process isolation + egress proxy, uv venvs by lock hash, python node inputs from inputSchema |
 | 0010 | Blob storage | intents as urn:sys:feature:blob features, BlobFS, signed PUT/GET URLs, Verify on write, commit/release jobs, thumbnails, hourly cleanup_blobs |
 | 0011 | OIDC + MFA | PKCE RP with JWKS verify via egress; sealed state cookie; signup per provider (default off) + admin invite links; TOTP tickets verify/enroll; data key file |
 | 0012 | Observability + audit | kernel.Tel facade, OTLP/HTTP exporters, route-named HTTP spans, job trace carriers, domain metrics; audit rows in commit tx + auth events, GET /v1/audit, 90-day expiry |
 | 0013 | Data migrations | migrations/*.json validated; upcast in typeOf; migrate_batch chain per type with migration records; flow steps as system; repos accept forward type changes |
-| 0014 | Docker image + startup deploys | one image (fw, fwd, python3, uv); apps via /app mount or FROM; never-seen manifest dirs deploy at startup with breaking check; FW_ALLOW_BREAKING, FW_CREATE_DATA_KEY |
+| 0014 | Docker image + startup deploys | one image (organon, organond, python3, uv); apps via /app mount or FROM; never-seen manifest dirs deploy at startup with breaking check; ORGANON_ALLOW_BREAKING, ORGANON_CREATE_DATA_KEY |
+| 0015 | Name: Organon | module organon; binaries organon/organond; ORGANON_* env; @organon/* SDK; Python package organon; wire names renamed |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)
@@ -52,10 +53,12 @@
 
 ## 2026-11-01 (phase 12b, code nodes)
 - Runner transport: gRPC engine↔runner (Unix socket, api/proto/codenode/v1), stdio length-prefixed
-  JSON frames runner↔Python worker; fwnode is pure stdlib (no grpcio).
+  JSON frames runner↔Python worker; the `organon` Python package (was fwnode) is pure stdlib (no grpcio).
 - Python deps: uv builds a venv per requirements.lock hash when uv is on PATH; nodes without
   requirements run on system python3; requirements without uv fail with a clear error.
 - OIDC first login (2026-11-01): per-provider `signup` (default false) + optional `allowedDomains`; with
   signup off an admin issues a one-time invite link that binds the first OIDC login. Never match by email.
 - Docker (2026-11-01): one framework image; apps via volume mount at /app or `FROM` + COPY; used for both
-  development (`fw dev` in the container) and deployment (`fwd`).
+  development (`organon dev` in the container) and deployment (`organond`).
+- Project name (2026-11-01): Organon. CLI `organon`, server `organond` (ADR 0015). The design document and
+  older ADRs still say fw/fwd.

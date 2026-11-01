@@ -12,10 +12,10 @@ import (
 	"text/template"
 	"time"
 
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/flow/domain"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/flow/domain"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 type builtin struct {

@@ -1,4 +1,4 @@
-module app-maker
+module organon
 
 go 1.27.3
 

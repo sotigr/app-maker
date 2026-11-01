@@ -12,7 +12,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/anthropics/anthropic-sdk-go/shared/constant"
 
-	rt "app-maker/internal/runtime/api"
+	rt "organon/internal/runtime/api"
 )
 
 // DefaultMaxTokens applies when a request sets no maxTokens.

@@ -130,4 +130,4 @@ with the `admin` role on the granted feature (see [Policies](04-policies.md#defa
 - [ ] Index every field you filter or sort on.
 - [ ] Use `x-visibility` instead of relying on clients to hide fields.
 - [ ] Use `x-write: action:<name>` for fields that only change through business actions.
-- [ ] Run `fw validate`; errors name the file and JSON Pointer.
+- [ ] Run `organon validate`; errors name the file and JSON Pointer.

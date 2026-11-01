@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/domain/llm"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/domain/llm"
 )
 
 type priced struct{}
@@ -48,7 +48,7 @@ func TestRouterBudget(t *testing.T) {
 	if _, call, err := free.Complete(context.Background(), req, nil); err != nil || call.CostUSD != 0 || call.Provider != "fake" {
 		t.Fatalf("fake call %+v %v", call, err)
 	}
-	// Forcing a provider (fw dev) and unknown providers.
+	// Forcing a provider (organon dev) and unknown providers.
 	f := NewRouter(cfg, map[string]rt.LLMProvider{"anthropic": priced{}}, "fake", clock, nil)
 	if _, _, err := f.Complete(context.Background(), req, nil); kernel.CodeOf(err) != kernel.CodeUnsupportedCapability {
 		t.Fatalf("unknown provider: %v", err)

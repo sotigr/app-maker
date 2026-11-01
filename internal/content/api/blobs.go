@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Blobs connects Blob fields to blob storage (spec 14.4); implemented by

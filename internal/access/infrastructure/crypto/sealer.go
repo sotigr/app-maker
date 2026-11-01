@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"app-maker/internal/access/domain"
+	"organon/internal/access/domain"
 )
 
 // Sealer encrypts with AES-256-GCM; the nonce is prepended.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/internal/integration/domain"
+	"organon/internal/integration/domain"
 )
 
 // Spec 14.4 / 15.7: the BlobStore contract on the filesystem adapter.

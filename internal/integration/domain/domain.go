@@ -78,7 +78,7 @@ func SplitSubject(rendered string) (subject, body string) {
 	return "", rendered
 }
 
-// Sign returns the X-Fw-Signature header: "t=<unix>,v1=<hex hmac>" over
+// Sign returns the X-Organon-Signature header: "t=<unix>,v1=<hex hmac>" over
 // "<unix>.<payload>", so receivers can reject replays (spec 14.5).
 func Sign(secret string, payload []byte, at time.Time) string {
 	ts := strconv.FormatInt(at.Unix(), 10)

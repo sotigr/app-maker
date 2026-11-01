@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	"organon/internal/schema/api"
 )
 
 // checkReferences validates x-ref targets, x-allowedChildren, and the

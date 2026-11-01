@@ -14,12 +14,12 @@ import (
 	"slices"
 	"strings"
 
-	accessapp "app-maker/internal/access/application"
-	accesscrypto "app-maker/internal/access/infrastructure/crypto"
-	"app-maker/internal/access/infrastructure/oidc"
-	"app-maker/internal/kernel"
-	manifestdomain "app-maker/internal/manifest/domain"
-	"app-maker/platform/config"
+	accessapp "organon/internal/access/application"
+	accesscrypto "organon/internal/access/infrastructure/crypto"
+	"organon/internal/access/infrastructure/oidc"
+	"organon/internal/kernel"
+	manifestdomain "organon/internal/manifest/domain"
+	"organon/platform/config"
 )
 
 // wellKnownIssuers lets app.json name common providers without an issuer.
@@ -30,7 +30,7 @@ var wellKnownIssuers = map[string]string{
 
 var providerName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 
-// checkAuth validates app.json auth.oidc and auth.mfa (fw validate).
+// checkAuth validates app.json auth.oidc and auth.mfa (organon validate).
 func checkAuth(a manifestdomain.AuthConfig, roles map[string][]string) []Problem {
 	var probs []Problem
 	seen := map[string]bool{}

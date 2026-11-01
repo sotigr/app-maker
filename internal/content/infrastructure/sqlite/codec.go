@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // TimeFormat is fixed-width UTC, so text order is chronological order.

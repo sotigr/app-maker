@@ -14,14 +14,14 @@ myapp/
   nodes/requirements.lock  # optional Python dependencies (with hashes)
   templates/email/*.txt    # email templates for email.send
   migrations/*.json        # data migrations                      → 8. Testing and deploying
-  seed/dev.json            # data loaded by fw dev / fw seed
+  seed/dev.json            # data loaded by organon dev / organon seed
   tests/*.test.json        # manifest tests                       → 8. Testing and deploying
   modules/<name>/...       # optional: groups of types/traits/policies/flows/nodes
 ```
 
 Every file is plain JSON (or text for templates and Python). Keep the
 directory in version control; production servers are changed only through
-`fw plan` / `fw apply` (editing in place is limited to `fw dev`).
+`organon plan` / `organon apply` (editing in place is limited to `organon dev`).
 
 ## app.json
 
@@ -61,18 +61,18 @@ directory in version control; production servers are changed only through
 ## Environments and secrets
 
 - `${env.a.b}` is replaced with `a.b` from `env/<env>.json`. The environment
-  is chosen with `--env` (CLI) or `FW_ENV` (server); default `dev`. A missing
+  is chosen with `--env` (CLI) or `ORGANON_ENV` (server); default `dev`. A missing
   value is a validation error.
 - `${secret:name}` is never written into the manifest. The server resolves
-  it from the environment variable `FW_SECRET_<NAME>` (upper case, `-` and
-  `.` become `_`), e.g. `${secret:oidc-google}` → `FW_SECRET_OIDC_GOOGLE`.
+  it from the environment variable `ORGANON_SECRET_<NAME>` (upper case, `-` and
+  `.` become `_`), e.g. `${secret:oidc-google}` → `ORGANON_SECRET_OIDC_GOOGLE`.
   Secrets are used for OIDC client secrets, webhook signing keys, and LLM
   provider keys, and never reach flows or code nodes.
 
 ## Seed data
 
-`seed/<env>.json` is loaded by `fw dev` on a fresh database and by
-`fw seed` against a running server:
+`seed/<env>.json` is loaded by `organon dev` on a fresh database and by
+`organon seed` against a running server:
 
 ```json
 {

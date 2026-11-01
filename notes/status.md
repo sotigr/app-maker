@@ -20,9 +20,9 @@ _Last updated: 2026-10-31_
     the query; Content `RunQuery` (scope, post-filter when inexact, select, expand→`expanded` map).
   - HTTP: §6.2 endpoints (features CRUD, children, move, query, transactions, schema, auth),
     problem details, ETag/If-Match (428/409), idempotency keys, anonymous → 401.
-  - platform: config (YAML + FW_ env, topology checks), health probes on internal port,
+  - platform: config (YAML + ORGANON_ env, topology checks), health probes on internal port,
     httpserver middleware. manifest: loader (app.json, `${env.*}`, modules, hash).
-  - `cmd/fwd` runs the tracker: `FW_BOOTSTRAP_ADMIN_EMAIL=.. FW_BOOTSTRAP_ADMIN_PASSWORD=.. ./bin/fwd --manifest examples/tracker --dev`
+  - `cmd/organond` runs the tracker: `ORGANON_BOOTSTRAP_ADMIN_EMAIL=.. ORGANON_BOOTSTRAP_ADMIN_PASSWORD=.. ./bin/organond --manifest examples/tracker --dev`
   - Tests: `test/e2e` permission matrix through HTTP, no private-field leaks, protocol rules.
 
 - **Phase 4** (part M4) SQLite + River:
@@ -31,7 +31,7 @@ _Last updated: 2026-10-31_
     x-indexed field, partial on type; `likely()` on the type filter and `INDEXED BY` for sorts;
     `Explain()`; passes `repotest` (incl. 100 writers) + EXPLAIN test.
   - `platform/sqlitedb` (WAL, immediate tx, MaxOpenConns 1, exclusive flock → second replica refused).
-  - `platform/jobs/river.go`: River on SQLite, single kind `fw`, InsertTx in the commit tx, unique
+  - `platform/jobs/river.go`: River on SQLite, single kind `organon`, InsertTx in the commit tx, unique
     keys deduped per batch, per-kind timeouts.
   - SQLite credential store, SQL idempotency store; `internal/app` wires driver `sqlite`.
   - e2e suite runs on both memory and sqlite; jobs verified to run via River.
@@ -53,8 +53,8 @@ _Last updated: 2026-10-31_
   - ADR 0007 records the engine choices.
 
 - **Phase 6** (M5 core) manifest + CLI → vertical slice complete:
-  - `cmd/fw`: init (scaffold), validate, test (manifest tests §12.6), dev (SQLite+River, seed on fresh
-    db, hot reload via app.Server), login (token in $XDG_CONFIG_HOME/fw/credentials.json), token create,
+  - `cmd/organon`: init (scaffold), validate, test (manifest tests §12.6), dev (SQLite+River, seed on fresh
+    db, hot reload via app.Server), login (token in $XDG_CONFIG_HOME/organon/credentials.json), token create,
     seed (via API), runs list, export/import (NDJSON, ID remap), plan, apply (--plan hash | --auto-approve,
     --allow-breaking).
   - `internal/app`: RunManifestTests (fixtures, effect recording, HTTP fixtures), ApplySeed, Switch,
@@ -73,7 +73,7 @@ _Last updated: 2026-10-31_
     inferred (dashed) edges, inspector with typed inputs/map editor/when/onError/forEach body, flow
     properties, validate, save, auto layout, JSON view), runs, deploys.
   - Server: `POST /v1/flows/validate` (admins), `PUT /v1/dev/manifest/flows/{name}` (dev only; writes
-    the file; fw dev hot reload activates it); `GET /v1/features/_/{id}` reads any type.
+    the file; organon dev hot reload activates it); `GET /v1/features/_/{id}` reads any type.
   - Screenshot: docs/img/flow-editor.png (taken with headless Brave via CDP; script idea in gotchas).
 
 - **Phase 8** (M6 core) change log + streaming:
@@ -89,15 +89,15 @@ _Last updated: 2026-10-31_
   - tracker project has `presence` (x-persist:false). e2e stream tests on memory + sqlite.
 
 - **Phase 9** (M7 core) TS SDK + codegen:
-  - `sdk/ts/client` (@fw/client): FwClient (request w/ CSRF or bearer, FwError), auth, Cache (normalized,
+  - `sdk/ts/client` (@organon/client): OrganonClient (request w/ CSRF or bearer, OrganonError), auth, Cache (normalized,
     version-aware applyDelta), get/create/update (optimistic + rollback)/delete/query/children/action/
     ephemeral, WS subscriptions with reconnect + resubscribe, watch/live helpers, TypeApi.
-  - `sdk/ts/react` (@fw/react): useFeature, useQuery, useChildren, useAction, useSession.
-  - `fw codegen ts [dir] --out --client-import`: one index.ts (types from owner views; private absent;
+  - `sdk/ts/react` (@organon/react): useFeature, useQuery, useChildren, useAction, useSession.
+  - `organon codegen ts [dir] --out --client-import`: one index.ts (types from owner views; private absent;
     enums, transitions, action input/output types, schemas, createClient).
-  - Non-browser WS auth: subprotocol `fw.bearer.<token>` (server selects subprotocol `fw`).
+  - Non-browser WS auth: subprotocol `organon.bearer.<token>` (server selects subprotocol `organon`).
   - Checks: `make sdk` (codegen + tsc 7 typecheck incl. example/usage.ts with @ts-expect-error cases);
-    `node sdk/ts/smoke/smoke.ts <url> <login> <password>` against fw dev (live delta, optimistic rollback).
+    `node sdk/ts/smoke/smoke.ts <url> <login> <password>` against organon dev (live delta, optimistic rollback).
   - Not done: React demo UI for "two browsers" criterion; SSE fallback in the SDK.
 
 ### Next (phase 10): PostgreSQL + Valkey (needs `sudo systemctl start docker`)
@@ -113,10 +113,10 @@ _Last updated: 2026-10-31_
 | 0 | Bootstrap | – | done |
 | 1 | Kernel + Schema | M1 | done |
 | 2 | Content, memory repo, conformance, in-process jobs | M2 | done |
-| 3 | Access, HTTP API, query, health, config, manifest loader, fwd | M3 | done |
+| 3 | Access, HTTP API, query, health, config, manifest loader, organond | M3 | done |
 | 4 | SQLite repo + River (riversqlite) | part M4 | done |
 | 5 | Flow engine, triggers, actions, effects | M8 | done |
-| 6 | Manifest context + `fw` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
+| 6 | Manifest context + `organon` CLI → **vertical slice complete** | M5 | done (migrations deferred) |
 | 7 | Admin console + visual flow editor (React Flow) | M9 part | done |
 | 8 | Change log + gateway streaming (SSE/WS) | M6 | done (memory log only) |
 | 9 | TS SDK + codegen | M7 | done (no React demo UI) |
@@ -159,13 +159,13 @@ _Last updated: 2026-10-31_
   output_config.format with StrictSchema, no temperature), OpenAICompatible (HTTP, SSE), Fake.
   Engine: CompiledNode.OutputV validates outputs with outputSchema (retryable for External/Code);
   run node status gets `llm` call records; Runtime.LLM/Ephemeral/OutputSchema; streamTo → gateway
-  ephemeral (≤5/s). Config `llm.provider`/`llm.providers` (FW_LLM_PROVIDER); `fw dev --llm fake` default.
+  ephemeral (≤5/s). Config `llm.provider`/`llm.providers` (ORGANON_LLM_PROVIDER); `organon dev --llm fake` default.
   Tracker: project summary + summaryDraft (ephemeral), flow summarize-project (action summarize).
   e2e test/e2e/llm_test.go.
 - 12b code nodes DONE (ADR 0009): api/proto/codenode/v1 (+ `make proto`; plugins in ~/go/bin);
   runtime/api code port; runtime/application Runner + pools; runtime/interfaces/grpc server;
   runtime/infrastructure/grpcrunner client; runtime/infrastructure/process (Envs: bundles read-only,
-  fwnode embedded from runner/python, uv venvs; Starter: sh ulimit + python -I -c bootstrap, egress
+  organon embedded from runner/python, uv venvs; Starter: sh ulimit + python -I -c bootstrap, egress
   proxy per worker); platform/egress.Proxy; flow `python` node + host callbacks + ctx.llm; config
   `runner.*` (runner role now in defaults; private unix socket). Tracker: task `label`, nodes/triage.py
   + rules.py, flow triage-task (action triage). Tests: process_test (real python3), grpcrunner
@@ -179,7 +179,7 @@ _Last updated: 2026-10-31_
   blob_state/blob_purge/cleanup_blobs), integration/interfaces/http (POST /v1/uploads, PUT/GET
   /v1/blobs/{id}); content Deps.Blobs (SetBlobs), verifyBlobs in prepareAll, link() on views,
   AuthorizeBlobField; access Handler.Signed prefixes; LimitBody exemptions; config blobs.driver/dir
-  (fw dev: .fw/blobs). Tracker task `attachment` (x-thumbnails [64]). TS SDK BlobRef + upload().
+  (organon dev: .organon/blobs). Tracker task `attachment` (x-thumbnails [64]). TS SDK BlobRef + upload().
   e2e test/e2e/blobs_test.go. Gotcha: advancing the fake clock 25h expires sessions → log in again.
 - 12d limits DONE: platform/httpserver RateLimit + MemoryLimiter (GCRA; per principal 600/min lowered
   by app.json requestsPerMinute, anonymous per IP 60/min, /v1/blobs/ exempt, Retry-After); config
@@ -191,7 +191,7 @@ _Last updated: 2026-10-31_
   Sealer (AES-GCM), oidc client; application mfa.go (finish → session|ticket, VerifyMFA, Begin/Confirm
   TOTP [with ticket], DisableTOTP) and oidc.go (OIDCStart/Callback, invites, signup rules); HTTP
   mfa.go endpoints; app/auth.go (checkAuth in compile, authConfig, dataKey); config secrets.dataKeyFile,
-  http.publicURL (FW_DATA_KEY_FILE, FW_PUBLIC_URL); manifest AuthConfig typed OIDC/MFA. SDK auth
+  http.publicURL (ORGANON_DATA_KEY_FILE, ORGANON_PUBLIC_URL); manifest AuthConfig typed OIDC/MFA. SDK auth
   helpers; admin Login handles MFA + OIDC buttons. e2e auth_test.go (fake IdP with RSA JWKS).
 - 12f observability + audit DONE (ADR 0012): kernel/telemetry.go (Tel facade), kernel/audit.go;
   platform/observability (Setup, Tel, HTTP + Route, LogHandler); JobRequest.Trace + jobs traced();
@@ -201,7 +201,7 @@ _Last updated: 2026-10-31_
 - 12g DONE: `emit` Effect node + custom dotted event triggers (CustomEvent regexp) + emit_event job
   (HandleEmitEvent, causation continues → loop_stopped); Runtime.Causation(); kernel JobAttempt ctx set by
   both job adapters → final failed attempt recorded as dead_letter with retryArgs (private flowRun field);
-  POST /v1/flows/runs/{id}/retry (admin) + `fw runs retry`; checkPython (python.allowedPackages vs lock
+  POST /v1/flows/runs/{id}/retry (admin) + `organon runs retry`; checkPython (python.allowedPackages vs lock
   files) at validate; Content.ReindexAll at worker start (Bleve in memory). Tests: emit_test,
   deadletter_test (memory only: River retry scheduling ~5 s/attempt), river_test, python_test,
   TestSearchReindexAfterRestart. Hardened e2e tests against aggregate-recompute version bumps (409 retry).
@@ -216,18 +216,20 @@ _Last updated: 2026-10-31_
 - SDK SSE fallback DONE: ClientOptions.transport auto|ws|sse; auto switches after 2 WS errors (or no
   WebSocket); one fetch-streamed SSE per subscription (?sub=base64url JSON with sid), reconnect on
   reset/close with backoff, terminal on error events / 4xx. `node sdk/ts/smoke/smoke.ts <url> <login>
-  <pw> [ws|sse]` passes both against fw dev.
+  <pw> [ws|sse]` passes both against organon dev.
 - REMAINING (no Docker): React demo UI ("two browsers" M7 criterion); change-log events carrying trace
   context.
+- RENAMED to Organon (ADR 0015): module organon, cmd/organon + cmd/organond, ORGANON_* env vars, @organon/* SDK,
+  runner/python/organon, .organon/ dev dir. Older notes below were rewritten mechanically.
 - Docker DONE (ADR 0014, NOT built yet: Docker daemon was down): Dockerfile, .dockerignore, `make docker`,
   examples/docker (app Dockerfile FROM image + compose with dev and app services), docs/usage/10-docker.md.
-  Server.Start deploys never-seen manifest dirs (MakePlan breaking check; FW_ALLOW_BREAKING); config
-  FW_CREATE_DATA_KEY, FW_TRUST_PROXY_HEADERS. Image env defaults verified by running the static fwd with
-  the same FW_* values. TODO when Docker runs: build the image, run fw dev + fwd + compose, then remove this note.
+  Server.Start deploys never-seen manifest dirs (MakePlan breaking check; ORGANON_ALLOW_BREAKING); config
+  ORGANON_CREATE_DATA_KEY, ORGANON_TRUST_PROXY_HEADERS. Image env defaults verified by running the static organond with
+  the same ORGANON_* values. TODO when Docker runs: build the image, run organon dev + organond + compose, then remove this note.
 - Usage docs DONE (2026-11-01): README.md, AGENTS.md (app-building + framework-change instructions for
   agents), docs/usage/01..09 (quickstart, manifest, types, policies, flows + node reference, code/LLM,
   HTTP API + SDK, testing/deploy/migrations, operations). Keep them in sync when behaviour changes
-  (node catalog table, config keys, env vars, endpoints). Quickstart commands verified against fw dev.
+  (node catalog table, config keys, env vars, endpoints). Quickstart commands verified against organon dev.
   NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 

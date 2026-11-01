@@ -1,6 +1,6 @@
 // Package llm holds the LLM provider adapters (spec 11.7): Anthropic
 // (official SDK), OpenAI-compatible (also local servers), and a
-// deterministic fake for tests and fw dev.
+// deterministic fake for tests and organon dev.
 package llm
 
 import (
@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	rt "app-maker/internal/runtime/api"
+	rt "organon/internal/runtime/api"
 )
 
 // Fake answers deterministically: plain text echoes the last user message;

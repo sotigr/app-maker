@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package codenode.v1;
 
-option go_package = "app-maker/api/proto/codenode/v1;codenodev1";
+option go_package = "organon/api/proto/codenode/v1;codenodev1";
 
 service Runner {
   // Load makes a code bundle available; the runner prepares its

@@ -60,14 +60,14 @@ nodes are skipped), `onError: "<handler node>"` (the handler runs with
 | beforeWrite | `{"beforeWrite": ["create","update"], "on": "<type>", "when": "..."}` | Inside the write; may stage more writes to the same repository or `reject` it. Only Pure, DataRead, DataWrite, and Control nodes. |
 | event | `{"event": ["created","updated"], "on": "<type>", "when": "changed('/assignee')"}` | In the background after commit. Lifecycle events: `created`, `updated`, `moved`, `deleted`, `purged`; custom dotted events from `emit` (e.g. `task.reminded`). |
 | schedule | `{"schedule": "0 8 * * *"}` | Cron (UTC), as system. |
-| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}"}` | `POST /v1/hooks/issues` with header `X-Fw-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">`. |
+| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}"}` | `POST /v1/hooks/issues` with header `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">`. |
 
 Trigger `when` conditions see `event` (`kind`, `changed`, `type`, `id`,
 `data`), `before`, `after`, `feature`, `op`, `principal`, and
 `changed(path)`.
 
 Background runs retry on failure (up to 5 attempts); the last failure is
-recorded as `dead_letter` and can be retried with `fw runs retry <id>` or
+recorded as `dead_letter` and can be retried with `organon runs retry <id>` or
 from the admin console. Causation is tracked: a flow that would re-trigger
 itself on the same feature, or a chain deeper than 8, is stopped
 (`loop_stopped`).
@@ -112,7 +112,7 @@ Control nodes; External and Code nodes may `retry`.
 ## Expressions
 
 Expressions use the [expr](https://expr-lang.org) language and are
-type-checked against the schema by `fw validate`.
+type-checked against the schema by `organon validate`.
 
 - Literals: `'text'`, `42`, `3.5`, `true`, `nil`, `[1, 2]`, `{'a': 1}`.
 - Operators: `== != < <= > >= && || !`, `+ - * / %`, `in`, `contains`,
@@ -126,7 +126,7 @@ type-checked against the schema by `fw validate`.
 
 ## The visual editor
 
-`/admin` → **Flows** shows every flow as a graph. In `fw dev` you can add
+`/admin` → **Flows** shows every flow as a graph. In `organon dev` you can add
 nodes from the palette (the same catalog as above), connect them, edit
 inputs, and save: the server validates the graph and writes
 `flows/<name>.json` (node positions go into `x-layout`), then reloads. In

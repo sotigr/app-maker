@@ -3,7 +3,7 @@
 bin
 todo.md
 **/node_modules
-**/.fw
+**/.organon
 sdk/ts/gen
 sdk/ts/smoke/gen
 docs

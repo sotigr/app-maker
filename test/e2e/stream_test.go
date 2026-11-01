@@ -10,7 +10,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 type wsClient struct {

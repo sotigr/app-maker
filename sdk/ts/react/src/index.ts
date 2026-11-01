@@ -1,11 +1,11 @@
-// @fw/react: hooks over @fw/client (spec 13.1).
+// @organon/react: hooks over @organon/client (spec 13.1).
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import type { Feature, FwClient, FwError, QueryDoc, TypeApi } from "@fw/client";
+import type { Feature, OrganonClient, OrganonError, QueryDoc, TypeApi } from "@organon/client";
 
 /** useFeature keeps one feature live; streamed fields update in place. */
 export function useFeature<T extends string, D>(api: TypeApi<T, D, any, any>, id: string | undefined, opts: { paths?: string[] } = {}) {
   const client = api.client;
-  const [error, setError] = useState<FwError>();
+  const [error, setError] = useState<OrganonError>();
   const data = useSyncExternalStore(
     useCallback((cb) => (id ? client.cache.subscribe(id, cb) : () => undefined), [client, id]),
     () => (id ? (client.cache.get(id) as Feature<T, D> | undefined) : undefined),
@@ -18,9 +18,9 @@ export function useFeature<T extends string, D>(api: TypeApi<T, D, any, any>, id
   return { data, error };
 }
 
-function useLiveList<T extends string, D>(client: FwClient, target: Record<string, unknown> | undefined, deps: unknown[]) {
+function useLiveList<T extends string, D>(client: OrganonClient, target: Record<string, unknown> | undefined, deps: unknown[]) {
   const [ids, setIds] = useState<string[]>([]);
-  const [error, setError] = useState<FwError>();
+  const [error, setError] = useState<OrganonError>();
   const [, bump] = useState(0);
   useEffect(() => {
     if (!target) return;
@@ -50,14 +50,14 @@ export function useChildren<T extends string, D>(api: TypeApi<T, D, any, any>, p
 /** useAction wraps an action call with pending and error state. */
 export function useAction<I, O>(fn: (input: I) => Promise<O>) {
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<FwError>();
+  const [error, setError] = useState<OrganonError>();
   const run = useCallback(async (input: I) => {
     setPending(true);
     setError(undefined);
     try {
       return await fn(input);
     } catch (e) {
-      setError(e as FwError);
+      setError(e as OrganonError);
       throw e;
     } finally {
       setPending(false);
@@ -67,12 +67,12 @@ export function useAction<I, O>(fn: (input: I) => Promise<O>) {
 }
 
 /** useSession returns the signed-in principal, or null. */
-export function useSession(client: FwClient) {
+export function useSession(client: OrganonClient) {
   const [session, setSession] = useState<{ id: string; kind: string; roles: string[] } | null>();
   useEffect(() => {
     client.auth.session().then((s) => setSession(s.principal), () => setSession(null));
     if (typeof BroadcastChannel === "undefined") return;
-    const ch = new BroadcastChannel("fw-auth");
+    const ch = new BroadcastChannel("organon-auth");
     ch.onmessage = () => setSession(null); // logout in another tab
     return () => ch.close();
   }, [client]);

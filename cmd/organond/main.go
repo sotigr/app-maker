@@ -1,7 +1,7 @@
-// Command fwd is the framework server. It runs any combination of roles
+// Command organond is the framework server. It runs any combination of roles
 // (spec 2.1) for one app manifest given as input:
 //
-//	fwd --manifest ./examples/tracker [--config fwd.yaml] [--roles api,worker]
+//	organond --manifest ./examples/tracker [--config organond.yaml] [--roles api,worker]
 package main
 
 import (
@@ -17,21 +17,21 @@ import (
 	"syscall"
 	"time"
 
-	"app-maker/internal/app"
-	"app-maker/platform/config"
-	"app-maker/platform/observability"
+	"organon/internal/app"
+	"organon/platform/config"
+	"organon/platform/observability"
 )
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, "fwd:", err)
+		fmt.Fprintln(os.Stderr, "organond:", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	cfgPath := flag.String("config", "", "YAML configuration file")
-	manifest := flag.String("manifest", "", "app manifest directory (overrides FW_MANIFEST)")
+	manifest := flag.String("manifest", "", "app manifest directory (overrides ORGANON_MANIFEST)")
 	roles := flag.String("roles", "", "comma-separated roles: api,gateway,worker,runner")
 	env := flag.String("env", "", "manifest environment (env/<env>.json)")
 	dev := flag.Bool("dev", false, "development mode")
@@ -39,13 +39,13 @@ func run() error {
 
 	getenv := func(k string) string {
 		switch {
-		case k == "FW_MANIFEST" && *manifest != "":
+		case k == "ORGANON_MANIFEST" && *manifest != "":
 			return *manifest
-		case k == "FW_ROLES" && *roles != "":
+		case k == "ORGANON_ROLES" && *roles != "":
 			return *roles
-		case k == "FW_ENV" && *env != "":
+		case k == "ORGANON_ENV" && *env != "":
 			return *env
-		case k == "FW_DEV" && *dev:
+		case k == "ORGANON_DEV" && *dev:
 			return "true"
 		}
 		return os.Getenv(k)
@@ -62,7 +62,7 @@ func run() error {
 		return err
 	}
 	shutdown, err := observability.Setup(context.Background(), observability.Config{Endpoint: cfg.Observability.OTLPEndpoint,
-		SampleRatio: cfg.Observability.SampleRatio, ServiceName: "fwd/" + compiled.Manifest.App.App, ServiceVersion: compiled.Manifest.App.Version})
+		SampleRatio: cfg.Observability.SampleRatio, ServiceName: "organond/" + compiled.Manifest.App.App, ServiceVersion: compiled.Manifest.App.Version})
 	if err != nil {
 		return fmt.Errorf("observability: %w", err)
 	}
@@ -100,7 +100,7 @@ func run() error {
 			}
 		}()
 	}
-	log.Info("fwd started", "app", compiled.Manifest.App.App, "roles", strings.Join(cfg.Roles, ","),
+	log.Info("organond started", "app", compiled.Manifest.App.App, "roles", strings.Join(cfg.Roles, ","),
 		"addr", cfg.HTTP.Addr, "internal", cfg.HTTP.InternalAddr)
 
 	select {
@@ -122,7 +122,7 @@ func run() error {
 		_ = public.Shutdown(shutdownCtx)
 	}
 	_ = internal.Shutdown(shutdownCtx)
-	log.Info("fwd stopped")
+	log.Info("organond stopped")
 	return nil
 }
 

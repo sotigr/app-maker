@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"app-maker/internal/app"
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
+	"organon/internal/app"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
 )
 
 func readBundle(dir string) (map[string]string, error) {
@@ -105,7 +105,7 @@ func applyCmd() *cobra.Command {
 			cl := newClient()
 			if planHash == "" {
 				if !autoApprove {
-					return fmt.Errorf("pass --plan <hash> from fw plan, or --auto-approve")
+					return fmt.Errorf("pass --plan <hash> from organon plan, or --auto-approve")
 				}
 				var p app.Plan
 				if err := cl.do("POST", "/v1/deploy/plan", map[string]any{"files": files}, &p); err != nil {
@@ -124,7 +124,7 @@ func applyCmd() *cobra.Command {
 			return nil
 		},
 	}
-	c.Flags().StringVar(&planHash, "plan", "", "plan hash from fw plan")
+	c.Flags().StringVar(&planHash, "plan", "", "plan hash from organon plan")
 	c.Flags().BoolVar(&autoApprove, "auto-approve", false, "plan and apply in one step")
 	c.Flags().BoolVar(&allowBreaking, "allow-breaking", false, "apply breaking changes without a migration")
 	return c

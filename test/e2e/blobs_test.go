@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	integrationapp "app-maker/internal/integration/application"
-	"app-maker/internal/kernel"
+	integrationapp "organon/internal/integration/application"
+	"organon/internal/kernel"
 )
 
 func pngBytes(t *testing.T, w, h int) []byte {

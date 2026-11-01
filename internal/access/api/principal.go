@@ -5,8 +5,8 @@ package api
 import (
 	"slices"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // PrincipalKind is the kind of a principal (spec 8.1).

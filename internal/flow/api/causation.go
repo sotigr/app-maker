@@ -2,7 +2,7 @@
 // chain and the ports other contexts use to run flows (spec 10).
 package api
 
-import "app-maker/internal/kernel"
+import "organon/internal/kernel"
 
 // CausationLink records one flow run that led to a write (spec 10.9).
 type CausationLink struct {

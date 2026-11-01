@@ -8,12 +8,12 @@ import (
 	"sort"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/content/domain"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/content/domain"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // JobMigrateBatch migrates one page of a type's features (spec 12.5).

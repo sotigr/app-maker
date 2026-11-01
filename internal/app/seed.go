@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	accessapi "app-maker/internal/access/api"
-	accessapp "app-maker/internal/access/application"
-	contentapp "app-maker/internal/content/application"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	accessapp "organon/internal/access/application"
+	contentapp "organon/internal/content/application"
+	"organon/internal/kernel"
 )
 
 // Seed is seed/<env>.json (spec 12.1): users, features, and grants.
@@ -26,7 +26,7 @@ type Seed struct {
 	Grants   []TestGrant   `json:"grants"`
 }
 
-// ApplySeed loads seed data in-process as the system (fw dev).
+// ApplySeed loads seed data in-process as the system (organon dev).
 func ApplySeed(ctx context.Context, rt *Runtime, data []byte) error {
 	var s Seed
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -81,7 +81,7 @@ func ApplySeed(ctx context.Context, rt *Runtime, data []byte) error {
 }
 
 // Switch is an http.Handler whose target can be replaced atomically (hot
-// reload in fw dev, manifest activation).
+// reload in organon dev, manifest activation).
 type Switch struct{ h atomic.Pointer[http.Handler] }
 
 // Set replaces the handler.

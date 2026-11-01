@@ -8,9 +8,9 @@ import (
 	"slices"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
 )
 
 // TicketTTL bounds the time between the first and the second factor.

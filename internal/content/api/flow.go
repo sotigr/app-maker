@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
-	accessapi "app-maker/internal/access/api"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
 )
 
 // WriteOp is one staged write of a flow (spec 10.6), committed through the

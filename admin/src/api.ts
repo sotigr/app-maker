@@ -1,6 +1,6 @@
 // Thin client over the public API. The console uses only the public API
 // (spec 13.3): sessions are HttpOnly cookies; state-changing requests send
-// the CSRF token from the fw_csrf cookie (double submit, spec 8.3).
+// the CSRF token from the organon_csrf cookie (double submit, spec 8.3).
 
 export type Problem = {
   code: string;
@@ -20,7 +20,7 @@ export class ApiError extends Error {
 }
 
 function csrf(): string {
-  const m = document.cookie.match(/(?:^|; )fw_csrf=([^;]*)/);
+  const m = document.cookie.match(/(?:^|; )organon_csrf=([^;]*)/);
   return m ? decodeURIComponent(m[1]) : "";
 }
 

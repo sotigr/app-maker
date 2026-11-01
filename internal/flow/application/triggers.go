@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	changeapi "app-maker/internal/change/api"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/flow/domain"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	changeapi "organon/internal/change/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/flow/domain"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // runFlowArgs are the arguments of a run_flow job (spec 2.5).

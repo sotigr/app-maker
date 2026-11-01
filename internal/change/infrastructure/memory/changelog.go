@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	changeapi "app-maker/internal/change/api"
-	"app-maker/internal/change/domain"
+	changeapi "organon/internal/change/api"
+	"organon/internal/change/domain"
 )
 
 // Log keeps events for the retention period and fans them out.

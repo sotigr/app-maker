@@ -1,4 +1,4 @@
-// Command fw is the framework CLI (spec 12.3): it scaffolds, validates,
+// Command organon is the framework CLI (spec 12.3): it scaffolds, validates,
 // tests, and runs app manifests locally, and talks to a running server
 // through the public API for everything else.
 package main
@@ -12,7 +12,7 @@ import (
 
 func main() {
 	root := &cobra.Command{
-		Use:           "fw",
+		Use:           "organon",
 		Short:         "Schema-driven application framework CLI",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -20,7 +20,7 @@ func main() {
 	root.AddCommand(initCmd(), validateCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
 		exportCmd(), importCmd(), planCmd(), applyCmd(), codegenCmd())
 	if err := root.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "fw:", err)
+		fmt.Fprintln(os.Stderr, "organon:", err)
 		os.Exit(1)
 	}
 }

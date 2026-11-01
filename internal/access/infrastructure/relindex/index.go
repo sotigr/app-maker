@@ -7,11 +7,11 @@ package relindex
 import (
 	"context"
 
-	"app-maker/internal/access/domain"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/access/domain"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // MaxGroupDepth bounds transitive membership resolution.

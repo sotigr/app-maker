@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/app"
-	integrationinfra "app-maker/internal/integration/infrastructure"
-	"app-maker/internal/kernel"
-	manifestdomain "app-maker/internal/manifest/domain"
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
-	"app-maker/platform/config"
+	"organon/internal/app"
+	integrationinfra "organon/internal/integration/infrastructure"
+	"organon/internal/kernel"
+	manifestdomain "organon/internal/manifest/domain"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
+	"organon/platform/config"
 )
 
 const adminEmail, adminPassword = "admin@example.com", "correct-horse-battery"

@@ -11,9 +11,9 @@ import (
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Index wraps a Bleve index. Each document is "<feature id>:<tier>".

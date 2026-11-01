@@ -5,8 +5,8 @@ import (
 	"slices"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // FieldDef is one row of a compiled type's field table (spec 4.5).

@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/content/infrastructure/sqlite"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	"app-maker/internal/runtime/domain/expression"
-	schemaapi "app-maker/internal/schema/api"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
-	"app-maker/platform/sqlitedb"
+	"organon/internal/content/infrastructure/sqlite"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	"organon/internal/runtime/domain/expression"
+	schemaapi "organon/internal/schema/api"
+	schemadomain "organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
+	"organon/platform/sqlitedb"
 )
 
 // Milestone 4: queries on x-indexed fields use the expression indexes

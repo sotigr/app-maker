@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
 )
 
 var safeName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)

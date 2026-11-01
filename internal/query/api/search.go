@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // SearchDoc is one indexed document: a feature's searchable text of one

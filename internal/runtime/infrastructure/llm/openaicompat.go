@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	rt "app-maker/internal/runtime/api"
+	rt "organon/internal/runtime/api"
 )
 
 // OpenAICompatible calls a server implementing the chat completions API

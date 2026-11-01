@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/kernel"
-	manifestdomain "app-maker/internal/manifest/domain"
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/kernel"
+	manifestdomain "organon/internal/manifest/domain"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
+	schemadomain "organon/internal/schema/domain"
+	"organon/platform/httpserver"
 )
 
 // TypeDiff is one type's change in a plan.
@@ -35,7 +35,7 @@ type NamedDiff struct {
 	Privileged bool   `json:"privileged,omitempty"`
 }
 
-// Plan is the result of fw plan (spec 12.4).
+// Plan is the result of organon plan (spec 12.4).
 type Plan struct {
 	Hash       string      `json:"hash"`
 	From       string      `json:"from"`
@@ -256,7 +256,7 @@ func (s *sqlDeploys) List(ctx context.Context) ([]DeployRecord, error) {
 }
 
 // Deployer serves /v1/deploy: plan, apply, and deploy history (spec 12.4).
-// Activation is provided by the process (fwd), which swaps the runtime.
+// Activation is provided by the process (organond), which swaps the runtime.
 type Deployer struct {
 	mu       sync.Mutex
 	Env      string

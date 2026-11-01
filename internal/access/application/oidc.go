@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
 )
 
 // InviteTTL is how long an OIDC invite link stays valid.

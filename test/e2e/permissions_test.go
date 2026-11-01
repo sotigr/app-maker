@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/content/application"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	"organon/internal/content/application"
+	"organon/internal/kernel"
 )
 
 type world struct {

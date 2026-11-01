@@ -17,13 +17,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/flow/domain"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/flow/domain"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // HTTPDoer performs outbound requests through the egress component.

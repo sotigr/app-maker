@@ -13,9 +13,9 @@ import (
 	"sort"
 	"strings"
 
-	accessapi "app-maker/internal/access/api"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	rt "organon/internal/runtime/api"
+	"organon/internal/schema/api"
 )
 
 //go:embed system/*.json

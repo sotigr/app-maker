@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // ValueType is the compiled structural type of a field value. It converts

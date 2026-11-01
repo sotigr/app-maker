@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	schemaapi "app-maker/internal/schema/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Document is a parsed query document (spec 7.1). Values are still raw

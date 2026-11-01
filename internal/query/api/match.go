@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Doc is the view of a feature that predicates are evaluated against.

@@ -1,9 +1,9 @@
 package application
 
 import (
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
 )
 
 func commitReq(p accessapi.Principal, action string, id kernel.ID, typeName string, v kernel.Version, data map[string]any) contentapi.CommitRequest {

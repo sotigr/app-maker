@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
 )
 
 // writeSet collects a run's staged writes and effects (spec 10.1: staged

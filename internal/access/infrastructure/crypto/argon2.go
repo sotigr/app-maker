@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"app-maker/internal/access/domain"
+	"organon/internal/access/domain"
 )
 
 // Argon2id hashes passwords; parameters are stored with each hash.

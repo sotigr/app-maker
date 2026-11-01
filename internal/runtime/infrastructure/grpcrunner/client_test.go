@@ -12,12 +12,12 @@ import (
 
 	"google.golang.org/grpc"
 
-	codenodev1 "app-maker/api/proto/codenode/v1"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/application"
-	"app-maker/internal/runtime/infrastructure/process"
-	grpcserver "app-maker/internal/runtime/interfaces/grpc"
+	codenodev1 "organon/api/proto/codenode/v1"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/application"
+	"organon/internal/runtime/infrastructure/process"
+	grpcserver "organon/internal/runtime/interfaces/grpc"
 )
 
 // Spec 11.1: the engine talks to the runner over gRPC on a Unix socket;
@@ -49,7 +49,7 @@ func TestGRPCRoundTrip(t *testing.T) {
 	defer func() { _ = c.Close() }()
 	req := rt.CodeRequest{RunID: "r", NodeID: "n", Entry: "main.py", IdempotencyKey: "r:n", Deadline: time.Now().Add(20 * time.Second),
 		Input: json.RawMessage(`{"id":"f1"}`), Bundle: rt.CodeBundle{Hash: "b1", Files: map[string][]byte{"main.py": []byte(`
-from fwnode import HostError
+from organon import HostError
 def run(input, ctx):
     f = ctx.get_feature(input["id"])
     try:

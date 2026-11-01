@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"slices"
 
-	"app-maker/internal/kernel"
-	"app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	"organon/internal/schema/api"
 )
 
 // StorageImpact is the storage column of the compatibility table (spec 4.8).

@@ -10,10 +10,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	contentapi "app-maker/internal/content/api"
-	contentapp "app-maker/internal/content/application"
-	flowapp "app-maker/internal/flow/application"
-	"app-maker/internal/kernel"
+	contentapi "organon/internal/content/api"
+	contentapp "organon/internal/content/application"
+	flowapp "organon/internal/flow/application"
+	"organon/internal/kernel"
 )
 
 // beforeWriteAdapter connects Content's before-write hook to the flow
@@ -80,7 +80,7 @@ func (r runRecorder) Record(ctx context.Context, rec flowapp.RunRecord) error {
 	return err
 }
 
-// envSecrets resolves ${secret:<name>} from FW_SECRET_<NAME> until the
+// envSecrets resolves ${secret:<name>} from ORGANON_SECRET_<NAME> until the
 // secret store arrives (spec 14.7).
 func envSecrets(ref string) (string, bool) {
 	name, ok := strings.CutPrefix(ref, "${secret:")
@@ -88,7 +88,7 @@ func envSecrets(ref string) (string, bool) {
 		return "", false
 	}
 	name = strings.TrimSuffix(name, "}")
-	key := "FW_SECRET_" + strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(name))
+	key := "ORGANON_SECRET_" + strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(name))
 	v := os.Getenv(key)
 	return v, v != ""
 }

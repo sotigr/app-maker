@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Planner implements queryapi.Planner.

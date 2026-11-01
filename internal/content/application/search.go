@@ -6,14 +6,14 @@ import (
 	"errors"
 	"strings"
 
-	accessapi "app-maker/internal/access/api"
-	changeapi "app-maker/internal/change/api"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/content/domain"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	changeapi "organon/internal/change/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/content/domain"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // JobIndexFeatures updates the search index for one feature (spec 7.5;

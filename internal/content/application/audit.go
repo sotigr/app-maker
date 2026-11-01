@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/content/domain"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/content/domain"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // unaudited types are bookkeeping written by the system that would only

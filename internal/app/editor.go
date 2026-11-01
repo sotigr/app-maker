@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"regexp"
 
-	flowdomain "app-maker/internal/flow/domain"
-	"app-maker/internal/kernel"
-	"app-maker/internal/runtime/domain/expression"
-	"app-maker/internal/schema/infrastructure/jsonschema"
-	"app-maker/platform/httpserver"
+	flowdomain "organon/internal/flow/domain"
+	"organon/internal/kernel"
+	"organon/internal/runtime/domain/expression"
+	"organon/internal/schema/infrastructure/jsonschema"
+	"organon/platform/httpserver"
 )
 
 // editorHandler serves the visual flow editor's server side (ADR 0002):
-// validation with the same compiler as fw validate, and, in development
+// validation with the same compiler as organon validate, and, in development
 // only, saving flow files back into the manifest directory.
 type editorHandler struct {
 	rt *Runtime
@@ -83,7 +83,7 @@ func (h *editorHandler) validate(w http.ResponseWriter, r *http.Request) {
 var flowName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]{0,63}$`)
 
 // save writes flows/<file>.json in the manifest directory (dev only, ADR
-// 0002); fw dev's hot reload then activates it.
+// 0002); organon dev's hot reload then activates it.
 func (h *editorHandler) save(w http.ResponseWriter, r *http.Request) {
 	if !adminOnly(w, r) {
 		return

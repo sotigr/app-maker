@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"app-maker/internal/app"
+	"organon/internal/app"
 )
 
 func codegenCmd() *cobra.Command {
@@ -35,7 +35,7 @@ func codegenCmd() *cobra.Command {
 	}
 	ts.Flags().StringVar(&out, "out", "./src/gen", "output directory")
 	ts.Flags().StringVar(&env, "env", "dev", "environment")
-	ts.Flags().StringVar(&clientImport, "client-import", "@fw/client", "import path of the client runtime")
+	ts.Flags().StringVar(&clientImport, "client-import", "@organon/client", "import path of the client runtime")
 	cg.AddCommand(ts)
 	return cg
 }

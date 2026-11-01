@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"app-maker/internal/schema/domain"
+	"organon/internal/schema/domain"
 )
 
 // Milestone 1: fuzzing the compiler finds no panics (spec 15.7).

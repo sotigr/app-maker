@@ -6,7 +6,7 @@ package api
 import (
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // RootID is the fixed ID of the app's root feature (spec 3.7, 8.4).

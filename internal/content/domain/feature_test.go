@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/content/domain"
-	"app-maker/internal/kernel"
-	"app-maker/internal/runtime/domain/expression"
-	schemaapi "app-maker/internal/schema/api"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
+	"organon/internal/content/domain"
+	"organon/internal/kernel"
+	"organon/internal/runtime/domain/expression"
+	schemaapi "organon/internal/schema/api"
+	schemadomain "organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
 )
 
 var (

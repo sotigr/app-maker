@@ -30,7 +30,7 @@ export function Flows() {
           ))}
         </tbody>
       </table>
-      <p className="muted">Saving from the editor writes the flow file back into the manifest; it works under <span className="mono">fw dev</span>. Elsewhere use fw plan / fw apply.</p>
+      <p className="muted">Saving from the editor writes the flow file back into the manifest; it works under <span className="mono">organon dev</span>. Elsewhere use organon plan / organon apply.</p>
     </>
   );
 }

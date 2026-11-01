@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
 )
 
 const schemaSQL = `

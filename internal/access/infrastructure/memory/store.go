@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
 )
 
 // Store is an in-memory CredentialStore.

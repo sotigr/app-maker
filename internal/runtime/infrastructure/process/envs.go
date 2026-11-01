@@ -16,12 +16,12 @@ import (
 	"strings"
 	"sync"
 
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/application"
-	fwpython "app-maker/runner/python"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/application"
+	fwpython "organon/runner/python"
 )
 
-// Envs writes bundles and fwnode under Root and builds virtual
+// Envs writes bundles and organon under Root and builds virtual
 // environments with uv, keyed by the lock file hash (spec 11.5).
 type Envs struct {
 	Root string
@@ -29,23 +29,23 @@ type Envs struct {
 	// default python3 on PATH.
 	Python string
 
-	mu     sync.Mutex
-	fwnode string
+	mu      sync.Mutex
+	organon string
 }
 
 var _ application.Environments = (*Envs)(nil)
 
-// FwnodeDir writes the embedded fwnode package once and returns the
+// FwnodeDir writes the embedded organon package once and returns the
 // directory to put on sys.path.
 func (e *Envs) FwnodeDir() (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if e.fwnode != "" {
-		return e.fwnode, nil
+	if e.organon != "" {
+		return e.organon, nil
 	}
 	h := sha256.New()
 	files := map[string][]byte{}
-	err := fs.WalkDir(fwpython.FS, "fwnode", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fwpython.FS, "organon", func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
@@ -61,11 +61,11 @@ func (e *Envs) FwnodeDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(e.Root, "fwnode", hex.EncodeToString(h.Sum(nil))[:16])
+	dir := filepath.Join(e.Root, "organon", hex.EncodeToString(h.Sum(nil))[:16])
 	if err := writeTree(dir, files); err != nil {
 		return "", err
 	}
-	e.fwnode = dir
+	e.organon = dir
 	return dir, nil
 }
 

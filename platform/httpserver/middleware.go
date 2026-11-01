@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Middleware wraps a handler.

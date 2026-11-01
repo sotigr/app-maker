@@ -2,7 +2,7 @@ package main
 
 import "strings"
 
-// scaffold returns the files of a new manifest (fw init).
+// scaffold returns the files of a new manifest (organon init).
 func scaffold(name string) map[string]string {
 	r := strings.NewReplacer("{{name}}", name)
 	files := map[string]string{
@@ -68,7 +68,7 @@ func scaffold(name string) map[string]string {
   "features": [ { "ref": "i", "type": "item", "owner": "ana", "data": { "title": "Hello" } } ]
 }
 `,
-		".gitignore": ".fw/\n",
+		".gitignore": ".organon/\n",
 	}
 	out := map[string]string{}
 	for k, v := range files {

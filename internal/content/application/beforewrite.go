@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/content/domain"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/content/domain"
+	schemaapi "organon/internal/schema/api"
 )
 
 type timeT = time.Time

@@ -3,7 +3,7 @@
 # spec section 15.2 as amended by docs/adr/0004-layer-import-rules.md.
 set -euo pipefail
 
-MOD=app-maker
+MOD=organon
 CONTEXTS=(schema content access query change flow runtime integration manifest)
 PURE_LIBS=(
   github.com/expr-lang/expr

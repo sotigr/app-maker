@@ -6,6 +6,6 @@ node_modules/
 /sdk/ts/**/dist/
 __pycache__/
 .venv/
-.fw/
+.organon/
 sdk/ts/gen/
 sdk/ts/smoke/gen/

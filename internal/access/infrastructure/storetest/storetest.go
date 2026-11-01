@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
 )
 
 // Run checks a CredentialStore.

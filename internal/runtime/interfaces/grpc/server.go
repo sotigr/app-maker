@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	codenodev1 "app-maker/api/proto/codenode/v1"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/application"
+	codenodev1 "organon/api/proto/codenode/v1"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/application"
 )
 
 // Server implements codenodev1.RunnerServer on top of the Runner.

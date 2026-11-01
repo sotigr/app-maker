@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Served by fwd at /admin (embedded); `pnpm dev` proxies the API.
+// Served by organond at /admin (embedded); `pnpm dev` proxies the API.
 export default defineConfig({
   base: "/admin/",
   plugins: [react()],

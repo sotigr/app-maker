@@ -3,11 +3,11 @@ package application
 import (
 	"context"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/content/domain"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/content/domain"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // FlowPorts adapts the service to contentapi.FlowAccess.

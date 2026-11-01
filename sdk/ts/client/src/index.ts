@@ -1,4 +1,4 @@
-// @fw/client: transport, auth, normalized cache, live subscriptions, and
+// @organon/client: transport, auth, normalized cache, live subscriptions, and
 // optimistic mutations for the framework's public API (spec 13.2). It has
 // no UI framework dependency.
 
@@ -52,8 +52,8 @@ export interface FieldError {
   message: string;
 }
 
-/** Every rejected promise is an FwError carrying the problem code. */
-export class FwError extends Error {
+/** Every rejected promise is an OrganonError carrying the problem code. */
+export class OrganonError extends Error {
   readonly code: string;
   readonly status: number;
   readonly errors: FieldError[];
@@ -103,7 +103,7 @@ interface Sub {
   onSnapshot: (features: Feature[]) => void;
   onDelta: (m: Delta) => void;
   onLeave: (id: string) => void;
-  onError: (e: FwError) => void;
+  onError: (e: OrganonError) => void;
 }
 
 interface Delta {
@@ -162,12 +162,12 @@ export class Cache {
 
 function csrfCookie(): string {
   if (typeof document === "undefined") return "";
-  const m = document.cookie.match(/(?:^|; )fw_csrf=([^;]*)/);
+  const m = document.cookie.match(/(?:^|; )organon_csrf=([^;]*)/);
   return m ? decodeURIComponent(m[1]) : "";
 }
 
-/** FwClient is the untyped core used by generated clients. */
-export class FwClient {
+/** OrganonClient is the untyped core used by generated clients. */
+export class OrganonClient {
   readonly cache = new Cache();
   private base: string;
   private fetchFn: typeof fetch;
@@ -192,7 +192,7 @@ export class FwClient {
     if (!this.WS && this.transport === "auto") this.transport = "sse";
   }
 
-  /** request performs one API call; failures reject with FwError. */
+  /** request performs one API call; failures reject with OrganonError. */
   async request<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
     const h: Record<string, string> = { ...headers };
     if (body !== undefined) h["Content-Type"] = "application/json";
@@ -203,7 +203,7 @@ export class FwClient {
     });
     const text = await res.text();
     const data = text ? JSON.parse(text) : undefined;
-    if (!res.ok) throw new FwError({ status: res.status, ...(data || {}) });
+    if (!res.ok) throw new OrganonError({ status: res.status, ...(data || {}) });
     return data as T;
   }
 
@@ -231,7 +231,7 @@ export class FwClient {
     disableTotp: (code: string) => this.request<void>("POST", "/v1/auth/mfa/totp/disable", { code }),
     logout: async () => {
       await this.request("POST", "/v1/auth/logout");
-      if (typeof BroadcastChannel !== "undefined") new BroadcastChannel("fw-auth").postMessage("logout");
+      if (typeof BroadcastChannel !== "undefined") new BroadcastChannel("organon-auth").postMessage("logout");
     },
     session: () => this.request<{ principal: { id: string; kind: string; roles: string[] } }>("GET", "/v1/auth/session"),
   };
@@ -251,7 +251,7 @@ export class FwClient {
     const res = await this.fetchFn(this.base + t.uploadUrl, { method: t.method, headers: t.headers, body: body as BodyInit, credentials: "omit" });
     if (!res.ok) {
       const text = await res.text();
-      throw new FwError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
+      throw new OrganonError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
     }
     return t.blob;
   }
@@ -311,12 +311,12 @@ export class FwClient {
 
   private connect(): Promise<WebSocket> {
     if (this.wsReady) return this.wsReady;
-    if (!this.WS) return Promise.reject(new FwError({ code: "unsupported", detail: "no WebSocket available" }));
+    if (!this.WS) return Promise.reject(new OrganonError({ code: "unsupported", detail: "no WebSocket available" }));
     const url = this.base.replace(/^http/, "ws") + "/v1/ws";
     this.wsReady = new Promise((resolve, reject) => {
       // Browsers authenticate with the session cookie; scripts pass the
       // bearer token as a subprotocol (headers cannot be set on WebSockets).
-      const ws = this.token ? new this.WS!(url, ["fw", `fw.bearer.${this.token}`]) : new this.WS!(url, ["fw"]);
+      const ws = this.token ? new this.WS!(url, ["organon", `organon.bearer.${this.token}`]) : new this.WS!(url, ["organon"]);
       ws.onopen = () => {
         this.retry = 0;
         this.ws = ws;
@@ -330,7 +330,7 @@ export class FwClient {
           this.transport = "sse";
           for (const sid of this.subs.keys()) this.openStream(sid);
         }
-        reject(new FwError({ code: "transport" }));
+        reject(new OrganonError({ code: "transport" }));
       };
       ws.onclose = () => {
         this.ws = undefined;
@@ -366,7 +366,7 @@ export class FwClient {
         break;
       case "error":
         this.subs.delete(m.sid);
-        s.onError(new FwError({ code: m.code, detail: m.detail }));
+        s.onError(new OrganonError({ code: m.code, detail: m.detail }));
         break;
     }
   }
@@ -408,7 +408,7 @@ export class FwClient {
       .then(async (res) => {
         if (!res.ok || !res.body) {
           const text = await res.text();
-          throw new FwError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
+          throw new OrganonError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
         }
         const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
         let buf = "";
@@ -432,7 +432,7 @@ export class FwClient {
       })
       .catch((e) => {
         if (ac.signal.aborted) return;
-        if (e instanceof FwError && e.status && e.status < 500 && e.status !== 429) {
+        if (e instanceof OrganonError && e.status && e.status < 500 && e.status !== 429) {
           this.streams.delete(sid);
           this.subs.delete(sid);
           s.onError(e);
@@ -443,7 +443,7 @@ export class FwClient {
   }
 
   /** watch keeps one feature live in the cache. */
-  watch(id: string, paths?: string[], onError?: (e: FwError) => void): () => void {
+  watch(id: string, paths?: string[], onError?: (e: OrganonError) => void): () => void {
     return this.subscribe({ target: "feature", id, paths }, {
       onSnapshot: (fs) => fs.forEach((f) => this.cache.put({ ...(this.cache.get(f.id) || ({} as Feature)), ...f })),
       onDelta: () => undefined,
@@ -453,7 +453,7 @@ export class FwClient {
   }
 
   /** live keeps a list (children or query target) live; onChange gets IDs. */
-  live(target: Record<string, unknown>, onChange: (ids: string[]) => void, onError?: (e: FwError) => void): () => void {
+  live(target: Record<string, unknown>, onChange: (ids: string[]) => void, onError?: (e: OrganonError) => void): () => void {
     let ids: string[] = [];
     return this.subscribe(target, {
       onSnapshot: (fs) => {
@@ -485,9 +485,9 @@ export class FwClient {
 
 /** Typed API of one feature type, used by generated clients. */
 export class TypeApi<T extends string, D, C = Partial<D>, U = Partial<D>> {
-  readonly client: FwClient;
+  readonly client: OrganonClient;
   readonly type: T;
-  constructor(client: FwClient, type: T) {
+  constructor(client: OrganonClient, type: T) {
     this.client = client;
     this.type = type;
   }

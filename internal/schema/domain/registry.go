@@ -3,7 +3,7 @@ package domain
 import (
 	"sort"
 
-	"app-maker/internal/schema/api"
+	"organon/internal/schema/api"
 )
 
 // Registry is an immutable snapshot of compiled types and traits. It

@@ -16,9 +16,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"app-maker/internal/app"
-	"app-maker/platform/config"
-	"app-maker/platform/observability"
+	"organon/internal/app"
+	"organon/platform/config"
+	"organon/platform/observability"
 )
 
 func printProblems(err error) error {
@@ -104,7 +104,7 @@ func devCmd() *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			dir := dirArg(args)
 			log := slog.New(observability.LogHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
-			shutdown, err := observability.Setup(context.Background(), observability.Config{ServiceName: "fw-dev"})
+			shutdown, err := observability.Setup(context.Background(), observability.Config{ServiceName: "organon-dev"})
 			if err != nil {
 				return err
 			}
@@ -113,13 +113,13 @@ func devCmd() *cobra.Command {
 			cfg.Dev, cfg.Manifest, cfg.Env = true, dir, env
 			cfg.HTTP.Addr = addr
 			cfg.LLM.Provider = llmProvider
-			dbPath := filepath.Join(dir, ".fw", "dev.db")
+			dbPath := filepath.Join(dir, ".organon", "dev.db")
 			cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: dbPath}}
 			cfg.Credentials.Driver = "sqlite"
-			cfg.Blobs.Dir = filepath.Join(dir, ".fw", "blobs")
-			cfg.Secrets.DataKeyFile, cfg.Secrets.CreateDataKey = filepath.Join(dir, ".fw", "data.key"), true
-			cfg.Bootstrap.AdminEmail = envOr("FW_BOOTSTRAP_ADMIN_EMAIL", "admin@localhost")
-			cfg.Bootstrap.AdminPassword = envOr("FW_BOOTSTRAP_ADMIN_PASSWORD", "admin-password-dev")
+			cfg.Blobs.Dir = filepath.Join(dir, ".organon", "blobs")
+			cfg.Secrets.DataKeyFile, cfg.Secrets.CreateDataKey = filepath.Join(dir, ".organon", "data.key"), true
+			cfg.Bootstrap.AdminEmail = envOr("ORGANON_BOOTSTRAP_ADMIN_EMAIL", "admin@localhost")
+			cfg.Bootstrap.AdminPassword = envOr("ORGANON_BOOTSTRAP_ADMIN_PASSWORD", "admin-password-dev")
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 			server := app.NewServer(ctx, cfg, app.Options{Log: log})
@@ -157,7 +157,7 @@ func devCmd() *cobra.Command {
 					stop()
 				}
 			}()
-			log.Info("fw dev running", "url", "http://localhost"+strings.TrimPrefix(cfg.HTTP.Addr, "0.0.0.0"), "db", dbPath)
+			log.Info("organon dev running", "url", "http://localhost"+strings.TrimPrefix(cfg.HTTP.Addr, "0.0.0.0"), "db", dbPath)
 			last := manifestStamp(dir)
 			tick := time.NewTicker(time.Second)
 			defer tick.Stop()
@@ -199,7 +199,7 @@ func manifestStamp(dir string) string {
 		if err != nil {
 			return nil
 		}
-		if d.IsDir() && (d.Name() == ".fw" || strings.HasPrefix(d.Name(), ".") && path != dir) {
+		if d.IsDir() && (d.Name() == ".organon" || strings.HasPrefix(d.Name(), ".") && path != dir) {
 			return filepath.SkipDir
 		}
 		if info, err := d.Info(); err == nil && !d.IsDir() {
@@ -236,7 +236,7 @@ func initCmd() *cobra.Command {
 					return err
 				}
 			}
-			fmt.Printf("created %s; run: fw validate %s && fw test %s && fw dev %s\n", name, name, name, name)
+			fmt.Printf("created %s; run: organon validate %s && organon test %s && organon dev %s\n", name, name, name, name)
 			return nil
 		},
 	}

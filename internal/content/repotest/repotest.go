@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/content/domain"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/content/domain"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Harness is what a backend provides to the suite.

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	manifestdomain "app-maker/internal/manifest/domain"
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
+	manifestdomain "organon/internal/manifest/domain"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
 )
 
 func TestTrackerManifestCompiles(t *testing.T) {
@@ -21,7 +21,7 @@ func TestTrackerManifestCompiles(t *testing.T) {
 	}
 }
 
-// Spec 12.5: migration files are checked by fw validate.
+// Spec 12.5: migration files are checked by organon validate.
 func TestMigrationValidation(t *testing.T) {
 	for name, tc := range map[string]struct{ file, want string }{
 		"unknown type":      {`{"id":"m1","type":"urn:app:feature:nope","from":1,"to":2,"set":{"/title":"'x'"}}`, "unknown type"},

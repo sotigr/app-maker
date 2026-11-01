@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	flowapp "app-maker/internal/flow/application"
-	"app-maker/internal/flow/domain"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	"app-maker/internal/runtime/domain/expression"
-	schemaapi "app-maker/internal/schema/api"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	flowapp "organon/internal/flow/application"
+	"organon/internal/flow/domain"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	"organon/internal/runtime/domain/expression"
+	schemaapi "organon/internal/schema/api"
+	schemadomain "organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
 )
 
 // fakeContent fails the first commit with a version conflict.

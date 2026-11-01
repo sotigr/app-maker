@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	accessapp "app-maker/internal/access/application"
-	contentapp "app-maker/internal/content/application"
-	flowapp "app-maker/internal/flow/application"
-	"app-maker/internal/kernel"
-	"app-maker/platform/config"
+	accessapi "organon/internal/access/api"
+	accessapp "organon/internal/access/application"
+	contentapp "organon/internal/content/application"
+	flowapp "organon/internal/flow/application"
+	"organon/internal/kernel"
+	"organon/platform/config"
 )
 
 // ManifestTest is a test file of the manifest (spec 12.6).
@@ -147,7 +147,7 @@ func (f fixtureHTTP) Do(req *http.Request) (*http.Response, error) {
 }
 
 // RunManifestTests runs every test of the compiled manifest against a fresh
-// in-memory instance each (spec 12.3 fw test).
+// in-memory instance each (spec 12.3 organon test).
 func RunManifestTests(ctx context.Context, c *Compiled) ([]TestResult, error) {
 	var results []TestResult
 	for _, f := range c.Manifest.Tests {

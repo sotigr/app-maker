@@ -1,5 +1,5 @@
 """Worker main loop. The runner starts ``python -I -c <bootstrap>``, which
-puts fwnode on sys.path and calls ``main(bundle_dir, entry)``."""
+puts organon on sys.path and calls ``main(bundle_dir, entry)``."""
 
 import importlib.util
 import os

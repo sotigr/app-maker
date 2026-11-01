@@ -3,7 +3,7 @@
 ## Environment (2026-10-31)
 - Arch Linux (CachyOS). Go 1.27.3, golangci-lint 2.15.0 (v2 config format). Node, python3, sqlite3 present.
 - Docker installed; daemon was not running at start (needed only from phase 10).
-- `go.mod` was created by the user (`module app-maker`, `go 1.27.3`).
+- `go.mod` was created by the user (`module organon`, `go 1.27.3`).
 
 ## Libraries
 - **expr v1.17.8**: typed envs via `github.com/expr-lang/expr/types` (`types.Map` is strict: unknown
@@ -26,7 +26,7 @@
     skipped → lost updates for recompute jobs. Adapter therefore ignores UniqueKey across batches.
   - (old) Unique jobs: `UniqueOpts{ByArgs: true}` + `river:"unique"` struct tags; a **duplicate unique key
     within one InsertMany batch is an error** → dedupe the batch first; across batches it is skipped.
-  - Workers are typed by args type; framework uses ONE River kind `fw` whose args carry the real kind,
+  - Workers are typed by args type; framework uses ONE River kind `organon` whose args carry the real kind,
     and dispatches via `platform/jobs.Registry`.
   - `git stash --include-untracked` + pop does NOT restore empty directories (lost examples/tracker/flows
     etc. once) → keep `.gitkeep` in empty manifest dirs; verify commits in a `git worktree` instead.
@@ -60,8 +60,8 @@
 
 ## Code nodes (phase 12b)
 - `python -I` ignores PYTHONPATH and does not add the script dir: the worker bootstrap inserts the
-  fwnode dir into sys.path from argv (`-I -c <bootstrap> <fwnode> <bundle> <entry>`).
+  organon dir into sys.path from argv (`-I -c <bootstrap> <organon> <bundle> <entry>`).
 - Bundle dirs are read-only (0555): t.TempDir cleanup fails unless `Envs.RemoveAll` chmods first.
 - `sh -c 'ulimit ...'` adds PWD and SHLVL to the worker environment.
 - Regenerate protobuf with `PATH=$PATH:$HOME/go/bin make proto` (protoc 36 at /usr/bin).
-- fwnode keeps the protocol on dup'ed fds 0/1; user print() goes to stderr → runner log.
+- The `organon` Python package keeps the protocol on dup'ed fds 0/1; user print() goes to stderr → runner log.

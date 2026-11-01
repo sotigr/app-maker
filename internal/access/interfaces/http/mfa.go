@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/kernel"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/kernel"
+	"organon/platform/httpserver"
 )
 
 // Cookies of the OIDC and MFA steps.
 const (
-	OIDCStateCookie = "fw_oidc"
-	MFATicketCookie = "fw_mfa"
+	OIDCStateCookie = "organon_oidc"
+	MFATicketCookie = "organon_mfa"
 )
 
 // ticket reads an MFA ticket from the body or, after an OIDC redirect,

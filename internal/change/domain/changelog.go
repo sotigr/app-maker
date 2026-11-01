@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	changeapi "app-maker/internal/change/api"
+	changeapi "organon/internal/change/api"
 )
 
 // Cursor is a change log position ("c:<seq>").

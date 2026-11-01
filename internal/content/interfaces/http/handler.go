@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/content/application"
-	"app-maker/internal/kernel"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/content/application"
+	"organon/internal/kernel"
+	"organon/platform/httpserver"
 )
 
 // Handler serves /v1/features, /v1/query, and /v1/transactions.

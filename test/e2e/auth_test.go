@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/access/domain"
-	manifestdomain "app-maker/internal/manifest/domain"
-	"app-maker/platform/config"
+	"organon/internal/access/domain"
+	manifestdomain "organon/internal/manifest/domain"
+	"organon/platform/config"
 )
 
 func totpNow(t *testing.T, s *server, secret string) string {
@@ -177,10 +177,10 @@ func (b *browser) login(startPath string, claims map[string]any, tamper bool) *h
 	}
 	loc, _ := url.Parse(res.Header.Get("Location"))
 	q := loc.Query()
-	if q.Get("code_challenge_method") != "S256" || q.Get("client_id") != "fw-test" {
+	if q.Get("code_challenge_method") != "S256" || q.Get("client_id") != "organon-test" {
 		b.t.Fatalf("authorize request: %s", loc)
 	}
-	c := map[string]any{"iss": b.idp.srv.URL, "aud": "fw-test", "exp": b.s.clock.Now().Add(time.Hour).Unix(),
+	c := map[string]any{"iss": b.idp.srv.URL, "aud": "organon-test", "exp": b.s.clock.Now().Add(time.Hour).Unix(),
 		"iat": b.s.clock.Now().Unix(), "nonce": q.Get("nonce"), "challenge": q.Get("code_challenge")}
 	for k, v := range claims {
 		c[k] = v
@@ -220,8 +220,8 @@ func TestOIDCLogin(t *testing.T) {
 	idp := newFakeIdP(t)
 	s := startFull(t, "memory", nil, func(m *manifestdomain.Manifest) {
 		m.App.Auth.OIDC = []manifestdomain.OIDCProvider{
-			{Provider: "test", Issuer: idp.srv.URL, ClientID: "fw-test", ClientSecret: "${secret:oidc-test}"},
-			{Provider: "open", Issuer: idp.srv.URL, ClientID: "fw-test", ClientSecret: "${secret:oidc-test}", Signup: true, AllowedDomains: []string{"example.com"}},
+			{Provider: "test", Issuer: idp.srv.URL, ClientID: "organon-test", ClientSecret: "${secret:oidc-test}"},
+			{Provider: "open", Issuer: idp.srv.URL, ClientID: "organon-test", ClientSecret: "${secret:oidc-test}", Signup: true, AllowedDomains: []string{"example.com"}},
 		}
 	}, nil)
 	admin := s.admin()

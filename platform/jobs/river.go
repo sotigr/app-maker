@@ -12,13 +12,13 @@ import (
 	"github.com/riverqueue/river/riverdriver/riversqlite"
 	"github.com/riverqueue/river/rivermigrate"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // RiverKind is the single River job kind used by the framework. The real
 // kind travels in the arguments so workers can be registered at run time
 // through Registry (River binds kinds to Go types at compile time).
-const RiverKind = "fw"
+const RiverKind = "organon"
 
 // riverArgs are the stored arguments of every framework job.
 type riverArgs struct {

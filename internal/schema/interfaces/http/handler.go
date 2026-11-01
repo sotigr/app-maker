@@ -4,11 +4,11 @@ package http
 import (
 	"net/http"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
-	"app-maker/internal/schema/application"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
+	"organon/internal/schema/application"
+	"organon/platform/httpserver"
 )
 
 // Handler serves schema documents for the caller's audience.

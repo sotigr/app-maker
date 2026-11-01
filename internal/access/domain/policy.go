@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"sort"
 
-	accessapi "app-maker/internal/access/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // PolicyDoc is a policy file of the manifest (spec 8.5).

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"sort"
 
-	"app-maker/internal/schema/api"
+	"organon/internal/schema/api"
 )
 
 // TypeDescription is one type's views for an audience.
@@ -139,7 +139,7 @@ func OpenAPI(reg api.TypeRegistry, a api.Audience, appName, version string) map[
 		"paths":   paths,
 		"components": map[string]any{"schemas": schemas, "securitySchemes": map[string]any{
 			"bearer":  map[string]any{"type": "http", "scheme": "bearer"},
-			"session": map[string]any{"type": "apiKey", "in": "cookie", "name": "fw_session"},
+			"session": map[string]any{"type": "apiKey", "in": "cookie", "name": "organon_session"},
 		}},
 	}
 }

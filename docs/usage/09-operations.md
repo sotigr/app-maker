@@ -1,15 +1,15 @@
 # 9. Running the server
 
-`fwd` serves one app. It reads the manifest directory at startup and on
-every `fw apply`.
+`organond` serves one app. It reads the manifest directory at startup and on
+every `organon apply`.
 
 ```sh
-bin/fwd --manifest ./myapp --env prod --config fwd.yaml
+bin/organond --manifest ./myapp --env prod --config organond.yaml
 ```
 
 Flags: `--manifest`, `--env`, `--config` (YAML), `--roles`
 (`api,gateway,worker,runner`), `--dev`. Every setting can also come from
-`FW_*` environment variables.
+`ORGANON_*` environment variables.
 
 ## Configuration
 
@@ -25,16 +25,16 @@ http:
   trustProxyHeaders: false               # client IP from X-Forwarded-For
 allowBreaking: false                     # deploy a breaking manifest directory at startup
 repositories:
-  default: { driver: sqlite, dsn: /var/lib/fw/app.db }   # memory | sqlite
+  default: { driver: sqlite, dsn: /var/lib/organon/app.db }   # memory | sqlite
 credentials: { driver: sqlite }          # defaults to the default repository's database
 secrets:
   cursorKey: "..."                       # signs cursors and URLs; random per process if empty
-  dataKeyFile: /etc/fw/data.key          # 64 hex chars; encrypts TOTP secrets
+  dataKeyFile: /etc/organon/data.key          # 64 hex chars; encrypts TOTP secrets
   createDataKey: false                   # create it on first start (the Docker image does)
 bootstrap: { adminEmail: admin@example.com, adminPassword: "..." }   # first start only
 limits: { requestsPerMinute: 600, anonymousPerMinute: 60 }
-blobs: { driver: fs, dir: /var/lib/fw/blobs }
-runner: { isolation: process, maxWorkers: 4, cacheDir: /var/cache/fw-runner }
+blobs: { driver: fs, dir: /var/lib/organon/blobs }
+runner: { isolation: process, maxWorkers: 4, cacheDir: /var/cache/organon-runner }
 llm:
   providers:
     anthropic: { kind: anthropic, apiKey: "${secret:anthropic-key}" }
@@ -43,25 +43,25 @@ audit: { retentionDays: 90 }
 log: { level: info, format: json }
 ```
 
-Environment variables: `FW_ROLES`, `FW_TOPOLOGY`, `FW_DEV`, `FW_MANIFEST`,
-`FW_ENV`, `FW_HTTP_ADDR`, `FW_INTERNAL_ADDR`, `FW_SECURE_COOKIES`,
-`FW_PUBLIC_URL`, `FW_REPOSITORY_DEFAULT_DRIVER`, `FW_REPOSITORY_DEFAULT_DSN`,
-`FW_CREDENTIALS_DRIVER`, `FW_CREDENTIALS_DSN`, `FW_JOBS_DRIVER`,
-`FW_CURSOR_KEY`, `FW_DATA_KEY_FILE`, `FW_BOOTSTRAP_ADMIN_EMAIL`,
-`FW_BOOTSTRAP_ADMIN_PASSWORD`, `FW_LOG_LEVEL`, `FW_LOG_FORMAT`,
-`FW_LLM_PROVIDER`, `FW_RUNNER_ISOLATION`, `FW_RUNNER_LISTEN`,
-`FW_RUNNER_ADDR`, `FW_BLOBS_DRIVER`, `FW_BLOBS_DIR`, `FW_OTLP_ENDPOINT`,
-`FW_TRUST_PROXY_HEADERS`, `FW_CREATE_DATA_KEY`, `FW_ALLOW_BREAKING`, and
-`FW_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
+Environment variables: `ORGANON_ROLES`, `ORGANON_TOPOLOGY`, `ORGANON_DEV`, `ORGANON_MANIFEST`,
+`ORGANON_ENV`, `ORGANON_HTTP_ADDR`, `ORGANON_INTERNAL_ADDR`, `ORGANON_SECURE_COOKIES`,
+`ORGANON_PUBLIC_URL`, `ORGANON_REPOSITORY_DEFAULT_DRIVER`, `ORGANON_REPOSITORY_DEFAULT_DSN`,
+`ORGANON_CREDENTIALS_DRIVER`, `ORGANON_CREDENTIALS_DSN`, `ORGANON_JOBS_DRIVER`,
+`ORGANON_CURSOR_KEY`, `ORGANON_DATA_KEY_FILE`, `ORGANON_BOOTSTRAP_ADMIN_EMAIL`,
+`ORGANON_BOOTSTRAP_ADMIN_PASSWORD`, `ORGANON_LOG_LEVEL`, `ORGANON_LOG_FORMAT`,
+`ORGANON_LLM_PROVIDER`, `ORGANON_RUNNER_ISOLATION`, `ORGANON_RUNNER_LISTEN`,
+`ORGANON_RUNNER_ADDR`, `ORGANON_BLOBS_DRIVER`, `ORGANON_BLOBS_DIR`, `ORGANON_OTLP_ENDPOINT`,
+`ORGANON_TRUST_PROXY_HEADERS`, `ORGANON_CREATE_DATA_KEY`, `ORGANON_ALLOW_BREAKING`, and
+`ORGANON_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
 configuration stops startup with an error naming the key.
 
 ## Which manifest runs
 
-`fwd` records every manifest it runs in its database. At startup, a
-manifest directory it has never run is deployed (after the `fw apply`
-breaking-change check; `FW_ALLOW_BREAKING=true` overrides it), while a
-directory it has run before yields to later `fw apply` deploys. New app
-images and `fw apply` therefore both work. `fw dev` always runs the
+`organond` records every manifest it runs in its database. At startup, a
+manifest directory it has never run is deployed (after the `organon apply`
+breaking-change check; `ORGANON_ALLOW_BREAKING=true` overrides it), while a
+directory it has run before yields to later `organon apply` deploys. New app
+images and `organon apply` therefore both work. `organon dev` always runs the
 directory.
 
 ## Roles
@@ -118,10 +118,10 @@ isolation are planned and need those services.
   values) plus login and MFA events, written with the change. Admins read
   it at `GET /v1/audit` or in the console; kept `audit.retentionDays`.
 - **Flow runs** are `flowRun` features: status, per-node timing, LLM calls,
-  errors; `fw runs list`.
+  errors; `organon runs list`.
 
 ## Backups
 
 Back up the SQLite file (it is in WAL mode: use `sqlite3 app.db ".backup
 out.db"` or stop the server), the blob directory, and the data key file.
-`fw export` gives a logical export of readable features.
+`organon export` gives a logical export of readable features.

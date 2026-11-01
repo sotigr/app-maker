@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"app-maker/internal/manifest/domain"
+	"organon/internal/manifest/domain"
 )
 
 // Load reads the manifest in dir for environment env.

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Problem is an RFC 9457 problem details body with a stable code (spec 6.1).

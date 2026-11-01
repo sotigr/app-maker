@@ -8,12 +8,12 @@ import (
 	"slices"
 	"sync"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/access/domain"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/access/domain"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Authorizer implements accessapi.Authorizer with compiled policies and the

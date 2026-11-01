@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"app-maker/internal/content/infrastructure/sqlite"
-	"app-maker/internal/content/repotest"
-	"app-maker/internal/kernel"
-	"app-maker/platform/jobs"
-	"app-maker/platform/sqlitedb"
+	"organon/internal/content/infrastructure/sqlite"
+	"organon/internal/content/repotest"
+	"organon/internal/kernel"
+	"organon/platform/jobs"
+	"organon/platform/sqlitedb"
 )
 
 // Milestone 4: the SQLite repository passes the conformance suite except

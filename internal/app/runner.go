@@ -16,14 +16,14 @@ import (
 
 	"google.golang.org/grpc"
 
-	codenodev1 "app-maker/api/proto/codenode/v1"
-	manifestdomain "app-maker/internal/manifest/domain"
-	rtapi "app-maker/internal/runtime/api"
-	runtimeapp "app-maker/internal/runtime/application"
-	"app-maker/internal/runtime/infrastructure/grpcrunner"
-	"app-maker/internal/runtime/infrastructure/process"
-	grpcserver "app-maker/internal/runtime/interfaces/grpc"
-	"app-maker/platform/config"
+	codenodev1 "organon/api/proto/codenode/v1"
+	manifestdomain "organon/internal/manifest/domain"
+	rtapi "organon/internal/runtime/api"
+	runtimeapp "organon/internal/runtime/application"
+	"organon/internal/runtime/infrastructure/grpcrunner"
+	"organon/internal/runtime/infrastructure/process"
+	grpcserver "organon/internal/runtime/interfaces/grpc"
+	"organon/platform/config"
 )
 
 // codeRunner starts the runner role when configured and connects the
@@ -34,14 +34,14 @@ func (rt *Runtime) codeRunner(cfg config.Config, opt Options) (rtapi.CodeRunner,
 	if cfg.HasRole(config.RoleRunner) {
 		root := cfg.Runner.CacheDir
 		if root == "" {
-			root = filepath.Join(os.TempDir(), "fw-runner-"+strconv.Itoa(os.Getuid()))
+			root = filepath.Join(os.TempDir(), "organon-runner-"+strconv.Itoa(os.Getuid()))
 		}
 		envs := &process.Envs{Root: root}
 		runner := runtimeapp.NewRunner(runtimeapp.RunnerConfig{MaxWorkers: cfg.Runner.MaxWorkers}, envs,
 			&process.Starter{Envs: envs, Log: opt.Log, AllowPrivate: cfg.Dev}, opt.Log)
 		network, addr := "unix", cfg.Runner.Listen
 		if addr == "" {
-			dir, err := os.MkdirTemp("", "fw-runner-")
+			dir, err := os.MkdirTemp("", "organon-runner-")
 			if err != nil {
 				return nil, err
 			}

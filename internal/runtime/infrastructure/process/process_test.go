@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/application"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/application"
 )
 
 const nodeCode = `

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/platform/config"
+	"organon/platform/config"
 )
 
 // Spec 14.1: requests per principal and per IP, streaming connections per

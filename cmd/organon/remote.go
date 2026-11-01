@@ -14,10 +14,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"app-maker/internal/app"
+	"organon/internal/app"
 )
 
-// credentials are stored by fw login.
+// credentials are stored by organon login.
 type credentials struct {
 	Server string `json:"server"`
 	Token  string `json:"token"`
@@ -28,7 +28,7 @@ func credPath() string {
 	if err != nil {
 		dir = "."
 	}
-	return filepath.Join(dir, "fw", "credentials.json")
+	return filepath.Join(dir, "organon", "credentials.json")
 }
 
 func loadCreds() credentials {
@@ -36,10 +36,10 @@ func loadCreds() credentials {
 	if b, err := os.ReadFile(credPath()); err == nil {
 		_ = json.Unmarshal(b, &c)
 	}
-	if v := os.Getenv("FW_SERVER"); v != "" {
+	if v := os.Getenv("ORGANON_SERVER"); v != "" {
 		c.Server = v
 	}
-	if v := os.Getenv("FW_TOKEN"); v != "" {
+	if v := os.Getenv("ORGANON_TOKEN"); v != "" {
 		c.Token = v
 	}
 	if c.Server == "" {
@@ -110,7 +110,7 @@ func loginCmd() *cobra.Command {
 				cl.creds.Server = server
 			}
 			if password == "" {
-				password = os.Getenv("FW_PASSWORD")
+				password = os.Getenv("ORGANON_PASSWORD")
 			}
 			var res struct {
 				Token     string `json:"token"`
@@ -135,7 +135,7 @@ func loginCmd() *cobra.Command {
 	}
 	c.Flags().StringVar(&server, "server", "", "server URL")
 	c.Flags().StringVar(&email, "email", "", "login")
-	c.Flags().StringVar(&password, "password", "", "password (or FW_PASSWORD)")
+	c.Flags().StringVar(&password, "password", "", "password (or ORGANON_PASSWORD)")
 	_ = c.MarkFlagRequired("email")
 	return c
 }

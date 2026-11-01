@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/kernel"
-	rtapi "app-maker/internal/runtime/api"
-	runtimeapp "app-maker/internal/runtime/application"
-	llminfra "app-maker/internal/runtime/infrastructure/llm"
-	"app-maker/platform/config"
+	accessapi "organon/internal/access/api"
+	"organon/internal/kernel"
+	rtapi "organon/internal/runtime/api"
+	runtimeapp "organon/internal/runtime/application"
+	llminfra "organon/internal/runtime/infrastructure/llm"
+	"organon/platform/config"
 )
 
 // llmRouter builds the providers named in the server configuration and the

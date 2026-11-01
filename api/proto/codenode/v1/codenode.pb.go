@@ -1016,7 +1016,7 @@ const file_api_proto_codenode_v1_codenode_proto_rawDesc = "" +
 	"\x06Runner\x12;\n" +
 	"\x04Load\x12\x18.codenode.v1.LoadRequest\x1a\x19.codenode.v1.LoadResponse\x12A\n" +
 	"\x03Run\x12\x1a.codenode.v1.EngineMessage\x1a\x1a.codenode.v1.RunnerMessage(\x010\x01\x12>\n" +
-	"\x05Stats\x12\x19.codenode.v1.StatsRequest\x1a\x1a.codenode.v1.StatsResponseB,Z*app-maker/api/proto/codenode/v1;codenodev1b\x06proto3"
+	"\x05Stats\x12\x19.codenode.v1.StatsRequest\x1a\x1a.codenode.v1.StatsResponseB*Z(organon/api/proto/codenode/v1;codenodev1b\x06proto3"
 
 var (
 	file_api_proto_codenode_v1_codenode_proto_rawDescOnce sync.Once

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"app-maker/internal/integration/domain"
-	"app-maker/internal/kernel"
+	"organon/internal/integration/domain"
+	"organon/internal/kernel"
 )
 
 // EmailSender sends rendered messages (SMTP, API providers, dev log).
@@ -86,13 +86,13 @@ func (d *Delivery) HandleWebhook(ctx context.Context, raw json.RawMessage) error
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Fw-Delivery", a.Delivery)
+	req.Header.Set("X-Organon-Delivery", a.Delivery)
 	if a.Secret != "" && d.Secrets != nil {
 		secret, ok := d.Secrets(a.Secret)
 		if !ok {
 			return fmt.Errorf("webhook secret %s is not configured", a.Secret)
 		}
-		req.Header.Set("X-Fw-Signature", domain.Sign(secret, a.Payload, d.Clock.Now()))
+		req.Header.Set("X-Organon-Signature", domain.Sign(secret, a.Payload, d.Clock.Now()))
 	}
 	res, err := d.HTTP.Do(req)
 	if err != nil {

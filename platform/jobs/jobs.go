@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Handler runs one job. It must be idempotent: jobs run at least once.

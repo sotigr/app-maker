@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"app-maker/internal/content/infrastructure/memory"
-	"app-maker/internal/content/repotest"
-	"app-maker/internal/kernel"
+	"organon/internal/content/infrastructure/memory"
+	"organon/internal/content/repotest"
+	"organon/internal/kernel"
 )
 
 type recorder struct {

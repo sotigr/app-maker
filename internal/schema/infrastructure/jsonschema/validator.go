@@ -13,8 +13,8 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 
-	"app-maker/internal/kernel"
-	"app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	"organon/internal/schema/api"
 )
 
 var printer = message.NewPrinter(language.English)

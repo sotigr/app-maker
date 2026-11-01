@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/access/domain"
+	"organon/internal/access/domain"
 )
 
 // HTTPDoer performs outbound requests (the egress client).

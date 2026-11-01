@@ -13,9 +13,9 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/expr-lang/expr/parser"
 
-	accessapi "app-maker/internal/access/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Source is one flow file.

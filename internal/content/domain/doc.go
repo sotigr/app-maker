@@ -3,8 +3,8 @@ package domain
 import (
 	"strings"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
 )
 
 // AsDoc adapts a snapshot to the query matcher.

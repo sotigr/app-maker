@@ -1,4 +1,4 @@
-// Package config loads the server configuration: one YAML file plus FW_
+// Package config loads the server configuration: one YAML file plus ORGANON_
 // environment overrides, validated into a typed Config (spec 14.9).
 package config
 
@@ -44,7 +44,7 @@ type Config struct {
 	// endpoint (ADR 0002), relaxed cookies, verbose errors in logs.
 	Dev bool `yaml:"dev"`
 	// AllowBreaking lets a new manifest directory with breaking changes and
-	// no migration deploy at startup (like fw apply --allow-breaking).
+	// no migration deploy at startup (like organon apply --allow-breaking).
 	AllowBreaking bool `yaml:"allowBreaking"`
 	// Manifest is the app manifest directory; Env selects env/<env>.json.
 	Manifest string `yaml:"manifest"`
@@ -76,10 +76,10 @@ type Config struct {
 		// CursorKey signs pagination cursors; shared by all replicas.
 		CursorKey string `yaml:"cursorKey"`
 		// DataKeyFile holds the 32-byte instance data key that encrypts
-		// TOTP secrets (spec 8.2); fw dev creates one under .fw/.
+		// TOTP secrets (spec 8.2); organon dev creates one under .organon/.
 		DataKeyFile string `yaml:"dataKeyFile"`
 		// CreateDataKey creates DataKeyFile with a random key when missing
-		// (fw dev; containers whose key lives on a persistent volume).
+		// (organon dev; containers whose key lives on a persistent volume).
 		CreateDataKey bool `yaml:"createDataKey"`
 	} `yaml:"secrets"`
 	Bootstrap struct {
@@ -125,7 +125,7 @@ type Config struct {
 		MaxWorkers int    `yaml:"maxWorkers"`
 	} `yaml:"runner"`
 	LLM struct {
-		// Provider, when set, serves every model alias (fw dev: fake).
+		// Provider, when set, serves every model alias (organon dev: fake).
 		Provider string `yaml:"provider"`
 		// Providers are named model vendors that app.json aliases refer to
 		// as "<name>:<model>". "fake" always exists; "anthropic" exists by
@@ -165,7 +165,7 @@ func Default() Config {
 	return c
 }
 
-// Load reads path (optional; "" skips the file), applies FW_ overrides
+// Load reads path (optional; "" skips the file), applies ORGANON_ overrides
 // from env, and validates.
 func Load(path string, env func(string) string) (Config, error) {
 	c := Default()
@@ -202,58 +202,58 @@ func (c *Config) applyEnv(env func(string) string) error {
 		}
 		return nil
 	}
-	if v := env("FW_ROLES"); v != "" {
+	if v := env("ORGANON_ROLES"); v != "" {
 		c.Roles = strings.Split(v, ",")
 	}
-	if v := env("FW_TOPOLOGY"); v != "" {
+	if v := env("ORGANON_TOPOLOGY"); v != "" {
 		c.Topology = Topology(v)
 	}
-	if err := boolean("FW_DEV", &c.Dev); err != nil {
+	if err := boolean("ORGANON_DEV", &c.Dev); err != nil {
 		return err
 	}
-	if err := boolean("FW_ALLOW_BREAKING", &c.AllowBreaking); err != nil {
+	if err := boolean("ORGANON_ALLOW_BREAKING", &c.AllowBreaking); err != nil {
 		return err
 	}
-	if err := boolean("FW_CREATE_DATA_KEY", &c.Secrets.CreateDataKey); err != nil {
+	if err := boolean("ORGANON_CREATE_DATA_KEY", &c.Secrets.CreateDataKey); err != nil {
 		return err
 	}
-	str("FW_MANIFEST", &c.Manifest)
-	str("FW_ENV", &c.Env)
-	str("FW_HTTP_ADDR", &c.HTTP.Addr)
-	str("FW_INTERNAL_ADDR", &c.HTTP.InternalAddr)
-	if err := boolean("FW_SECURE_COOKIES", &c.HTTP.SecureCookies); err != nil {
+	str("ORGANON_MANIFEST", &c.Manifest)
+	str("ORGANON_ENV", &c.Env)
+	str("ORGANON_HTTP_ADDR", &c.HTTP.Addr)
+	str("ORGANON_INTERNAL_ADDR", &c.HTTP.InternalAddr)
+	if err := boolean("ORGANON_SECURE_COOKIES", &c.HTTP.SecureCookies); err != nil {
 		return err
 	}
-	if err := boolean("FW_TRUST_PROXY_HEADERS", &c.HTTP.TrustProxyHeaders); err != nil {
+	if err := boolean("ORGANON_TRUST_PROXY_HEADERS", &c.HTTP.TrustProxyHeaders); err != nil {
 		return err
 	}
-	if v := env("FW_REPOSITORY_DEFAULT_DRIVER"); v != "" {
+	if v := env("ORGANON_REPOSITORY_DEFAULT_DRIVER"); v != "" {
 		r := c.Repositories["default"]
 		r.Driver = v
 		c.Repositories["default"] = r
 	}
-	if v := env("FW_REPOSITORY_DEFAULT_DSN"); v != "" {
+	if v := env("ORGANON_REPOSITORY_DEFAULT_DSN"); v != "" {
 		r := c.Repositories["default"]
 		r.DSN = v
 		c.Repositories["default"] = r
 	}
-	str("FW_CREDENTIALS_DRIVER", &c.Credentials.Driver)
-	str("FW_CREDENTIALS_DSN", &c.Credentials.DSN)
-	str("FW_JOBS_DRIVER", &c.Jobs.Driver)
-	str("FW_CURSOR_KEY", &c.Secrets.CursorKey)
-	str("FW_DATA_KEY_FILE", &c.Secrets.DataKeyFile)
-	str("FW_PUBLIC_URL", &c.HTTP.PublicURL)
-	str("FW_OTLP_ENDPOINT", &c.Observability.OTLPEndpoint)
-	str("FW_BOOTSTRAP_ADMIN_EMAIL", &c.Bootstrap.AdminEmail)
-	str("FW_BOOTSTRAP_ADMIN_PASSWORD", &c.Bootstrap.AdminPassword)
-	str("FW_LOG_LEVEL", &c.Log.Level)
-	str("FW_LOG_FORMAT", &c.Log.Format)
-	str("FW_LLM_PROVIDER", &c.LLM.Provider)
-	str("FW_RUNNER_ISOLATION", &c.Runner.Isolation)
-	str("FW_BLOBS_DRIVER", &c.Blobs.Driver)
-	str("FW_BLOBS_DIR", &c.Blobs.Dir)
-	str("FW_RUNNER_LISTEN", &c.Runner.Listen)
-	str("FW_RUNNER_ADDR", &c.Runner.Addr)
+	str("ORGANON_CREDENTIALS_DRIVER", &c.Credentials.Driver)
+	str("ORGANON_CREDENTIALS_DSN", &c.Credentials.DSN)
+	str("ORGANON_JOBS_DRIVER", &c.Jobs.Driver)
+	str("ORGANON_CURSOR_KEY", &c.Secrets.CursorKey)
+	str("ORGANON_DATA_KEY_FILE", &c.Secrets.DataKeyFile)
+	str("ORGANON_PUBLIC_URL", &c.HTTP.PublicURL)
+	str("ORGANON_OTLP_ENDPOINT", &c.Observability.OTLPEndpoint)
+	str("ORGANON_BOOTSTRAP_ADMIN_EMAIL", &c.Bootstrap.AdminEmail)
+	str("ORGANON_BOOTSTRAP_ADMIN_PASSWORD", &c.Bootstrap.AdminPassword)
+	str("ORGANON_LOG_LEVEL", &c.Log.Level)
+	str("ORGANON_LOG_FORMAT", &c.Log.Format)
+	str("ORGANON_LLM_PROVIDER", &c.LLM.Provider)
+	str("ORGANON_RUNNER_ISOLATION", &c.Runner.Isolation)
+	str("ORGANON_BLOBS_DRIVER", &c.Blobs.Driver)
+	str("ORGANON_BLOBS_DIR", &c.Blobs.Dir)
+	str("ORGANON_RUNNER_LISTEN", &c.Runner.Listen)
+	str("ORGANON_RUNNER_ADDR", &c.Runner.Addr)
 	return nil
 }
 

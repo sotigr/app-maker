@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
 )
 
 // CursorCodec signs cursors with HMAC-SHA256 (spec 6.5). The signature

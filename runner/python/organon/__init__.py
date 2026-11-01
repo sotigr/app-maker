@@ -1,4 +1,4 @@
-"""fwnode: the Python runtime of framework code nodes (spec 11.2).
+"""organon: the Python runtime of framework code nodes (spec 11.2).
 
 A worker process imports the node's module once and runs ``run(input, ctx)``
 for each execution. It talks to the runner over stdin/stdout with

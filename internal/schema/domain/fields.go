@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"app-maker/internal/kernel"
-	"app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	"organon/internal/schema/api"
 )
 
 const (

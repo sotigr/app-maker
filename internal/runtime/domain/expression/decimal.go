@@ -5,7 +5,7 @@ import (
 
 	"github.com/expr-lang/expr"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Decimal arithmetic and comparison in expressions (spec 10.8: Decimal and

@@ -6,7 +6,7 @@ import (
 )
 
 // ADR 0002: the console is embedded, and the editor validates flows with
-// the same compiler as fw validate.
+// the same compiler as organon validate.
 func TestEditorEndpoints(t *testing.T) {
 	w := setup(t, "memory")
 	if r := w.anon.do("GET", "/admin/", nil); r.Status != 200 || !strings.Contains(r.Raw, "<div id=\"root\">") && !strings.Contains(r.Raw, "make ui") {

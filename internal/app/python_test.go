@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	manifestdomain "app-maker/internal/manifest/domain"
+	manifestdomain "organon/internal/manifest/domain"
 )
 
 // Spec 11.5: lock files may only name allowed packages.

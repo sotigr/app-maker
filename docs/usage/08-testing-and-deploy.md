@@ -2,7 +2,7 @@
 
 ## Manifest tests
 
-`tests/*.test.json` describe fixtures and steps; `fw test` runs each test
+`tests/*.test.json` describe fixtures and steps; `organon test` runs each test
 on a fresh in-memory instance (fake LLM, recorded emails, HTTP fixtures).
 
 ```json
@@ -48,19 +48,19 @@ step.
 ## Plan and apply
 
 ```sh
-bin/fw login --server https://app.example.com --email admin@example.com   # stores a token in ~/.config/fw/credentials.json
-bin/fw plan myapp            # diff against the running server
-bin/fw apply myapp --plan <hash>
+bin/organon login --server https://app.example.com --email admin@example.com   # stores a token in ~/.config/organon/credentials.json
+bin/organon plan myapp            # diff against the running server
+bin/organon apply myapp --plan <hash>
 ```
 
 The plan lists type changes (and whether they are breaking), policy and
 flow changes, newly privileged flows, newly public fields, index builds,
 and migrations. Breaking changes need a migration (or
 `--allow-breaking`). Apply activates the new manifest without a restart.
-`FW_SERVER` and `FW_TOKEN` override the stored credentials.
+`ORGANON_SERVER` and `ORGANON_TOKEN` override the stored credentials.
 
 Alternatively, ship the manifest with the server (a new app image or new
-files in the mounted directory): `fwd` deploys a manifest directory it has
+files in the mounted directory): `organond` deploys a manifest directory it has
 never run at startup, with the same breaking-change check
 ([Docker](10-docker.md#how-the-server-picks-its-manifest)).
 
@@ -102,9 +102,9 @@ To change the shape of existing data: bump the type version
 
 | Command | Does |
 | --- | --- |
-| `fw seed [dir] --env dev` | Loads `seed/<env>.json` into the server. |
-| `fw export > data.ndjson` / `fw import data.ndjson` | Every readable feature as NDJSON, parents first. |
-| `fw runs list --flow x --status dead_letter` | Recent flow runs. |
-| `fw runs retry <run id>` | Retries a dead-lettered run. |
-| `fw token create --name ci [--principal <id>]` | API key for yourself or a service account you own. |
-| `fw codegen ts [dir] --out src/gen` | TypeScript client. |
+| `organon seed [dir] --env dev` | Loads `seed/<env>.json` into the server. |
+| `organon export > data.ndjson` / `organon import data.ndjson` | Every readable feature as NDJSON, parents first. |
+| `organon runs list --flow x --status dead_letter` | Recent flow runs. |
+| `organon runs retry <run id>` | Retries a dead-lettered run. |
+| `organon token create --name ci [--principal <id>]` | API key for yourself or a service account you own. |
+| `organon codegen ts [dir] --out src/gen` | TypeScript client. |

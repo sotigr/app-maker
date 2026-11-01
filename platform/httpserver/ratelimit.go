@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // RateLimiter admits requests per key at limit per minute (spec 14.1).

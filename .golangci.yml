@@ -12,62 +12,62 @@ linters:
           files: ["**/internal/kernel/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
+            - organon/internal/kernel
             - github.com/google/uuid
             - github.com/cockroachdb/apd/v3
         platform:
           list-mode: lax
           files: ["**/platform/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/schema
+            - pkg: organon/internal/schema
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/content
+            - pkg: organon/internal/content
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/access
+            - pkg: organon/internal/access
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/query
+            - pkg: organon/internal/query
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/change
+            - pkg: organon/internal/change
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/flow
+            - pkg: organon/internal/flow
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/runtime
+            - pkg: organon/internal/runtime
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/integration
+            - pkg: organon/internal/integration
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
-            - pkg: app-maker/internal/manifest
+            - pkg: organon/internal/manifest
               desc: platform holds no domain logic; it may use only the kernel (spec 15.1)
         schema-api:
           list-mode: strict
           files: ["**/internal/schema/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         schema-domain:
           list-mode: strict
           files: ["**/internal/schema/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -77,18 +77,18 @@ linters:
           files: ["**/internal/schema/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/domain
-            - app-maker/internal/schema/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/domain
+            - organon/internal/schema/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -98,207 +98,207 @@ linters:
           list-mode: lax
           files: ["**/internal/schema/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         schema-interfaces:
           list-mode: lax
           files: ["**/internal/schema/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         content-api:
           list-mode: strict
           files: ["**/internal/content/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         content-domain:
           list-mode: strict
           files: ["**/internal/content/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/content/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/content/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -308,18 +308,18 @@ linters:
           files: ["**/internal/content/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/content/domain
-            - app-maker/internal/content/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/content/domain
+            - organon/internal/content/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -329,207 +329,207 @@ linters:
           list-mode: lax
           files: ["**/internal/content/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         content-interfaces:
           list-mode: lax
           files: ["**/internal/content/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         access-api:
           list-mode: strict
           files: ["**/internal/access/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         access-domain:
           list-mode: strict
           files: ["**/internal/access/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/access/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/access/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -539,18 +539,18 @@ linters:
           files: ["**/internal/access/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/access/domain
-            - app-maker/internal/access/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/access/domain
+            - organon/internal/access/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -560,207 +560,207 @@ linters:
           list-mode: lax
           files: ["**/internal/access/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         access-interfaces:
           list-mode: lax
           files: ["**/internal/access/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         query-api:
           list-mode: strict
           files: ["**/internal/query/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         query-domain:
           list-mode: strict
           files: ["**/internal/query/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/query/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/query/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -770,18 +770,18 @@ linters:
           files: ["**/internal/query/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/query/domain
-            - app-maker/internal/query/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/query/domain
+            - organon/internal/query/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -791,207 +791,207 @@ linters:
           list-mode: lax
           files: ["**/internal/query/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         query-interfaces:
           list-mode: lax
           files: ["**/internal/query/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         change-api:
           list-mode: strict
           files: ["**/internal/change/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         change-domain:
           list-mode: strict
           files: ["**/internal/change/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/change/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/change/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1001,18 +1001,18 @@ linters:
           files: ["**/internal/change/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/change/domain
-            - app-maker/internal/change/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/change/domain
+            - organon/internal/change/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1022,207 +1022,207 @@ linters:
           list-mode: lax
           files: ["**/internal/change/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         change-interfaces:
           list-mode: lax
           files: ["**/internal/change/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         flow-api:
           list-mode: strict
           files: ["**/internal/flow/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         flow-domain:
           list-mode: strict
           files: ["**/internal/flow/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/flow/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/flow/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1232,18 +1232,18 @@ linters:
           files: ["**/internal/flow/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/flow/domain
-            - app-maker/internal/flow/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/flow/domain
+            - organon/internal/flow/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1253,207 +1253,207 @@ linters:
           list-mode: lax
           files: ["**/internal/flow/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         flow-interfaces:
           list-mode: lax
           files: ["**/internal/flow/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         runtime-api:
           list-mode: strict
           files: ["**/internal/runtime/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         runtime-domain:
           list-mode: strict
           files: ["**/internal/runtime/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/runtime/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/runtime/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1463,18 +1463,18 @@ linters:
           files: ["**/internal/runtime/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/runtime/domain
-            - app-maker/internal/runtime/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/runtime/domain
+            - organon/internal/runtime/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1484,207 +1484,207 @@ linters:
           list-mode: lax
           files: ["**/internal/runtime/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         runtime-interfaces:
           list-mode: lax
           files: ["**/internal/runtime/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         integration-api:
           list-mode: strict
           files: ["**/internal/integration/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         integration-domain:
           list-mode: strict
           files: ["**/internal/integration/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/integration/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/integration/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1694,18 +1694,18 @@ linters:
           files: ["**/internal/integration/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/integration/domain
-            - app-maker/internal/integration/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/integration/domain
+            - organon/internal/integration/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1715,207 +1715,207 @@ linters:
           list-mode: lax
           files: ["**/internal/integration/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         integration-interfaces:
           list-mode: lax
           files: ["**/internal/integration/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/application
+            - pkg: organon/internal/manifest/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/manifest/repotest
+            - pkg: organon/internal/manifest/repotest
               desc: contexts talk only through api packages (spec 15.4)
         manifest-api:
           list-mode: strict
           files: ["**/internal/manifest/api/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
         manifest-domain:
           list-mode: strict
           files: ["**/internal/manifest/domain/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/manifest/domain
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/manifest/domain
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1925,18 +1925,18 @@ linters:
           files: ["**/internal/manifest/application/**", "!$test"]
           allow:
             - $gostd
-            - app-maker/internal/kernel
-            - app-maker/internal/manifest/domain
-            - app-maker/internal/manifest/application
-            - app-maker/internal/schema/api
-            - app-maker/internal/content/api
-            - app-maker/internal/access/api
-            - app-maker/internal/query/api
-            - app-maker/internal/change/api
-            - app-maker/internal/flow/api
-            - app-maker/internal/runtime/api
-            - app-maker/internal/integration/api
-            - app-maker/internal/manifest/api
+            - organon/internal/kernel
+            - organon/internal/manifest/domain
+            - organon/internal/manifest/application
+            - organon/internal/schema/api
+            - organon/internal/content/api
+            - organon/internal/access/api
+            - organon/internal/query/api
+            - organon/internal/change/api
+            - organon/internal/flow/api
+            - organon/internal/runtime/api
+            - organon/internal/integration/api
+            - organon/internal/manifest/api
             - github.com/expr-lang/expr
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
@@ -1946,175 +1946,175 @@ linters:
           list-mode: lax
           files: ["**/internal/manifest/infrastructure/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/manifest/interfaces
+            - pkg: organon/internal/manifest/interfaces
               desc: infrastructure must not import interfaces (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
         manifest-interfaces:
           list-mode: lax
           files: ["**/internal/manifest/interfaces/**", "!$test"]
           deny:
-            - pkg: app-maker/internal/manifest/infrastructure
+            - pkg: organon/internal/manifest/infrastructure
               desc: interfaces must not import infrastructure (spec 15.2)
-            - pkg: app-maker/internal/manifest/domain
+            - pkg: organon/internal/manifest/domain
               desc: interfaces use application DTOs, not domain internals (spec 15.2)
-            - pkg: app-maker/internal/schema/domain
+            - pkg: organon/internal/schema/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/application
+            - pkg: organon/internal/schema/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/infrastructure
+            - pkg: organon/internal/schema/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/interfaces
+            - pkg: organon/internal/schema/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/schema/repotest
+            - pkg: organon/internal/schema/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/domain
+            - pkg: organon/internal/content/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/application
+            - pkg: organon/internal/content/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/infrastructure
+            - pkg: organon/internal/content/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/interfaces
+            - pkg: organon/internal/content/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/content/repotest
+            - pkg: organon/internal/content/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/domain
+            - pkg: organon/internal/access/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/application
+            - pkg: organon/internal/access/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/infrastructure
+            - pkg: organon/internal/access/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/interfaces
+            - pkg: organon/internal/access/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/access/repotest
+            - pkg: organon/internal/access/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/domain
+            - pkg: organon/internal/query/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/application
+            - pkg: organon/internal/query/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/infrastructure
+            - pkg: organon/internal/query/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/interfaces
+            - pkg: organon/internal/query/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/query/repotest
+            - pkg: organon/internal/query/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/domain
+            - pkg: organon/internal/change/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/application
+            - pkg: organon/internal/change/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/infrastructure
+            - pkg: organon/internal/change/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/interfaces
+            - pkg: organon/internal/change/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/change/repotest
+            - pkg: organon/internal/change/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/domain
+            - pkg: organon/internal/flow/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/application
+            - pkg: organon/internal/flow/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/infrastructure
+            - pkg: organon/internal/flow/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/interfaces
+            - pkg: organon/internal/flow/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/flow/repotest
+            - pkg: organon/internal/flow/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/domain
+            - pkg: organon/internal/runtime/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/application
+            - pkg: organon/internal/runtime/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/infrastructure
+            - pkg: organon/internal/runtime/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/interfaces
+            - pkg: organon/internal/runtime/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/runtime/repotest
+            - pkg: organon/internal/runtime/repotest
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/domain
+            - pkg: organon/internal/integration/domain
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/application
+            - pkg: organon/internal/integration/application
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/infrastructure
+            - pkg: organon/internal/integration/infrastructure
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/interfaces
+            - pkg: organon/internal/integration/interfaces
               desc: contexts talk only through api packages (spec 15.4)
-            - pkg: app-maker/internal/integration/repotest
+            - pkg: organon/internal/integration/repotest
               desc: contexts talk only through api packages (spec 15.4)
 formatters:
   enable:

@@ -15,16 +15,16 @@ import (
 	"sync"
 	"syscall"
 
-	"app-maker/internal/runtime/application"
-	"app-maker/platform/egress"
+	"organon/internal/runtime/application"
+	"organon/platform/egress"
 )
 
 // maxFrame bounds a frame from a worker.
 const maxFrame = 16 << 20
 
-// bootstrap puts fwnode on sys.path under -I (which ignores PYTHONPATH and
+// bootstrap puts organon on sys.path under -I (which ignores PYTHONPATH and
 // the working directory) and runs the worker loop.
-const bootstrap = "import sys; sys.path.insert(0, sys.argv[1]); from fwnode.worker import main; sys.exit(main(sys.argv[2], sys.argv[3]))"
+const bootstrap = "import sys; sys.path.insert(0, sys.argv[1]); from organon.worker import main; sys.exit(main(sys.argv[2], sys.argv[3]))"
 
 // Starter starts workers as OS processes: own process group, empty
 // environment (no credentials or app secrets), private temporary
@@ -43,7 +43,7 @@ var _ application.WorkerStarter = (*Starter)(nil)
 
 // Start implements application.WorkerStarter.
 func (s *Starter) Start(_ context.Context, spec application.WorkerSpec) (application.Worker, error) {
-	fwnode, err := s.Envs.FwnodeDir()
+	organon, err := s.Envs.FwnodeDir()
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *Starter) Start(_ context.Context, spec application.WorkerSpec) (applica
 	// The worker starts from a context independent of the request: it
 	// outlives the execution that started it.
 	cmd := exec.Command("/bin/sh", "-c", `ulimit -v "$1" 2>/dev/null; ulimit -n 256 2>/dev/null; shift; exec "$@"`,
-		"sh", strconv.FormatInt(memMb*1024, 10), spec.Env.Python, "-I", "-c", bootstrap, fwnode, spec.Env.Dir, spec.Entry)
+		"sh", strconv.FormatInt(memMb*1024, 10), spec.Env.Python, "-I", "-c", bootstrap, organon, spec.Env.Dir, spec.Entry)
 	cmd.Dir = tmp
 	cmd.Env = []string{"PATH=/usr/local/bin:/usr/bin:/bin", "HOME=" + tmp, "TMPDIR=" + tmp, "LANG=C.UTF-8",
 		"PYTHONDONTWRITEBYTECODE=1", "PYTHONUNBUFFERED=1",

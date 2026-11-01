@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	rt "app-maker/internal/runtime/api"
+	rt "organon/internal/runtime/api"
 )
 
 var schema = json.RawMessage(`{"type":"object","properties":{"label":{"type":"string","maxLength":20},"score":{"type":"number","minimum":0},"tags":{"type":"array","items":{"type":"object","properties":{"n":{"type":"string"}}}}},"required":["label"]}`)

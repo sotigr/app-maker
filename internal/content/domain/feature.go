@@ -9,8 +9,8 @@ import (
 	"sort"
 	"time"
 
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Feature is the central aggregate (spec 3.1). Fields are keyed by

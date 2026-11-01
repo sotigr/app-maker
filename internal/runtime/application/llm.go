@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"sync"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/domain/llm"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/domain/llm"
 )
 
 // Router resolves aliases to providers, enforces the monthly budget, and
@@ -21,7 +21,7 @@ type Router struct {
 	providers map[string]rt.LLMProvider
 	clock     kernel.Clock
 	log       *slog.Logger
-	// force sends every alias to one provider (fw dev uses the fake).
+	// force sends every alias to one provider (organon dev uses the fake).
 	force string
 
 	mu    sync.Mutex

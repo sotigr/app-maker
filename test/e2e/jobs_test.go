@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	changeapi "app-maker/internal/change/api"
+	changeapi "organon/internal/change/api"
 )
 
 // Spec 2.5, 9.2: every commit enqueues publish_events in the same

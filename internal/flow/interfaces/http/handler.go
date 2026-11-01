@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/flow/application"
-	"app-maker/internal/kernel"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/flow/application"
+	"organon/internal/kernel"
+	"organon/platform/httpserver"
 )
 
 // Handler serves flow endpoints.
@@ -77,7 +77,7 @@ func (h *Handler) hook(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "unreadable body"))
 		return
 	}
-	if err := h.engine.Webhook(r.Context(), r.PathValue("name"), body, r.Header.Get("X-Fw-Signature")); err != nil {
+	if err := h.engine.Webhook(r.Context(), r.PathValue("name"), body, r.Header.Get("X-Organon-Signature")); err != nil {
 		httpserver.WriteError(w, r, err)
 		return
 	}

@@ -8,14 +8,14 @@ import (
 	"slices"
 	"strings"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/content/domain"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/content/domain"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // OpKind is a transaction operation (spec 6.3).

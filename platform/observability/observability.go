@@ -27,7 +27,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Config selects the exporters.
@@ -41,7 +41,7 @@ type Config struct {
 	SampleRatio    float64 // default 1
 }
 
-const scope = "app-maker"
+const scope = "organon"
 
 // Setup installs the providers and kernel.Tel; shutdown flushes them.
 func Setup(ctx context.Context, cfg Config) (func(context.Context) error, error) {

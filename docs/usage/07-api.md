@@ -7,8 +7,8 @@ OpenAPI description of your app is at `GET /v1/schema`.
 
 | Method | How |
 | --- | --- |
-| Browser session | `POST /v1/auth/password {"login","password"}` sets an HttpOnly session cookie and returns `{principal, csrf}`. State-changing requests must send the `X-CSRF-Token` header (the value is also in the `fw_csrf` cookie). |
-| Bearer token | `POST /v1/auth/password {"login","password","cli":true}` returns `{token}`; or create an API key with `POST /v1/auth/tokens` / `fw token create`. Send `Authorization: Bearer <token>`. |
+| Browser session | `POST /v1/auth/password {"login","password"}` sets an HttpOnly session cookie and returns `{principal, csrf}`. State-changing requests must send the `X-CSRF-Token` header (the value is also in the `organon_csrf` cookie). |
+| Bearer token | `POST /v1/auth/password {"login","password","cli":true}` returns `{token}`; or create an API key with `POST /v1/auth/tokens` / `organon token create`. Send `Authorization: Bearer <token>`. |
 | OIDC | Browser to `GET /v1/auth/oidc/<provider>/start?redirect=/app`. `GET /v1/auth/oidc` lists providers. Admins create invite links with `POST /v1/auth/users/<id>/oidc-invite`. |
 | MFA | If a login answers `{"mfa": "verify"|"enroll", "ticket"}`, continue with `POST /v1/auth/mfa/verify {ticket, code}` or `POST /v1/auth/mfa/totp/enroll {ticket}` then `/confirm {ticket, code}`. Signed-in users enroll or disable with `/v1/auth/mfa/totp/{enroll,confirm,disable}`. |
 
@@ -84,7 +84,7 @@ Subscribe to a feature, a parent's children, or a query; you get a
 snapshot, then deltas with only the fields you may read.
 
 **WebSocket** `GET /v1/ws` (browsers use the session cookie; scripts pass
-the subprotocol `fw.bearer.<token>` next to `fw`):
+the subprotocol `organon.bearer.<token>` next to `organon`):
 
 ```json
 → {"t":"subscribe","sid":"s1","target":"feature","id":"<id>","paths":["/status","/progress"]}
@@ -123,13 +123,13 @@ Uploads never committed are deleted after 24 hours.
 `GET /v1/flows`, `POST /v1/flows/validate`, `POST /v1/flows/runs/<id>/retry`,
 `POST /v1/hooks/<name>` (webhook triggers), `GET /v1/audit` (admins:
 `?actor=&target=&action=&since=&before=&limit=`), `GET/POST /v1/deploy...`
-(used by `fw plan`/`fw apply`). Health probes are on the internal port
+(used by `organon plan`/`organon apply`). Health probes are on the internal port
 (`:9090` by default).
 
 ## TypeScript SDK
 
 ```sh
-bin/fw codegen ts myapp --out web/src/gen     # types, enums, schemas, typed client
+bin/organon codegen ts myapp --out web/src/gen     # types, enums, schemas, typed client
 ```
 
 ```ts
@@ -149,6 +149,6 @@ const blob = await client.upload({ type: "task", field: "attachment", feature: t
   do not exist on the client.
 - Live subscriptions use one WebSocket and fall back to SSE
   (`createClient({ transport: "auto" | "ws" | "sse" })`).
-- `@fw/react` hooks: `useFeature`, `useQuery`, `useChildren`,
+- `@organon/react` hooks: `useFeature`, `useQuery`, `useChildren`,
   `useAction`, `useSession`.
 - Scripts: `createClient({ baseUrl: "https://app.example.com", token })`.

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	manifestdomain "app-maker/internal/manifest/domain"
-	"app-maker/platform/config"
+	manifestdomain "organon/internal/manifest/domain"
+	"organon/platform/config"
 )
 
 // taskV3 turns the tracker's task type into version 3: progress is

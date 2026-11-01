@@ -6,17 +6,17 @@ import (
 	"sync"
 	"time"
 
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
-	"app-maker/platform/config"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
+	"organon/platform/config"
 )
 
 // Server runs one app and swaps its runtime when a new manifest is
-// activated (fw apply, fw dev hot reload).
+// activated (organon apply, organon dev hot reload).
 type Server struct {
 	Cfg    config.Config
 	Opts   Options
 	Switch *Switch
-	// OnActivate runs after each activation (fw dev applies seed data).
+	// OnActivate runs after each activation (organon dev applies seed data).
 	OnActivate func(ctx context.Context, rt *Runtime, first bool) error
 
 	mu     sync.Mutex
@@ -81,7 +81,7 @@ func (s *Server) Activate(_ context.Context, c *Compiled) error {
 // active deploy (spec 14.10: replicas load the active manifest from the
 // database). A directory manifest that was never deployed is a new release
 // (a new image or volume) and is deployed now, with the same breaking-change
-// check as fw apply; one deployed before yields to later fw apply deploys.
+// check as organon apply; one deployed before yields to later organon apply deploys.
 func (s *Server) Start(ctx context.Context, compiled *Compiled) error {
 	if err := s.Activate(ctx, compiled); err != nil {
 		return err
@@ -119,7 +119,7 @@ func (s *Server) Start(ctx context.Context, compiled *Compiled) error {
 	if !seen {
 		plan := MakePlan(c, compiled)
 		if plan.Breaking && len(plan.Migrations) == 0 && !s.Cfg.AllowBreaking {
-			return fmt.Errorf("the manifest directory has breaking changes against the active deploy %s; add a migration or set FW_ALLOW_BREAKING=true",
+			return fmt.Errorf("the manifest directory has breaking changes against the active deploy %s; add a migration or set ORGANON_ALLOW_BREAKING=true",
 				active.Hash[:12])
 		}
 		rt.Log.Info("deploying the new manifest directory", "from", active.Hash[:12], "to", compiled.Manifest.Hash[:12])

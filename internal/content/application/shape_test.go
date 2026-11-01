@@ -3,7 +3,7 @@ package application
 import (
 	"testing"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Spec 14.1: object nesting depth 8, list items 1,000.

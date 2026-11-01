@@ -221,14 +221,14 @@ function Editor({ name }: { name: string }) {
       const r = await Api.saveFlow(def);
       setProblems([]);
       setDirty(false);
-      setStatus(`saved to ${r.saved}; fw dev reloads it`);
+      setStatus(`saved to ${r.saved}; organon dev reloads it`);
       if (name === "new") location.hash = `#/flows/${encodeURIComponent(def.flow)}`;
     } catch (e: any) {
       const probs = e?.problem?.problems;
       if (probs) {
         setProblems(probs);
         setStatus(`not saved: ${probs.length} problem(s)`);
-      } else setStatus(`not saved: ${describeError(e)}${e?.problem?.code === "not_found" ? " (saving needs fw dev)" : ""}`);
+      } else setStatus(`not saved: ${describeError(e)}${e?.problem?.code === "not_found" ? " (saving needs organon dev)" : ""}`);
     }
   };
 
@@ -265,7 +265,7 @@ function Editor({ name }: { name: string }) {
                 <div className="kind">{kind}</div>
                 {list.map((c) => (
                   <div key={c.name} className={`item k-${kind}`} title={c.description} draggable
-                    onDragStart={(e) => e.dataTransfer.setData("application/fw-node", c.name)} onClick={() => addNode(c.name)}>
+                    onDragStart={(e) => e.dataTransfer.setData("application/organon-node", c.name)} onClick={() => addNode(c.name)}>
                     {c.name}
                   </div>
                 ))}
@@ -273,7 +273,7 @@ function Editor({ name }: { name: string }) {
             ))}
           </div>
           <div className="canvas" onDragOver={(e) => e.preventDefault()} onDrop={(e) => {
-            const t = e.dataTransfer.getData("application/fw-node");
+            const t = e.dataTransfer.getData("application/organon-node");
             if (t) addNode(t, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }));
           }}>
             <ReactFlow

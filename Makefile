@@ -3,8 +3,8 @@
 GO ?= go
 
 build:
-	$(GO) build -o bin/fwd ./cmd/fwd
-	$(GO) build -o bin/fw ./cmd/fw
+	$(GO) build -o bin/organond ./cmd/organond
+	$(GO) build -o bin/organon ./cmd/organon
 
 test:
 	$(GO) test -race ./...
@@ -19,7 +19,7 @@ depguard:
 fuzz:
 	$(GO) test ./internal/schema/domain -run '^$$' -fuzz FuzzCompile -fuzztime 10m
 
-# Build the admin console / flow editor; output is embedded into fwd.
+# Build the admin console / flow editor; output is embedded into organond.
 ui:
 	cd admin && pnpm install --frozen-lockfile && pnpm run build
 
@@ -28,16 +28,16 @@ clean:
 
 # Generate the tracker client and typecheck the SDK (spec 13).
 sdk:
-	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/gen
-	$(GO) run ./cmd/fw codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
+	$(GO) run ./cmd/organon codegen ts examples/tracker --out sdk/ts/gen
+	$(GO) run ./cmd/organon codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
 	cd sdk/ts && pnpm install && pnpm run typecheck
 
 # Regenerate the code-node protocol (spec 11.1); needs protoc,
 # protoc-gen-go and protoc-gen-go-grpc on PATH.
 proto:
-	protoc --go_out=. --go_opt=module=app-maker --go-grpc_out=. --go-grpc_opt=module=app-maker api/proto/codenode/v1/codenode.proto
+	protoc --go_out=. --go_opt=module=organon --go-grpc_out=. --go-grpc_opt=module=organon api/proto/codenode/v1/codenode.proto
 
-# Build the framework image (fw + fwd); see docs/usage/10-docker.md.
-IMAGE ?= app-maker
+# Build the framework image (organon + organond); see docs/usage/10-docker.md.
+IMAGE ?= organon
 docker:
 	docker build -t $(IMAGE) .

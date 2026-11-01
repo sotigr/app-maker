@@ -6,35 +6,35 @@ Requirements: Go (see `go.mod`), and `pnpm` only if you rebuild the admin
 console or the TypeScript SDK. Python 3 is needed for Python code nodes.
 
 ```sh
-make build          # bin/fwd (server) and bin/fw (CLI)
+make build          # bin/organond (server) and bin/organon (CLI)
 make test           # go test -race ./...
 ```
 
 ## Scaffold an app
 
 ```sh
-bin/fw init myapp
+bin/organon init myapp
 ```
 
 This creates `myapp/` with one type (`item`), its policy, a flow, an email
 template, seed data, and a test. Check and test it:
 
 ```sh
-bin/fw validate myapp   # schemas, policies, flows; every expression is type-checked
-bin/fw test myapp       # runs tests/*.test.json against in-memory instances
+bin/organon validate myapp   # schemas, policies, flows; every expression is type-checked
+bin/organon test myapp       # runs tests/*.test.json against in-memory instances
 ```
 
 ## Run it
 
 ```sh
-bin/fw dev myapp
+bin/organon dev myapp
 ```
 
-`fw dev` runs every role in one process on SQLite (`myapp/.fw/dev.db`),
+`organon dev` runs every role in one process on SQLite (`myapp/.organon/dev.db`),
 applies `seed/dev.json` on a fresh database, uses a fake LLM, and reloads
 when you edit the manifest. Default admin login: `admin@localhost` /
-`admin-password-dev` (override with `FW_BOOTSTRAP_ADMIN_EMAIL` and
-`FW_BOOTSTRAP_ADMIN_PASSWORD`).
+`admin-password-dev` (override with `ORGANON_BOOTSTRAP_ADMIN_EMAIL` and
+`ORGANON_BOOTSTRAP_ADMIN_PASSWORD`).
 
 Open <http://localhost:8080/admin> for the admin console: browse and edit
 data with generated forms, edit flows visually, inspect runs, deploys, and

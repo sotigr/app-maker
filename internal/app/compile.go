@@ -1,23 +1,23 @@
-// Package app is the shared composition root of the fwd server and the fw
+// Package app is the shared composition root of the organond server and the organon
 // CLI (spec 15.5): it loads and compiles a manifest and wires the bounded
 // contexts with constructor injection. It is the only package that imports
 // every context's internals.
 package app
 
 import (
-	contentdomain "app-maker/internal/content/domain"
-	llmdomain "app-maker/internal/runtime/domain/llm"
 	"fmt"
+	contentdomain "organon/internal/content/domain"
+	llmdomain "organon/internal/runtime/domain/llm"
 	"strings"
 
-	accessdomain "app-maker/internal/access/domain"
-	flowapp "app-maker/internal/flow/application"
-	flowdomain "app-maker/internal/flow/domain"
-	manifestdomain "app-maker/internal/manifest/domain"
-	manifestfs "app-maker/internal/manifest/infrastructure/fs"
-	"app-maker/internal/runtime/domain/expression"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
+	accessdomain "organon/internal/access/domain"
+	flowapp "organon/internal/flow/application"
+	flowdomain "organon/internal/flow/domain"
+	manifestdomain "organon/internal/manifest/domain"
+	manifestfs "organon/internal/manifest/infrastructure/fs"
+	"organon/internal/runtime/domain/expression"
+	schemadomain "organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
 )
 
 // Problem is one validation finding across all manifest files.
@@ -79,7 +79,7 @@ func NodeCatalog() *flowdomain.NodeRegistry {
 	return nodes
 }
 
-// Load reads a manifest directory and compiles it (fw validate).
+// Load reads a manifest directory and compiles it (organon validate).
 func Load(dir, env string) (*Compiled, error) {
 	m, err := manifestfs.Load(dir, env)
 	if err != nil {

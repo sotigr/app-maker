@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/access/domain"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	"organon/internal/access/domain"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // AuthConfig configures authentication (spec 8.3, 12.2 auth).
@@ -298,7 +298,7 @@ func (s *AuthService) BootstrapAdmin(ctx context.Context, email, password string
 		return false, err
 	}
 	if email == "" || password == "" {
-		return false, errors.New("no admin credentials: set FW_BOOTSTRAP_ADMIN_EMAIL and FW_BOOTSTRAP_ADMIN_PASSWORD")
+		return false, errors.New("no admin credentials: set ORGANON_BOOTSTRAP_ADMIN_EMAIL and ORGANON_BOOTSTRAP_ADMIN_PASSWORD")
 	}
 	_, err = s.CreateUser(ctx, accessapi.System(), NewUser{Email: email, DisplayName: "Administrator", Password: password, Roles: []string{"admin"}})
 	var ce *kernel.ConstraintError

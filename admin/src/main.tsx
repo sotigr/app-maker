@@ -66,7 +66,7 @@ function App() {
   return (
     <div className="shell">
       <header>
-        <strong>fw admin</strong>
+        <strong>Organon admin</strong>
         <nav>
           {nav("#/types", "Data")}
           {admin && nav("#/flows", "Flows")}

@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	contentapp "app-maker/internal/content/application"
-	integrationapp "app-maker/internal/integration/application"
-	integrationdomain "app-maker/internal/integration/domain"
-	integrationinfra "app-maker/internal/integration/infrastructure"
-	"app-maker/platform/config"
+	contentapp "organon/internal/content/application"
+	integrationapp "organon/internal/integration/application"
+	integrationdomain "organon/internal/integration/domain"
+	integrationinfra "organon/internal/integration/infrastructure"
+	"organon/platform/config"
 )
 
 // blobService wires blob storage (spec 14.4): the store, the signing key
@@ -21,7 +21,7 @@ import (
 func (rt *Runtime) blobService(cfg config.Config, instanceKey []byte, opt Options) (*integrationapp.Blobs, error) {
 	dir := cfg.Blobs.Dir
 	if dir == "" {
-		dir = filepath.Join(os.TempDir(), "fw-blobs-"+strconv.Itoa(os.Getuid()))
+		dir = filepath.Join(os.TempDir(), "organon-blobs-"+strconv.Itoa(os.Getuid()))
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err

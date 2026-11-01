@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 func taskEnv() rt.Env {

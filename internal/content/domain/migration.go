@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	rt "app-maker/internal/runtime/api"
-	schemaapi "app-maker/internal/schema/api"
+	rt "organon/internal/runtime/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Migration moves features of a type from one version to the next with

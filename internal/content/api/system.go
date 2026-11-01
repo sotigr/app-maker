@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // StoredFeature is a feature as the system sees it: the full storage

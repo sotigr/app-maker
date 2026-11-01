@@ -1,6 +1,6 @@
 package application
 
-import "app-maker/internal/flow/domain"
+import "organon/internal/flow/domain"
 
 // NodeInfo describes a node type for the visual editor's palette.
 type NodeInfo struct {

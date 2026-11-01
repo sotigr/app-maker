@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/integration/application"
-	"app-maker/internal/kernel"
-	"app-maker/platform/httpserver"
+	accessapi "organon/internal/access/api"
+	"organon/internal/integration/application"
+	"organon/internal/kernel"
+	"organon/platform/httpserver"
 )
 
 // Handler serves POST /v1/uploads and GET/PUT /v1/blobs/{id}.

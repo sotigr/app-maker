@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // MutationKind is the kind of a mutation.

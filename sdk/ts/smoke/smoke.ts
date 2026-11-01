@@ -1,7 +1,7 @@
 // Runtime smoke test of the SDK against a running server:
 //   node sdk/ts/smoke/smoke.ts http://127.0.0.1:8080 admin@localhost admin-password-dev
 import { createClient } from "./gen/index.ts";
-import { FwError } from "../client/src/index.ts";
+import { OrganonError } from "../client/src/index.ts";
 
 const [, , base, login, password, transport] = process.argv;
 const res = await fetch(base + "/v1/auth/password", { method: "POST", body: JSON.stringify({ login, password, cli: true }) });
@@ -30,7 +30,7 @@ let code = "";
 try {
   await a.task.update(task, { title: "Stale write" }); // task.version is 1, server has 2
 } catch (e) {
-  code = (e as FwError).code;
+  code = (e as OrganonError).code;
 }
 assert(code === "version_conflict", "a stale optimistic update rejects with version_conflict");
 assert(a.raw.cache.get(task.id)?.data.title === "Changed by B", "the optimistic value was rolled back");

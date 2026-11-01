@@ -11,8 +11,8 @@ import (
 	"github.com/expr-lang/expr/types"
 	"github.com/expr-lang/expr/vm"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // MaxNodes bounds compiled program size (spec 10.8 limits).

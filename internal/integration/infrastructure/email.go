@@ -8,10 +8,10 @@ import (
 	"log/slog"
 	"sync"
 
-	"app-maker/internal/integration/domain"
+	"organon/internal/integration/domain"
 )
 
-// LogSender writes emails to the log (fw dev).
+// LogSender writes emails to the log (organon dev).
 type LogSender struct{ Log *slog.Logger }
 
 // Send implements the EmailSender port.

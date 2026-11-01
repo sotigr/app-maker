@@ -3,9 +3,9 @@ package domain
 import (
 	"strings"
 
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Project projects a snapshot through the read view of audience a (spec

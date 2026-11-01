@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // PasswordCredential is a password login (spec 8.2). Hash encodes the

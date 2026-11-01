@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"app-maker/internal/access/infrastructure/storetest"
-	"app-maker/platform/sqlitedb"
+	"organon/internal/access/infrastructure/storetest"
+	"organon/platform/sqlitedb"
 )
 
 func TestStoreConformance(t *testing.T) {

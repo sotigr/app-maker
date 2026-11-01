@@ -13,7 +13,7 @@ framework reads it at startup; there is nothing to compile.
 | [6. Code nodes and LLMs](06-code-and-llm.md) | Python nodes and `llm.complete` |
 | [7. HTTP API and clients](07-api.md) | REST endpoints, queries, streaming, files, auth, TypeScript SDK |
 | [8. Testing, deploying, migrating](08-testing-and-deploy.md) | Manifest tests, plan/apply, data migrations, operations CLI |
-| [9. Running the server](09-operations.md) | `fwd`, configuration, roles, observability, limits |
+| [9. Running the server](09-operations.md) | `organond`, configuration, roles, observability, limits |
 | [10. Docker](10-docker.md) | The framework image: developing and deploying apps in containers |
 
 The running example throughout is [`examples/tracker`](../../examples/tracker):

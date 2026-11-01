@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"app-maker/internal/integration/domain"
+	"organon/internal/integration/domain"
 )
 
 // BlobFS stores blobs as files under Dir (spec 14.4, development and

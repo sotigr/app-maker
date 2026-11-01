@@ -36,7 +36,7 @@ a type (or trait). Anything not allowed is denied.
 ## How rules apply
 
 - **Reads** are also turned into query filters, so lists and searches only
-  return readable features. `fw validate` warns when a read rule cannot be
+  return readable features. `organon validate` warns when a read rule cannot be
   translated (it then needs to scan).
 - Callers who cannot read a feature get `404`, never `403`, so existence is
   not leaked. Anonymous callers get `401`.

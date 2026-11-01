@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
-	"app-maker/platform/sqlitedb"
+	"organon/internal/kernel"
+	"organon/platform/sqlitedb"
 )
 
 // Handlers see their attempt (dead_letter detection, spec 10.10) and the

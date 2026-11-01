@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/internal/kernel"
-	"app-maker/platform/config"
+	"organon/internal/kernel"
+	"organon/platform/config"
 )
 
 // copyTracker copies the example app and applies text replacements to one
@@ -38,7 +38,7 @@ func copyTracker(t *testing.T, file, old, new string) string {
 
 // Spec 12.4, 14.10: a manifest directory never deployed before (a new
 // image) is deployed at startup with the breaking-change check; one seen
-// before yields to the active deploy (made by fw apply).
+// before yields to the active deploy (made by organon apply).
 func TestStartDeploysNewManifestDirectories(t *testing.T) {
 	data := t.TempDir()
 	start := func(dir string, allowBreaking bool) (*Server, error) {
@@ -91,7 +91,7 @@ func TestStartDeploysNewManifestDirectories(t *testing.T) {
 	s.Close()
 
 	// Restarting with the older directory keeps the active deploy, as after
-	// fw apply on a server whose image was not rebuilt.
+	// organon apply on a server whose image was not rebuilt.
 	s, err = start(v1, false)
 	if err != nil {
 		t.Fatal(err)

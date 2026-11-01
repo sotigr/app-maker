@@ -25,7 +25,7 @@ export function Deploys() {
           ))}
         </tbody>
       </table>
-      <p className="muted">Deploy with <span className="mono">fw plan</span> and <span className="mono">fw apply</span>.</p>
+      <p className="muted">Deploy with <span className="mono">organon plan</span> and <span className="mono">organon apply</span>.</p>
       <h2>Data migrations</h2>
       {migrations.length === 0 ? (
         <p className="muted">No migrations have run.</p>

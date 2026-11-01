@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // Env is a prepared code bundle: its files on disk and the interpreter

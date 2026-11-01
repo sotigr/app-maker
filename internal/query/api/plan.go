@@ -3,8 +3,8 @@
 package api
 
 import (
-	"app-maker/internal/kernel"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Op is a comparison operator (spec 7.2).

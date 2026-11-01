@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	flowapp "app-maker/internal/flow/application"
-	"app-maker/internal/flow/domain"
-	"app-maker/internal/runtime/domain/expression"
-	schemadomain "app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
+	flowapp "organon/internal/flow/application"
+	"organon/internal/flow/domain"
+	"organon/internal/runtime/domain/expression"
+	schemadomain "organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
 )
 
 func deps(t *testing.T) domain.CompileDeps {

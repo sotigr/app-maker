@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
 )
 
 // Spec 7.2, 7.3 step 1: limits and malformed documents fail with invalid_query.

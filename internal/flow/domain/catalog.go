@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	contentapi "app-maker/internal/content/api"
-	flowapi "app-maker/internal/flow/api"
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
+	accessapi "organon/internal/access/api"
+	contentapi "organon/internal/content/api"
+	flowapi "organon/internal/flow/api"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 )
 
 // NodeKind controls where a node may appear and how the engine treats it

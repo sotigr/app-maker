@@ -14,13 +14,13 @@ import (
 	"sync"
 	"time"
 
-	accessapi "app-maker/internal/access/api"
-	changeapi "app-maker/internal/change/api"
-	"app-maker/internal/change/domain"
-	contentapi "app-maker/internal/content/api"
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	accessapi "organon/internal/access/api"
+	changeapi "organon/internal/change/api"
+	"organon/internal/change/domain"
+	contentapi "organon/internal/content/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Limits of the gateway (spec 9.8, 14.1).

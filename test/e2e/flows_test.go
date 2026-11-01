@@ -3,8 +3,8 @@ package e2e
 import (
 	"fmt"
 
-	accessapi "app-maker/internal/access/api"
-	"app-maker/internal/content/application"
+	accessapi "organon/internal/access/api"
+	"organon/internal/content/application"
 
 	"crypto/hmac"
 	"crypto/sha256"
@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 func eventually(t *testing.T, what string, cond func() bool) {
@@ -183,7 +183,7 @@ func TestWebhookTrigger(t *testing.T) {
 		}
 		post := func(sig string) int {
 			req, _ := http.NewRequest("POST", w.s.url+"/v1/hooks/issues", strings.NewReader(body))
-			req.Header.Set("X-Fw-Signature", sig)
+			req.Header.Set("X-Organon-Signature", sig)
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
 				t.Fatal(err)

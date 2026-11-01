@@ -10,7 +10,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
-	"app-maker/internal/kernel"
+	"organon/internal/kernel"
 )
 
 // Spec 14.3: request spans named by route, and a trace that continues

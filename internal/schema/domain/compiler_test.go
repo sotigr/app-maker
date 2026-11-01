@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"app-maker/internal/kernel"
-	rt "app-maker/internal/runtime/api"
-	"app-maker/internal/runtime/domain/expression"
-	"app-maker/internal/schema/api"
-	"app-maker/internal/schema/domain"
-	"app-maker/internal/schema/infrastructure/jsonschema"
+	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
+	"organon/internal/runtime/domain/expression"
+	"organon/internal/schema/api"
+	"organon/internal/schema/domain"
+	"organon/internal/schema/infrastructure/jsonschema"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files")

@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"app-maker/internal/kernel"
-	queryapi "app-maker/internal/query/api"
-	schemaapi "app-maker/internal/schema/api"
+	"organon/internal/kernel"
+	queryapi "organon/internal/query/api"
+	schemaapi "organon/internal/schema/api"
 )
 
 // Operation is an operation checked by the Authorizer (spec 8.5).

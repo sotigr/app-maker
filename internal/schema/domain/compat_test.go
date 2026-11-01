@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"app-maker/internal/schema/api"
-	"app-maker/internal/schema/domain"
+	"organon/internal/schema/api"
+	"organon/internal/schema/domain"
 )
 
 func compileOne(t *testing.T, version, props string, required ...string) *api.CompiledType {
