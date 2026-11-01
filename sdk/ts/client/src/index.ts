@@ -76,6 +76,9 @@ export interface ClientOptions {
   fetch?: typeof fetch;
   /** WebSocket constructor (defaults to the global). */
   WebSocket?: typeof WebSocket;
+  /** Live transport: one WebSocket, or one SSE stream per subscription.
+   * "auto" (default) falls back to SSE when WebSockets fail (spec 13.2). */
+  transport?: "auto" | "ws" | "sse";
 }
 
 type Listener = () => void;
@@ -176,12 +179,17 @@ export class FwClient {
   private nextSid = 1;
   private retry = 0;
   private closed = false;
+  private transport: "auto" | "ws" | "sse";
+  private wsFailures = 0;
+  private streams = new Map<string, AbortController>();
 
   constructor(opts: ClientOptions = {}) {
     this.base = (opts.baseUrl || "/").replace(/\/$/, "");
     this.fetchFn = opts.fetch || ((...a) => fetch(...a));
     this.token = opts.token;
     this.WS = opts.WebSocket || (typeof WebSocket !== "undefined" ? WebSocket : undefined);
+    this.transport = opts.transport || "auto";
+    if (!this.WS && this.transport === "auto") this.transport = "sse";
   }
 
   /** request performs one API call; failures reject with FwError. */
@@ -316,11 +324,18 @@ export class FwClient {
         resolve(ws);
       };
       ws.onmessage = (ev: MessageEvent) => this.onMessage(JSON.parse(String(ev.data)));
-      ws.onerror = () => reject(new FwError({ code: "transport" }));
+      ws.onerror = () => {
+        // Proxies that block WebSockets: switch to SSE (spec 13.2).
+        if (!this.ws && this.transport === "auto" && ++this.wsFailures >= 2) {
+          this.transport = "sse";
+          for (const sid of this.subs.keys()) this.openStream(sid);
+        }
+        reject(new FwError({ code: "transport" }));
+      };
       ws.onclose = () => {
         this.ws = undefined;
         this.wsReady = undefined;
-        if (this.closed || this.subs.size === 0) return;
+        if (this.closed || this.subs.size === 0 || this.transport === "sse") return;
         const delay = Math.min(30_000, 500 * 2 ** this.retry++) * (0.5 + Math.random());
         setTimeout(() => this.connect().catch(() => undefined), delay);
       };
@@ -361,12 +376,70 @@ export class FwClient {
     const sid = `s${this.nextSid++}`;
     const msg = { t: "subscribe", sid, ...target };
     this.subs.set(sid, { msg, ...handlers });
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(msg));
-    else this.connect().catch((e) => handlers.onError(e)); // onopen sends every registered subscription
+    if (this.transport === "sse") this.openStream(sid);
+    else if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(msg));
+    else this.connect().catch((e) => { if (this.transport === "ws") handlers.onError(e); }); // onopen sends every subscription
     return () => {
       this.subs.delete(sid);
-      this.ws?.send(JSON.stringify({ t: "unsubscribe", sid }));
+      this.streams.get(sid)?.abort();
+      this.streams.delete(sid);
+      if (this.ws?.readyState === 1) this.ws.send(JSON.stringify({ t: "unsubscribe", sid }));
     };
+  }
+
+  // SSE fallback: one stream per subscription, read with fetch so bearer
+  // tokens work outside browsers too (spec 9.10, 13.2).
+  private openStream(sid: string, attempt = 0) {
+    const s = this.subs.get(sid);
+    if (!s || this.closed || this.streams.has(sid)) return;
+    const { t: _t, ...target } = s.msg;
+    const json = JSON.stringify(target);
+    const sub = btoa(String.fromCharCode(...new TextEncoder().encode(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const ac = new AbortController();
+    this.streams.set(sid, ac);
+    const headers: Record<string, string> = { Accept: "text/event-stream" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const again = (n: number) => {
+      this.streams.delete(sid);
+      if (!this.subs.has(sid) || this.closed) return;
+      setTimeout(() => this.openStream(sid, n), Math.min(30_000, 500 * 2 ** n) * (0.5 + Math.random()));
+    };
+    this.fetchFn(`${this.base}/v1/stream?sub=${sub}`, { headers, credentials: "same-origin", signal: ac.signal })
+      .then(async (res) => {
+        if (!res.ok || !res.body) {
+          const text = await res.text();
+          throw new FwError({ status: res.status, ...(text ? JSON.parse(text) : {}) });
+        }
+        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buf = "";
+        let terminal = false;
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += value;
+          for (let i = buf.indexOf("\n\n"); i >= 0; i = buf.indexOf("\n\n")) {
+            const block = buf.slice(0, i);
+            buf = buf.slice(i + 2);
+            const data = block.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trimStart()).join("\n");
+            if (!data) continue; // heartbeat
+            const m = JSON.parse(data);
+            if (m.t === "error") terminal = true;
+            this.onMessage(m);
+          }
+        }
+        if (!terminal) again(0); // reset or server restart: a fresh snapshot follows
+        else this.streams.delete(sid);
+      })
+      .catch((e) => {
+        if (ac.signal.aborted) return;
+        if (e instanceof FwError && e.status && e.status < 500 && e.status !== 429) {
+          this.streams.delete(sid);
+          this.subs.delete(sid);
+          s.onError(e);
+          return;
+        }
+        again(attempt + 1);
+      });
   }
 
   /** watch keeps one feature live in the cache. */
@@ -405,6 +478,8 @@ export class FwClient {
   close(): void {
     this.closed = true;
     this.ws?.close();
+    for (const ac of this.streams.values()) ac.abort();
+    this.streams.clear();
   }
 }
 

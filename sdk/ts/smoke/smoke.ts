@@ -3,11 +3,12 @@
 import { createClient } from "./gen/index.ts";
 import { FwError } from "../client/src/index.ts";
 
-const [, , base, login, password] = process.argv;
+const [, , base, login, password, transport] = process.argv;
 const res = await fetch(base + "/v1/auth/password", { method: "POST", body: JSON.stringify({ login, password, cli: true }) });
 const { token } = await res.json();
-const a = createClient({ baseUrl: base, token });
-const b = createClient({ baseUrl: base, token });
+const live = (transport || "auto") as "auto" | "ws" | "sse";
+const a = createClient({ baseUrl: base, token, transport: live });
+const b = createClient({ baseUrl: base, token, transport: live });
 const assert = (c: unknown, m: string) => { if (!c) { console.error("FAIL", m); process.exit(1); } console.log("ok  ", m); };
 
 const projects = await a.project.query();

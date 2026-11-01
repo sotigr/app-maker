@@ -213,7 +213,12 @@ _Last updated: 2026-10-31_
 - Admin console: Audit page (#/audit, filters, paging), dead_letter retry button on Runs, migration
   progress on Deploys, Blob fields upload via file input (Api.upload) and render as links/thumbnails.
   admin has no tsconfig (never typechecked; vite build only).
-- REMAINING (no Docker): React demo UI; SDK SSE fallback; change-log events carrying trace context.
+- SDK SSE fallback DONE: ClientOptions.transport auto|ws|sse; auto switches after 2 WS errors (or no
+  WebSocket); one fetch-streamed SSE per subscription (?sub=base64url JSON with sid), reconnect on
+  reset/close with backoff, terminal on error events / 4xx. `node sdk/ts/smoke/smoke.ts <url> <login>
+  <pw> [ws|sse]` passes both against fw dev.
+- REMAINING (no Docker): React demo UI ("two browsers" M7 criterion); change-log events carrying trace
+  context.
   NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
