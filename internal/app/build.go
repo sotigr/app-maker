@@ -314,6 +314,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		httpserver.AccessLog(opt.Log),
 		httpserver.LimitBody(maxBody, "/v1/blobs/"),
 		accessH.Middleware,
+		httpserver.RateLimit(httpserver.NewMemoryLimiter(), rateConfig(cfg, c)),
 		httpserver.Idempotency(idem, func(r *http.Request) string {
 			return accessapi.PrincipalFrom(r.Context()).ID.String()
 		}),
@@ -410,3 +411,21 @@ func (rt *Runtime) Type(name string) (*schemaapi.CompiledType, bool) {
 
 // keep the query api import used for documentation of the planner port.
 var _ queryapi.Planner = (*querydomain.Planner)(nil)
+
+// rateConfig applies the operator's request rates, lowered by app.json
+// (spec 14.1).
+func rateConfig(cfg config.Config, c *Compiled) httpserver.RateConfig {
+	per := cfg.Limits.RequestsPerMinute
+	if app := c.Manifest.App.Limits.RequestsPerMinute; app > 0 && (per <= 0 || app < per) {
+		per = app
+	}
+	return httpserver.RateConfig{PerPrincipal: per, PerIP: cfg.Limits.AnonymousPerMinute, TrustProxy: cfg.HTTP.TrustProxyHeaders,
+		Exempt: []string{"/v1/blobs/"},
+		Key: func(r *http.Request) string {
+			p := accessapi.PrincipalFrom(r.Context())
+			if p.ID.IsZero() {
+				return ""
+			}
+			return p.ID.String()
+		}}
+}

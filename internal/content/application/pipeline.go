@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -730,6 +731,9 @@ func (in input) keys() []string {
 // fields and conversion problems are collected in errs.
 func (s *Service) coerceInput(ct *schemaapi.CompiledType, data map[string]any) (input, error) {
 	in := input{vals: map[string]kernel.Value{}, failed: map[string]any{}}
+	if err := checkShape("", data, 0); err != nil {
+		return in, err
+	}
 	for k, raw := range data {
 		path := "/" + strings.TrimPrefix(k, "/")
 		f, ok := ct.Field(path)
@@ -1039,4 +1043,39 @@ func nativePatch(p map[string]kernel.Value) map[string]any {
 		out[k[1:]] = kernel.Native(v)
 	}
 	return out
+}
+
+// Document shape limits (spec 14.1).
+const (
+	MaxNestingDepth = 8
+	MaxListItems    = 1000
+)
+
+// checkShape bounds object nesting and list lengths of an input document
+// before coercion.
+func checkShape(path string, v any, depth int) error {
+	switch x := v.(type) {
+	case map[string]any:
+		if depth > MaxNestingDepth {
+			return kernel.NewValidationError(kernel.FieldError{Path: path, Code: "maxDepth", Message: fmt.Sprintf("objects nest deeper than %d levels", MaxNestingDepth)})
+		}
+		for k, e := range x {
+			if err := checkShape(path+"/"+k, e, depth+1); err != nil {
+				return err
+			}
+		}
+	case []any:
+		if len(x) > MaxListItems {
+			return kernel.NewValidationError(kernel.FieldError{Path: path, Code: "maxItems", Message: fmt.Sprintf("lists hold at most %d items", MaxListItems)})
+		}
+		if depth > MaxNestingDepth {
+			return kernel.NewValidationError(kernel.FieldError{Path: path, Code: "maxDepth", Message: fmt.Sprintf("values nest deeper than %d levels", MaxNestingDepth)})
+		}
+		for i, e := range x {
+			if err := checkShape(fmt.Sprintf("%s/%d", path, i), e, depth+1); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

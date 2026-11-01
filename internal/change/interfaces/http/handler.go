@@ -95,7 +95,11 @@ func (h *Handler) sse(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, fmt.Errorf("streaming unsupported"))
 		return
 	}
-	conn := h.g.Connect(r.Context(), p)
+	conn, err := h.g.Connect(r.Context(), p)
+	if err != nil {
+		httpserver.WriteError(w, r, err)
+		return
+	}
 	defer conn.Close()
 	if err := conn.Subscribe(r.Context(), t); err != nil {
 		httpserver.WriteError(w, r, err)
@@ -143,15 +147,19 @@ func (h *Handler) ws(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	conn, err := h.g.Connect(ctx, p)
+	if err != nil {
+		httpserver.WriteError(w, r, err)
+		return
+	}
+	defer conn.Close()
 	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{"fw"}})
 	if err != nil {
 		return
 	}
 	defer func() { _ = c.CloseNow() }()
-	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
-	conn := h.g.Connect(ctx, p)
-	defer conn.Close()
 	go func() {
 		defer cancel()
 		for {

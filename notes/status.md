@@ -183,8 +183,13 @@ _Last updated: 2026-10-31_
   AuthorizeBlobField; access Handler.Signed prefixes; LimitBody exemptions; config blobs.driver/dir
   (fw dev: .fw/blobs). Tracker task `attachment` (x-thumbnails [64]). TS SDK BlobRef + upload().
   e2e test/e2e/blobs_test.go. Gotcha: advancing the fake clock 25h expires sessions → log in again.
-- NEXT 12d: rate limits (§14.1) and remaining limits; then OIDC/MFA, OpenTelemetry + audit log,
-  `emit` node, python.allowedPackages check, dead_letter status, S3 adapter (needs Docker/minio).
+- 12d limits DONE: platform/httpserver RateLimit + MemoryLimiter (GCRA; per principal 600/min lowered
+  by app.json requestsPerMinute, anonymous per IP 60/min, /v1/blobs/ exempt, Retry-After); config
+  limits.requestsPerMinute/anonymousPerMinute, http.trustProxyHeaders; gateway MaxConnsPerUser 20
+  (Connect returns error; WS connects before Accept); content checkShape (nesting 8, list 1000).
+  e2e limits_test.go (startCfg helper). Memory limiter only → replicated topology needs Valkey (phase 10).
+- NEXT 12e: OIDC + MFA (TOTP); then OpenTelemetry + audit log, `emit` node, python.allowedPackages
+  check, dead_letter status, S3 adapter (needs Docker/minio).
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 
 - OLD NEXT (kept for context): phase 12 parts that need no Docker (Python code nodes w/ process isolation, llm.complete with

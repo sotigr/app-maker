@@ -51,6 +51,12 @@ func start(t *testing.T, driver string) *server { return startWith(t, driver, ni
 // startWith starts the tracker plus extra flow files (test-only flows).
 func startWith(t *testing.T, driver string, extraFlows map[string]string) *server {
 	t.Helper()
+	return startCfg(t, driver, extraFlows, nil)
+}
+
+// startCfg starts the tracker with a configuration change.
+func startCfg(t *testing.T, driver string, extraFlows map[string]string, change func(*config.Config)) *server {
+	t.Helper()
 	m, err := manifestfs.Load("../../examples/tracker", "dev")
 	if err != nil {
 		t.Fatal(err)
@@ -71,6 +77,9 @@ func startWith(t *testing.T, driver string, extraFlows map[string]string) *serve
 	if driver == "sqlite" {
 		cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: t.TempDir() + "/app.db"}}
 		cfg.Credentials.Driver = "sqlite"
+	}
+	if change != nil {
+		change(&cfg)
 	}
 	clock := kernel.NewFakeClock(time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC))
 	ctx, cancel := context.WithCancel(context.Background())

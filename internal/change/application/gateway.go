@@ -27,6 +27,7 @@ import (
 const (
 	QueueSize        = 256
 	MaxSubsPerConn   = 200
+	MaxConnsPerUser  = 20 // streaming connections per principal (spec 14.1)
 	MaxChildren      = 1000
 	EphemeralPerSec  = 30
 	HeartbeatSeconds = 25
@@ -134,10 +135,22 @@ func isAccessEvent(ev changeapi.Event) bool {
 }
 
 // Connect opens a connection for a principal. Messages arrive on Out.
-func (g *Gateway) Connect(ctx context.Context, p accessapi.Principal) *Conn {
+func (g *Gateway) Connect(ctx context.Context, p accessapi.Principal) (*Conn, error) {
+	g.mu.Lock()
+	if !p.ID.IsZero() {
+		n := 0
+		for c := range g.conns {
+			if c.principal.ID == p.ID {
+				n++
+			}
+		}
+		if n >= MaxConnsPerUser {
+			g.mu.Unlock()
+			return nil, kernel.NewError(kernel.CodeRateLimited, "at most %d streaming connections per principal", MaxConnsPerUser)
+		}
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Conn{g: g, ctx: ctx, cancel: cancel, principal: p, out: make(chan Message, QueueSize), subs: map[string]*Sub{}}
-	g.mu.Lock()
 	g.conns[c] = struct{}{}
 	g.mu.Unlock()
 	go func() {
@@ -147,7 +160,7 @@ func (g *Gateway) Connect(ctx context.Context, p accessapi.Principal) *Conn {
 		g.mu.Unlock()
 	}()
 	go c.flushLoop()
-	return c
+	return c, nil
 }
 
 // Conn is one client connection with its subscriptions.

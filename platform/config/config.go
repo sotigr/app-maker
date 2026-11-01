@@ -52,6 +52,9 @@ type Config struct {
 		InternalAddr  string `yaml:"internalAddr"`
 		SecureCookies bool   `yaml:"secureCookies"`
 		MaxBodyBytes  int64  `yaml:"maxBodyBytes"`
+		// TrustProxyHeaders takes the client IP from X-Forwarded-For (only
+		// behind a trusted reverse proxy).
+		TrustProxyHeaders bool `yaml:"trustProxyHeaders"`
 	} `yaml:"http"`
 
 	Repositories map[string]Repository `yaml:"repositories"`
@@ -75,6 +78,12 @@ type Config struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"` // json | text
 	} `yaml:"log"`
+	// Limits are the operator's request rates (spec 14.1); app.json may
+	// only lower requestsPerMinute.
+	Limits struct {
+		RequestsPerMinute  int `yaml:"requestsPerMinute"`
+		AnonymousPerMinute int `yaml:"anonymousPerMinute"`
+	} `yaml:"limits"`
 	Blobs struct {
 		Driver string `yaml:"driver"` // fs (s3 later)
 		// Dir holds fs blobs; empty uses a directory in the temp directory.
@@ -129,6 +138,8 @@ func Default() Config {
 	c.Log.Format = "json"
 	c.Runner.Isolation = "process"
 	c.Blobs.Driver = "fs"
+	c.Limits.RequestsPerMinute = 600
+	c.Limits.AnonymousPerMinute = 60
 	return c
 }
 
