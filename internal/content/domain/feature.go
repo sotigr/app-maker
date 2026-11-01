@@ -28,6 +28,7 @@ type Feature struct {
 	deletedAt *time.Time
 	pending   []DomainEvent
 	touched   bool
+	upcast    bool
 }
 
 // Snapshot is the persistent state of a feature, used by repositories.
@@ -166,6 +167,19 @@ func (f *Feature) NextVersion() kernel.Version {
 
 // Changed reports whether the aggregate has uncommitted changes.
 func (f *Feature) Changed() bool { return f.touched }
+
+// Upcast moves a feature written with an older version of its type to the
+// current one (spec 12.5): fields are replaced in memory, the version is
+// unchanged, and no event is raised. The next write persists the new
+// shape; Upcasted reports whether that is pending.
+func (f *Feature) Upcast(to schemaapi.TypeID, fields map[string]kernel.Value) {
+	f.typeID = to
+	f.fields = fields
+	f.upcast = true
+}
+
+// Upcasted reports whether the feature was upcast since it was loaded.
+func (f *Feature) Upcasted() bool { return f.upcast }
 
 // Field returns a field value.
 func (f *Feature) Field(path string) (kernel.Value, bool) {

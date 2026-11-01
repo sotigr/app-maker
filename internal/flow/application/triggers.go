@@ -466,3 +466,15 @@ func (e *Engine) RetryRun(ctx context.Context, p accessapi.Principal, runRecord 
 	}
 	return e.d.Jobs.Enqueue(ctx, []kernel.JobRequest{{Kind: JobRunFlow, Queue: kernel.QueueFlows, Args: args, MaxAttempts: 5}})
 }
+
+// RunForFeature runs a flow as the system for one feature (flow-based data
+// migrations, spec 12.5).
+func (e *Engine) RunForFeature(ctx context.Context, name string, feature kernel.ID) error {
+	f, ok := e.d.Flows.Get(name)
+	if !ok {
+		return kernel.NewError(kernel.CodeNotFound, "unknown flow %q", name)
+	}
+	_, err := e.Run(ctx, Request{Flow: f, Principal: accessapi.System(), FeatureID: &feature, Background: true,
+		Trigger: map[string]any{"kind": "migration"}})
+	return err
+}

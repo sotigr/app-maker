@@ -247,6 +247,8 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		LLM: rt.LLM, Ephemeral: rt.ephemeral, Code: code, Bundle: newBundles(c).get,
 	})
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
+	rt.Content.SetMigrations(c.Migrations, rt.Engine.RunForFeature)
+	rt.JobKinds.Register(contentapp.JobMigrateBatch, rt.Content.HandleMigrateBatch, 10*time.Minute)
 	rt.Content.AddHook(rt.Engine.EventHook())
 	rt.Content.AddHook(rt.Content.AggregateHook())
 	rt.Content.AddHook(rt.Content.IndexHook())
@@ -373,6 +375,9 @@ func (rt *Runtime) Start(ctx context.Context) error {
 	if rt.Cfg.HasRole(config.RoleWorker) {
 		// The embedded search index lives in memory: rebuild it from the
 		// repositories (spec 7.5).
+		if err := rt.Content.StartMigrations(ctx); err != nil {
+			return fmt.Errorf("migrations: %w", err)
+		}
 		go func() {
 			if n, err := rt.Content.ReindexAll(ctx); err != nil {
 				rt.Log.Error("search reindex failed", "err", err)

@@ -54,6 +54,9 @@ type Deps struct {
 // Service implements the Content application use cases.
 type Service struct {
 	d Deps
+	// migrations by base type and source version (spec 12.5).
+	migrations    map[schemaapi.TypeID]map[int]*domain.Migration
+	migrationFlow func(ctx context.Context, name string, feature kernel.ID) error
 }
 
 // NewService returns a Service.
@@ -129,6 +132,7 @@ func (s *Service) typeOf(f *domain.Feature) (*schemaapi.CompiledType, error) {
 	if !ok {
 		return nil, fmt.Errorf("type %s is not registered", f.TypeID())
 	}
+	s.upcast(f, ct)
 	return ct, nil
 }
 

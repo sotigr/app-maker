@@ -125,9 +125,7 @@ _Last updated: 2026-10-31_
 | 12 | Code nodes (Python), LLM, blobs, OIDC/MFA, limits, observability | M10 (no Helm/OCI) | todo |
 
 ## Open issues / deferred
-- **Data migrations** (§12.5 migrations/*.json, migrate_batch jobs, upcast on read) not implemented;
-  `plan` lists migration files and treats their presence as permission for breaking changes. M5's
-  "100,000-feature migration while serving" criterion is open.
+- Data migrations implemented (ADR 0013); M5's "100,000-feature migration while serving" not load-tested.
 - Manifest activation is in-process only (single replica); multi-replica `manifest-activated` events
   and the 30 s fallback poll belong with the change log (phase 8/10).
 - `x-aggregate` fields compile but are not maintained (recompute_aggregate jobs, phase 11).
@@ -207,8 +205,13 @@ _Last updated: 2026-10-31_
   files) at validate; Content.ReindexAll at worker start (Bleve in memory). Tests: emit_test,
   deadletter_test (memory only: River retry scheduling ~5 s/attempt), river_test, python_test,
   TestSearchReindexAfterRestart. Hardened e2e tests against aggregate-recompute version bumps (409 retry).
-- REMAINING (no Docker): admin console views for audit log / blob fields / dead-letter retry; React demo
-  UI; SDK SSE fallback; data migrations (§12.5); change-log events carrying trace context.
+- Data migrations DONE (ADR 0013): content/domain/migration.go (CompileMigrations), Feature.Upcast,
+  content/application/migrate.go (upcast in typeOf, StartMigrations at worker start, HandleMigrateBatch,
+  migrateOne, persistMigrated, recordMigration), system type migration, Engine.RunForFeature, repos
+  accept forward type IDs (sqlite UPDATE sets type_id). Tests: e2e migration_test.go (sqlite restart
+  v2→v3), app TestMigrationValidation.
+- REMAINING (no Docker): admin console views for audit log / blob fields / dead-letter retry / migration
+  progress; React demo UI; SDK SSE fallback; change-log events carrying trace context.
   NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 

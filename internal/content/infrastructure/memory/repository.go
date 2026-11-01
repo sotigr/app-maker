@@ -325,7 +325,8 @@ func (r *Repository) apply(b domain.Batch) (domain.CommitResult, error) {
 				conflicts = append(conflicts, kernel.VersionConflict{ID: s.ID, Current: cur.snap.Version})
 				continue
 			}
-			if s.TypeID != cur.snap.TypeID {
+			if s.TypeID.Base() != cur.snap.TypeID.Base() || s.TypeID.Version() < cur.snap.TypeID.Version() {
+				// Only migrations move a feature, to a newer version (spec 12.5).
 				return result, &kernel.ConstraintError{Path: "/type", Code: "type_changed", ID: s.ID}
 			}
 			if m.Kind == domain.MutPurge {

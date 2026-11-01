@@ -470,7 +470,8 @@ func (r *Repository) apply(ctx context.Context, tx *sql.Tx, b domain.Batch) (dom
 			conflicts = append(conflicts, kernel.VersionConflict{ID: s.ID, Current: c.version})
 			continue
 		}
-		if string(s.TypeID) != c.typeID {
+		if cur := schemaapi.TypeID(c.typeID); s.TypeID.Base() != cur.Base() || s.TypeID.Version() < cur.Version() {
+			// Only migrations move a feature, to a newer version (spec 12.5).
 			return res, &kernel.ConstraintError{Path: "/type", Code: "type_changed", ID: s.ID}
 		}
 		if m.Kind != domain.MutPurge && s.Version != m.Expected+1 {
@@ -617,8 +618,8 @@ func (r *Repository) write(ctx context.Context, tx *sql.Tx, m domain.Mutation) e
 		}
 		return r.rewriteSubtree(ctx, tx, s.ID, anc)
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE content_features SET version = ?, data = ?, kinds = ?, owner_id = ?, unique_key = ?, updated_at = ?
-		WHERE id = ? AND version = ?`, s.Version, string(data), string(kinds), nullable(s.OwnerID), uniq, ts(s.UpdatedAt), id, m.Expected)
+	_, err = tx.ExecContext(ctx, `UPDATE content_features SET type_id = ?, version = ?, data = ?, kinds = ?, owner_id = ?, unique_key = ?, updated_at = ?
+		WHERE id = ? AND version = ?`, string(s.TypeID), s.Version, string(data), string(kinds), nullable(s.OwnerID), uniq, ts(s.UpdatedAt), id, m.Expected)
 	return uniqueErr(err, s.ID)
 }
 

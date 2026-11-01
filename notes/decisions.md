@@ -29,6 +29,7 @@
 | 0010 | Blob storage | intents as urn:sys:feature:blob features, BlobFS, signed PUT/GET URLs, Verify on write, commit/release jobs, thumbnails, hourly cleanup_blobs |
 | 0011 | OIDC + MFA | PKCE RP with JWKS verify via egress; sealed state cookie; signup per provider (default off) + admin invite links; TOTP tickets verify/enroll; data key file |
 | 0012 | Observability + audit | kernel.Tel facade, OTLP/HTTP exporters, route-named HTTP spans, job trace carriers, domain metrics; audit rows in commit tx + auth events, GET /v1/audit, 90-day expiry |
+| 0013 | Data migrations | migrations/*.json validated; upcast in typeOf; migrate_batch chain per type with migration records; flow steps as system; repos accept forward type changes |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)

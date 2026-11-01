@@ -5,6 +5,7 @@
 package app
 
 import (
+	contentdomain "app-maker/internal/content/domain"
 	llmdomain "app-maker/internal/runtime/domain/llm"
 	"fmt"
 	"strings"
@@ -62,7 +63,9 @@ type Compiled struct {
 	Flows    *flowdomain.FlowSet
 	Nodes    *flowdomain.NodeRegistry
 	LLM      llmdomain.Config
-	Warnings []Problem
+	// Migrations are the compiled data migrations (spec 12.5).
+	Migrations []*contentdomain.Migration
+	Warnings   []Problem
 }
 
 // NodeCatalog returns the registry of built-in node types.
@@ -143,8 +146,28 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	for _, p := range fp {
 		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
 	}
+	msrc := make([]contentdomain.MigrationSource, len(m.Migrations))
+	for i, f := range m.Migrations {
+		msrc[i] = contentdomain.MigrationSource{File: f.Path, Data: f.Data}
+	}
+	migrations, mp := contentdomain.CompileMigrations(reg, exprs, msrc, func(name string) error {
+		if flows == nil {
+			return fmt.Errorf("unknown flow %q", name)
+		}
+		f, ok := flows.Get(name)
+		if !ok {
+			return fmt.Errorf("unknown flow %q", name)
+		}
+		if !f.Def.Privileged || f.Def.RunAs != "system" {
+			return fmt.Errorf("migration flow %s must run as system and be privileged", name)
+		}
+		return nil
+	})
+	for _, p := range mp {
+		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
+	}
 	if len(probs) > 0 {
 		return nil, &ValidationError{Problems: append(probs, warnings...)}
 	}
-	return &Compiled{Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
+	return &Compiled{Migrations: migrations, Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
 }

@@ -1,0 +1,20 @@
+{
+  "$id": "urn:sys:feature:migration",
+  "title": "Migration",
+  "description": "Progress of the data migrations of one type to its current version (spec 12.5).",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:timestamped"],
+  "properties": {
+    "key":        { "type": "string", "maxLength": 300, "x-indexed": true, "x-write": "system" },
+    "target":     { "type": "string", "maxLength": 200, "x-write": "system" },
+    "version":    { "type": "integer", "minimum": 1, "x-write": "system" },
+    "migrations": { "type": "array", "items": { "type": "string" }, "x-write": "system" },
+    "state":      { "enum": ["running", "done"], "x-indexed": true, "x-write": "system" },
+    "processed":  { "type": "integer", "minimum": 0, "x-write": "system" },
+    "migrated":   { "type": "integer", "minimum": 0, "x-write": "system" },
+    "failed":     { "type": "integer", "minimum": 0, "x-write": "system" },
+    "errors":     { "x-kind": "json", "x-write": "system" },
+    "finishedAt": { "type": ["string", "null"], "format": "date-time", "x-write": "system" }
+  },
+  "required": ["key", "target", "version", "state"]
+}
