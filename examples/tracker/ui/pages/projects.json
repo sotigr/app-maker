@@ -7,7 +7,10 @@
   },
   "body": { "component": "stack", "children": [
     { "component": "row", "justify": "between", "children": [
-      { "component": "heading", "text": "Projects", "level": 1 },
+      { "component": "stack", "gap": "sm", "children": [
+        { "component": "heading", "text": "Projects", "level": 1 },
+        { "component": "text", "text": "@projects.intro", "tone": "muted" }
+      ] },
       { "component": "button", "label": "New project", "variant": "primary",
         "visible": "'admin' in principal.roles || 'editor' in principal.roles",
         "on": { "click": [ { "do": "open", "dialog": "newProject" } ] } }

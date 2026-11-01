@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -83,7 +84,60 @@ func uiCmd() *cobra.Command {
 		},
 	}
 	schema.Flags().StringVar(&out, "out", ".organon/schema", "output directory")
-	c.AddCommand(catalog, schema)
+	c.AddCommand(catalog, schema, i18nCmd())
+	return c
+}
+
+func i18nCmd() *cobra.Command {
+	var lang, env string
+	var prune bool
+	c := &cobra.Command{
+		Use:   "i18n [dir] --lang <language>",
+		Short: "Add every untranslated text and label to ui/i18n/<language>.json (empty, for a translator)",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			dir := dirArg(args)
+			c, err := app.Load(dir, env)
+			if err != nil {
+				return printProblems(err)
+			}
+			if c.UI == nil || !slices.Contains(c.UI.Languages, lang) {
+				return fmt.Errorf("add %q to \"languages\" in ui/app.json first", lang)
+			}
+			p := filepath.Join(dir, "ui", "i18n", lang+".json")
+			var head struct {
+				Schema string `json:"$schema"`
+			}
+			if old, err := os.ReadFile(p); err == nil {
+				_ = json.Unmarshal(old, &head)
+			}
+			tr := c.UI.Scaffold(c.Types, lang, prune)
+			doc := struct {
+				Schema string `json:"$schema,omitempty"`
+				*app.UITranslations
+			}{head.Schema, tr}
+			var b strings.Builder
+			enc := json.NewEncoder(&b)
+			enc.SetEscapeHTML(false)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(doc); err != nil {
+				return err
+			}
+			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(p, []byte(b.String()), 0o644); err != nil {
+				return err
+			}
+			empty := strings.Count(b.String(), `": ""`)
+			fmt.Printf("wrote %s: %d entries to translate\n", p, empty)
+			return nil
+		},
+	}
+	c.Flags().StringVar(&lang, "lang", "", "language tag listed in ui/app.json languages")
+	c.Flags().BoolVar(&prune, "prune", false, "drop entries no page uses")
+	c.Flags().StringVar(&env, "env", "dev", "environment file env/<env>.json")
+	_ = c.MarkFlagRequired("lang")
 	return c
 }
 

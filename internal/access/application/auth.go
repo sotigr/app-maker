@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -37,7 +38,14 @@ type AuthConfig struct {
 	OIDC map[string]OIDCConfig
 	// Audit records authentication events (spec 14.3); optional.
 	Audit func(ctx context.Context, recs []kernel.AuditRecord) error
+	// NoAdmins refuses principals with the admin role and skips the
+	// bootstrap admin (ADR 0017).
+	NoAdmins bool
 }
+
+// ErrAdminsDisabled is returned for admin principals when admin accounts
+// are disabled.
+var ErrAdminsDisabled = kernel.NewError(kernel.CodeForbidden, "admin accounts are disabled")
 
 // OIDCConfig is one provider of app.json auth.oidc.
 type OIDCConfig struct {
@@ -135,6 +143,9 @@ func (s *AuthService) Login(ctx context.Context, login, password, ip string) (Lo
 	}
 	s.audit(ctx, cred.PrincipalID, "login", "password")
 	p, err := s.Resolve(ctx, cred.PrincipalID)
+	if errors.Is(err, ErrAdminsDisabled) {
+		return LoginResult{}, err
+	}
 	if err != nil {
 		s.limiter.Fail(acct)
 		return LoginResult{}, ErrInvalidCredentials
@@ -212,12 +223,16 @@ func (s *AuthService) Resolve(ctx context.Context, id kernel.ID) (accessapi.Prin
 	}
 	kind, _ := f.Data["kind"].(string)
 	p := accessapi.Principal{ID: id, Kind: accessapi.PrincipalKind(kind)}
+	p.Locale, _ = f.Data["locale"].(string)
 	if roles, ok := f.Data["roles"].([]any); ok {
 		for _, r := range roles {
 			if s, ok := r.(string); ok {
 				p.Roles = append(p.Roles, s)
 			}
 		}
+	}
+	if s.cfg.NoAdmins && p.HasRole("admin") {
+		return accessapi.Principal{}, ErrAdminsDisabled
 	}
 	if p.Groups, err = s.index.Groups(ctx, id); err != nil {
 		return accessapi.Principal{}, err
@@ -238,6 +253,9 @@ type NewUser struct {
 func (s *AuthService) CreateUser(ctx context.Context, actor accessapi.Principal, u NewUser) (kernel.ID, error) {
 	if !actor.IsSystem() && !actor.HasRole("admin") {
 		return kernel.NilID, kernel.ErrForbidden
+	}
+	if s.cfg.NoAdmins && slices.Contains(u.Roles, "admin") {
+		return kernel.NilID, ErrAdminsDisabled
 	}
 	if len(u.Password) < s.cfg.MinPasswordLength {
 		return kernel.NilID, kernel.NewValidationError(kernel.FieldError{Path: "/password", Code: "minLength",
@@ -293,6 +311,9 @@ func (s *AuthService) CreateAPIKey(ctx context.Context, actor accessapi.Principa
 // BootstrapAdmin creates the initial admin user when no password
 // credential exists yet (spec 8.4). It is a no-op afterwards.
 func (s *AuthService) BootstrapAdmin(ctx context.Context, email, password string) (bool, error) {
+	if s.cfg.NoAdmins {
+		return false, nil
+	}
 	has, err := s.store.HasPasswords(ctx)
 	if err != nil || has {
 		return false, err

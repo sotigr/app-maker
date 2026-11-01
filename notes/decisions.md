@@ -74,3 +74,19 @@
 | Builder | Palette + outline tree, live preview with the real renderer, inspector, JSON view |
 | Mount | Site root `/` |
 | v1 components | Layout + text, data display, forms + actions, board + charts |
+| File previews | `preview` component using the browser's viewers (no PDF.js); blob downloads of images/PDF/video/audio inline, sandboxed, frameable by the app only, with Range; thumbnails only for JPEG/PNG/GIF, falling back to the original until rendered |
+
+## 2026-11-01 (admin switches, ADR 0017)
+| Topic | Decision |
+|---|---|
+| Disabling admin accounts | Admin-role principals are refused at sign-in (sessions, API keys too), not downgraded; no bootstrap admin |
+| Operations without admins | No exceptions (no admin API keys): deploy by restarting with a new manifest |
+| Switches | `ORGANON_DISABLE_ADMIN_CONSOLE`, `ORGANON_DISABLE_ADMIN_ACCOUNTS` (YAML `admin.disableConsole`, `admin.disableAccounts`) |
+
+## 2026-11-02 (UI translations, ADR 0018)
+| Topic | Decision |
+|---|---|
+| Keys | Hybrid: the text is its own key; exactly `@key` is an explicit key (source text in the first language's file); per-page sections disambiguate; field/enum/transition labels per type |
+| User preference | `locale` field on the system user type (owner-visible, owner-writable); saved choice > `?lang` (browser's remembered choice) > Accept-Language > first language |
+| Scope | UI only; server messages, flow `reject` messages, and emails stay untranslated |
+| Example | Tracker in English and Greek (`ui/i18n/en.json`, `ui/i18n/el.json`) |

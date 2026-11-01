@@ -69,7 +69,8 @@ func (s *Service) link(ct *schemaapi.CompiledType, v contentapi.FeatureView) con
 		for k, x := range m {
 			linked[k] = x
 		}
-		url, thumbs := s.d.Blobs.Link(id, f.Blob.Thumbnails)
+		ct, _ := m["contentType"].(string)
+		url, thumbs := s.d.Blobs.Link(id, ct, f.Blob.Thumbnails)
 		linked["url"] = url
 		if len(thumbs) > 0 {
 			linked["thumbnails"] = thumbs

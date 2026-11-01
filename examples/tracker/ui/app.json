@@ -2,6 +2,7 @@
   "title": "Tracker",
   "home": "projects",
   "requireLogin": true,
+  "languages": ["en", "el"],
   "nav": [
     { "label": "Projects", "page": "projects" },
     { "label": "My tasks", "page": "myTasks", "visible": "principal.kind == 'user'" }

@@ -1,7 +1,8 @@
 // The node renderer: looks up each node's component in the registry,
 // applies `visible`, and in builder mode wraps nodes in selectable frames.
 import { Component, useMemo, type ComponentType, type ReactNode } from "react";
-import { ScopeContext, useEval, useRuntime, useScope } from "./runtime";
+import { RuntimeContext, ScopeContext, useEval, useRuntime, useScope } from "./runtime";
+import { template } from "./expr";
 import type { Env } from "./expr";
 import type { NodeDoc } from "./types";
 
@@ -19,12 +20,17 @@ export function register(name: string, c: ComponentType<ComponentProps>): void {
 }
 
 class Boundary extends Component<{ path: string; children: ReactNode }, { error?: Error }> {
+  static contextType = RuntimeContext;
+  declare context: React.ContextType<typeof RuntimeContext>;
   state: { error?: Error } = {};
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
   render() {
-    if (this.state.error) return <div className="o-error">This part of the page failed: {this.state.error.message}</div>;
+    if (this.state.error) {
+      const t = this.context?.t ?? ((s: string) => s);
+      return <div className="o-error">{template(t("This part of the page failed: {{ message }}"), { message: this.state.error.message })}</div>;
+    }
     return this.props.children;
   }
 }

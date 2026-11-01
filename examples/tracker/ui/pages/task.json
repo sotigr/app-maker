@@ -25,18 +25,19 @@
       ] }
     ] },
     { "component": "columns", "children": [
-      { "component": "stack", "children": [
-        { "component": "detail", "source": "task", "fields": ["/status", "/assignee", "/dueAt", "/estimate", "/label", "/isLate", "/attachment"] },
-        { "component": "link", "text": "Download attachment ({{ formatNumber(ceil(data.task.attachment.size / 1024), 0) }} KB)",
-          "visible": "data.task.attachment != nil", "url": "{{ data.task.attachment.url }}",
-          "download": "{{ data.task.title }}{{ data.task.attachment.contentType == 'application/pdf' ? '.pdf' : data.task.attachment.contentType == 'text/plain' ? '.txt' : '.' + split(data.task.attachment.contentType, '/')[1] }}" }
-      ] },
+      { "component": "detail", "source": "task", "fields": ["/status", "/assignee", "/dueAt", "/estimate", "/label", "/isLate", "/attachment"] },
       { "component": "card", "title": "Edit", "visible": "can(data.task, 'update')", "children": [
         { "component": "form", "mode": "update", "type": "task", "id": "params.id", "submit": "Save",
           "fields": [ { "path": "/title" }, { "path": "/assignee", "widget": "ref", "labelField": "displayName" }, { "path": "/dueAt" },
                       { "path": "/estimate" }, { "path": "/attachment" } ],
           "on": { "submit": [ { "do": "toast", "text": "Saved", "tone": "success" } ] } }
       ] }
+    ] },
+    { "component": "card", "title": "Attachment", "visible": "data.task.attachment != nil", "children": [
+      { "component": "preview", "source": "task", "path": "/attachment", "height": 520 },
+      { "component": "link", "text": "Download ({{ formatNumber(ceil(data.task.attachment.size / 1024), 0) }} KB)",
+        "url": "{{ data.task.attachment.url }}",
+        "download": "{{ data.task.title }}{{ data.task.attachment.contentType == 'text/plain' ? '.txt' : data.task.attachment.contentType == 'audio/mpeg' ? '.mp3' : '.' + split(data.task.attachment.contentType, '/')[1] }}" }
     ] },
     { "component": "card", "title": "Comments", "children": [
       { "component": "list", "source": "comments", "empty": "No comments yet.",

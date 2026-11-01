@@ -449,7 +449,7 @@ func checkPage(rt *Runtime, p accessapi.Principal, st TestStep, label string, fa
 		return
 	}
 	visible := false
-	for _, pg := range rt.UI.Bundle(p).Pages {
+	for _, pg := range rt.UI.Bundle(p, nil).Pages {
 		visible = visible || pg.Name == st.Page
 	}
 	if visible != *st.Expect.Visible {

@@ -1,0 +1,25 @@
+{
+  "messages": {
+    "@projects.intro": "Projects you own or were invited to. Open one to see its board, or press New project to start one."
+  },
+  "types": {
+    "task": {
+      "fields": {
+        "/dueAt": "Due",
+        "/isLate": "Late"
+      },
+      "values": {
+        "/label": {
+          "bug": "Bug",
+          "chore": "Chore",
+          "feature": "Feature"
+        },
+        "/status": {
+          "done": "Done",
+          "in_progress": "In progress",
+          "todo": "To do"
+        }
+      }
+    }
+  }
+}

@@ -45,6 +45,8 @@ type Prop struct {
 	// Row means the prop is evaluated once per row of the component's
 	// source, with item and index in scope.
 	Row bool `json:"row,omitempty"`
+	// Plain marks text props that are not translated (URLs).
+	Plain bool `json:"plain,omitempty"`
 }
 
 // Component is one entry of the component catalog.
@@ -107,11 +109,11 @@ var components = []Component{
 	{Name: "badge", Family: "text", Doc: "A small label.", Props: []Prop{
 		{Name: "text", Kind: KindText, Required: true}, {Name: "tone", Kind: KindEnum, Enum: toneEnum}}},
 	{Name: "image", Family: "text", Doc: "An image from ui/assets (assets/<path>) or a URL expression.", Props: []Prop{
-		{Name: "src", Kind: KindText, Required: true}, {Name: "alt", Kind: KindText}, {Name: "width", Kind: KindInt}}},
+		{Name: "src", Kind: KindText, Required: true, Plain: true}, {Name: "alt", Kind: KindText}, {Name: "width", Kind: KindInt}}},
 	{Name: "link", Family: "text", Doc: "A link to a page or an http(s)/mailto URL.", Props: []Prop{
 		{Name: "text", Kind: KindText, Required: true}, {Name: "page", Kind: KindPage}, {Name: "params", Kind: KindParams},
-		{Name: "url", Kind: KindText},
-		{Name: "download", Kind: KindText, Doc: "With url: save the file under this name instead of opening it (empty: the browser picks)"}}},
+		{Name: "url", Kind: KindText, Plain: true},
+		{Name: "download", Kind: KindText, Plain: true, Doc: "With url: save the file under this name instead of opening it (empty: the browser picks)"}}},
 
 	// Data display.
 	{Name: "table", Family: "data", Source: "list", Doc: "Rows of a list source.", Props: []Prop{
@@ -127,6 +129,9 @@ var components = []Component{
 	{Name: "field", Family: "data", Source: "feature", Doc: "One field, rendered by its kind. Inside rows the source defaults to item.", Props: []Prop{
 		pSource, {Name: "path", Kind: KindPath, Required: true}, {Name: "label", Kind: KindText},
 		{Name: "display", Kind: KindEnum, Enum: dispEnum}}},
+	{Name: "preview", Family: "data", Source: "feature", Doc: "A file field shown in the page: images, PDFs, video, and audio; other files as a download link. Inside rows the source defaults to item.", Props: []Prop{
+		pSource, {Name: "path", Kind: KindPath, Required: true, Doc: "A file field (x-kind blob)"},
+		{Name: "height", Kind: KindInt, Doc: "Height in pixels of PDF and video previews (default 480)"}}},
 	{Name: "detail", Family: "data", Source: "feature", Doc: "Label/value pairs of a feature.", Props: []Prop{
 		pSource, {Name: "fields", Kind: KindPaths, Doc: "Default: every readable field"}}},
 	{Name: "stat", Family: "data", Doc: "A big number with a label.", Props: []Prop{

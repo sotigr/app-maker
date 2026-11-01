@@ -4,6 +4,7 @@
 import { createContext, useContext, useMemo } from "react";
 import type { Feature, OrganonClient } from "@organon/client";
 import { evaluate, template, type Env, type Funcs } from "./expr";
+import { currentLocale, type Translate } from "./i18n";
 import type { Bundle, Expr, Principal, Row, TypeMeta } from "./types";
 
 /** Hooks the visual builder uses to select nodes in the preview. */
@@ -27,6 +28,8 @@ export interface Runtime {
   can(f: unknown, op: string): boolean;
   /** label returns a display name for a feature ID (refs), loading it once. */
   label(id: string): string | undefined;
+  /** t translates a text of the app, a page, or the renderer. */
+  t: Translate;
   /** views returns the caller's create/update view schemas of a type. */
   views(type: string): Promise<{ create: ViewSchema; update: ViewSchema }>;
   editor?: EditorHooks;
@@ -90,25 +93,25 @@ export function formatDate(v: unknown, style: unknown = "date"): string {
   if (isNaN(d.getTime())) return String(v);
   switch (style) {
     case "datetime":
-      return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+      return d.toLocaleString(currentLocale(), { dateStyle: "medium", timeStyle: "short" });
     case "time":
-      return d.toLocaleTimeString(undefined, { timeStyle: "short" });
+      return d.toLocaleTimeString(currentLocale(), { timeStyle: "short" });
     case "relative": {
       const s = (d.getTime() - Date.now()) / 1000;
-      const fmt = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+      const fmt = new Intl.RelativeTimeFormat(currentLocale(), { numeric: "auto" });
       const units: [Intl.RelativeTimeFormatUnit, number][] = [["year", 31536000], ["month", 2592000], ["day", 86400], ["hour", 3600], ["minute", 60]];
       for (const [u, n] of units) if (Math.abs(s) >= n) return fmt.format(Math.round(s / n), u);
       return fmt.format(Math.round(s), "second");
     }
   }
-  return d.toLocaleDateString(undefined, { dateStyle: "medium" });
+  return d.toLocaleDateString(currentLocale(), { dateStyle: "medium" });
 }
 
 export function formatNumber(v: unknown, digits: unknown = 0): string {
   const n = typeof v === "number" ? v : Number(v);
   if (v == null || isNaN(n)) return "";
   const d = typeof digits === "number" ? digits : 0;
-  return n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  return n.toLocaleString(currentLocale(), { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 export function useFuncs(): Funcs {
@@ -128,11 +131,13 @@ export interface Eval {
   env: Env;
   /** ex evaluates an expression prop; errors and nil give undefined. */
   ex(v: Expr | unknown): unknown;
-  /** text renders a text prop. */
+  /** text renders a text prop, translated. */
   text(v: unknown): string;
+  /** plain renders a text prop that is not translated (URLs). */
+  plain(v: unknown): string;
 }
 
-export function makeEval(env: Env, fns: Funcs): Eval {
+export function makeEval(env: Env, fns: Funcs, tr: (text: string) => string = (s) => s): Eval {
   return {
     env,
     ex(v) {
@@ -146,6 +151,9 @@ export function makeEval(env: Env, fns: Funcs): Eval {
       }
     },
     text(v) {
+      return typeof v === "string" ? template(tr(v), env, fns, warn) : "";
+    },
+    plain(v) {
       return typeof v === "string" ? template(v, env, fns, warn) : "";
     },
   };
@@ -154,7 +162,14 @@ export function makeEval(env: Env, fns: Funcs): Eval {
 export function useEval(): Eval {
   const env = useScope();
   const fns = useFuncs();
-  return useMemo(() => makeEval(env, fns), [env, fns]);
+  const rt = useRuntime();
+  const page = useContext(PageContext)?.name;
+  return useMemo(() => makeEval(env, fns, (s) => rt.t(s, page)), [env, fns, rt, page]);
+}
+
+/** enumLabel shows an enum value: its translation, else the value with spaces. */
+export function enumLabel(meta: { labels?: Record<string, string> } | undefined, v: unknown): string {
+  return meta?.labels?.[String(v)] ?? String(v).replace(/_/g, " ");
 }
 
 /** Route patterns ("/projects/:id") to URLs and back. */

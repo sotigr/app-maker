@@ -30,8 +30,12 @@ func UICatalog() uidomain.Catalog { return uidomain.GetCatalog() }
 
 // UISchemas returns the JSON Schemas of ui/ files by file name.
 func UISchemas() map[string]map[string]any {
-	return map[string]map[string]any{"ui-app.json": uidomain.AppSchema(), "ui-page.json": uidomain.PageSchema()}
+	return map[string]map[string]any{"ui-app.json": uidomain.AppSchema(), "ui-page.json": uidomain.PageSchema(),
+		"ui-i18n.json": uidomain.I18nSchema()}
 }
+
+// UITranslations is one ui/i18n/<lang>.json (ADR 0018).
+type UITranslations = uidomain.Translations
 
 // UIProp is one prop of a UI component or step.
 type UIProp = uidomain.Prop

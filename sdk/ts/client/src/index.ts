@@ -10,7 +10,7 @@ export type Decimal = string;
 export type Timestamp = string;
 /** The answer of a login step: a session, or the next MFA step. */
 export interface LoginResult {
-  principal?: { id: string; kind: string; roles: string[] };
+  principal?: { id: string; kind: string; roles: string[]; locale?: string };
   csrf?: string;
   mfa?: "verify" | "enroll";
   ticket?: string;
@@ -233,7 +233,7 @@ export class OrganonClient {
       await this.request("POST", "/v1/auth/logout");
       if (typeof BroadcastChannel !== "undefined") new BroadcastChannel("organon-auth").postMessage("logout");
     },
-    session: () => this.request<{ principal: { id: string; kind: string; roles: string[] } }>("GET", "/v1/auth/session"),
+    session: () => this.request<{ principal: { id: string; kind: string; roles: string[]; locale?: string } }>("GET", "/v1/auth/session"),
   };
 
   async get(type: string, id: string): Promise<Feature> {

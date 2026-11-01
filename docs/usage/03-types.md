@@ -101,7 +101,7 @@ On fields:
 | `x-stateMachine` | On an enum: `{"initial": "...", "transitions": [{"from", "to", "action", "guard"?}]}`. Each transition is an action; `guard` is an expression. |
 | `x-stream` | Live update behaviour: `{"mode": "state" \| "append", "maxRate": <per second>}`. State mode coalesces bursts. |
 | `x-persist: false` | Ephemeral field: streamed to subscribers, never stored (presence, typing indicators, LLM drafts). |
-| `x-maxBytes`, `x-contentTypes`, `x-thumbnails` | Blob limits (default 25 MiB), allowed types (`image/*` patterns), thumbnail sizes in pixels. |
+| `x-maxBytes`, `x-contentTypes`, `x-thumbnails` | Blob limits (default 25 MiB), allowed types (`image/*` patterns), thumbnail sizes in pixels (JPEG, PNG, and GIF only). |
 
 Expressions in `x-computed`, `x-aggregate.where`, and guards see the
 feature's fields directly (`dueAt`, `status`) plus `now()`; guards also see

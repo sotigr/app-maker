@@ -9,6 +9,8 @@ import {
 } from "./runtime";
 import { useSources } from "./sources";
 import { describe } from "./steps";
+import { template } from "./expr";
+import { direction, languageName, savedLanguage, saveLanguage, setLocale, translator, type Translate } from "./i18n";
 import type { Bundle, PageDTO, ParamSpec, Principal } from "./types";
 
 interface Toast {
@@ -40,6 +42,7 @@ export function RuntimeProvider({ client, bundle, principal, navigate, onLogout,
   const views = useRef(new Map<string, Promise<{ create: ViewSchema; update: ViewSchema }>>());
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const nextToast = useRef(1);
+  const t = useMemo(() => translator(bundle.i18n), [bundle]);
 
   const flush = useCallback(async () => {
     timer.current = undefined;
@@ -70,7 +73,7 @@ export function RuntimeProvider({ client, bundle, principal, navigate, onLogout,
       return p ? buildPath(p.route, params, p.params || {}) : "#";
     };
     return {
-      client, bundle, principal, editor,
+      client, bundle, principal, editor, t,
       href,
       navigate: (page, params) => go(href(page, params)),
       back: () => history.back(),
@@ -118,7 +121,7 @@ export function RuntimeProvider({ client, bundle, principal, navigate, onLogout,
         return p;
       },
     };
-  }, [client, bundle, principal, editor, navigate, tick]);
+  }, [client, bundle, principal, editor, navigate, tick, t]);
 
   return (
     <RuntimeContext.Provider value={rt}>
@@ -164,9 +167,9 @@ function PageInner({ dto, params, setTitle }: { dto: PageDTO; params: Record<str
     openDialog: setDialog,
     closeDialog: () => setDialog(undefined),
   }), [dto.name, state, dialog]);
-  const title = makeEval(env, fns).text(dto.doc.title);
+  const title = makeEval(env, fns, (s) => rtx.t(s, dto.name)).text(dto.doc.title);
   useEffect(() => {
-    if (setTitle && title) document.title = rtx.bundle.app.title ? `${title} · ${rtx.bundle.app.title}` : title;
+    if (setTitle && title) document.title = rtx.bundle.app.title ? `${title} · ${rtx.t(rtx.bundle.app.title)}` : title;
   }, [title, setTitle]);
   return (
     <PageContext.Provider value={page}>
@@ -204,7 +207,19 @@ export function resolve(bundle: Bundle, pathname: string, search: string): { dto
   return null;
 }
 
-function Login({ client, title, onLogin }: { client: OrganonClient; title?: string; onLogin: () => void }) {
+/** LanguageSwitch offers the app's languages when it has more than one. */
+function LanguageSwitch({ bundle, t, onChange }: { bundle: Bundle; t: Translate; onChange(lang: string): Promise<void> }) {
+  const i18n = bundle.i18n;
+  if (!i18n || i18n.languages.length < 2) return null;
+  return (
+    <select className="o-input o-lang" aria-label={t("Language")} value={i18n.language} onChange={(e) => onChange(e.target.value)}>
+      {i18n.languages.map((l) => <option key={l} value={l} lang={l}>{languageName(l)}</option>)}
+    </select>
+  );
+}
+
+function Login({ client, bundle, t, onLogin, onLanguage }: { client: OrganonClient; bundle: Bundle; t: Translate; onLogin: () => void; onLanguage(lang: string): Promise<void> }) {
+  const title = bundle.app.title ? t(bundle.app.title) : "";
   const mfa = new URLSearchParams(location.search).get("mfa");
   const [step, setStep] = useState<{ kind: "password" | "verify" | "enroll"; ticket?: string; secret?: string; uri?: string }>(
     { kind: mfa === "verify" ? "verify" : mfa === "enroll" ? "enroll" : "password" });
@@ -213,7 +228,7 @@ function Login({ client, title, onLogin }: { client: OrganonClient; title?: stri
   const [code, setCode] = useState("");
   const [providers, setProviders] = useState<string[]>([]);
   const [err, setErr] = useState("");
-  const fail = (e: unknown) => setErr(describe(e));
+  const fail = (e: unknown) => setErr(describe(e, t));
   useEffect(() => {
     client.auth.providers().then((r) => setProviders(r.providers || []), () => setProviders([]));
   }, [client]);
@@ -233,33 +248,38 @@ function Login({ client, title, onLogin }: { client: OrganonClient; title?: stri
       client.auth.login(login, password).then((r) => {
         if (r.mfa) setStep({ kind: r.mfa, ticket: r.ticket });
         else done();
-      }, () => setErr("Wrong email or password."));
+      }, () => setErr(t("Wrong email or password.")));
     } else if (step.kind === "verify") client.auth.verifyMfa(code, step.ticket).then(done, fail);
     else client.auth.confirmTotp(code, step.ticket).then(done, fail);
   };
   return (
     <div className="o-login-wrap">
       <form className="o-card o-login" onSubmit={submit}>
-        <h1 className="o-heading">{title || "Sign in"}</h1>
+        <div className="o-login-head">
+          <h1 className="o-heading">{title || t("Sign in")}</h1>
+          <LanguageSwitch bundle={bundle} t={t} onChange={(l) => onLanguage(l).catch(fail)} />
+        </div>
         {step.kind === "password" && (
           <>
-            <label className="o-form-field"><span className="o-field-label">Email</span>
+            <label className="o-form-field"><span className="o-field-label">{t("Email")}</span>
               <input className="o-input" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} autoFocus /></label>
-            <label className="o-form-field"><span className="o-field-label">Password</span>
+            <label className="o-form-field"><span className="o-field-label">{t("Password")}</span>
               <input className="o-input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
           </>
         )}
         {step.kind === "enroll" && (
-          <p>Two-factor authentication is required. Add this key to your authenticator app: <code>{step.secret || "…"}</code></p>
+          <p>{t("Two-factor authentication is required. Add this key to your authenticator app:")} <code>{step.secret || "…"}</code></p>
         )}
         {step.kind !== "password" && (
-          <label className="o-form-field"><span className="o-field-label">Authentication code</span>
+          <label className="o-form-field"><span className="o-field-label">{t("Authentication code")}</span>
             <input className="o-input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.trim())} autoFocus /></label>
         )}
         {err && <div className="o-form-error">{err}</div>}
-        <button className="o-button o-button-primary" type="submit">{step.kind === "password" ? "Sign in" : "Verify"}</button>
+        <button className="o-button o-button-primary" type="submit">{step.kind === "password" ? t("Sign in") : t("Verify")}</button>
         {step.kind === "password" && providers.map((p) => (
-          <button type="button" key={p} className="o-button" onClick={() => client.auth.oidcStart(p, location.pathname)}>Sign in with {p}</button>
+          <button type="button" key={p} className="o-button" onClick={() => client.auth.oidcStart(p, location.pathname)}>
+            {template(t("Sign in with {{ provider }}"), { provider: p })}
+          </button>
         ))}
       </form>
     </div>
@@ -276,7 +296,7 @@ function usePath(): string {
   return path;
 }
 
-function Shell({ bundle, principal, children }: { bundle: Bundle; principal: Principal | null; children: ReactNode }) {
+function Shell({ bundle, principal, onLanguage, children }: { bundle: Bundle; principal: Principal | null; onLanguage(lang: string): Promise<void>; children: ReactNode }) {
   const rt = useRuntimeOrThrow();
   const app = bundle.app;
   const path = location.pathname;
@@ -285,12 +305,12 @@ function Shell({ bundle, principal, children }: { bundle: Bundle; principal: Pri
       <header className="o-header">
         <a className="o-brand" href="/" onClick={(e) => { e.preventDefault(); rt.navigate(app.home); }}>
           {app.logo && <img src={`/assets/app/${app.logo.replace(/^assets\//, "")}`} alt="" />}
-          <span>{app.title}</span>
+          <span>{app.title ? rt.t(app.title) : ""}</span>
         </a>
         <nav className="o-nav">
           {(app.nav || []).map((n, i) => {
             const params: Record<string, unknown> = {};
-            const ev = makeEval({ principal }, {});
+            const ev = makeEval({ principal }, {}, (s) => rt.t(s));
             for (const [k, v] of Object.entries(n.params || {})) params[k] = ev.ex(v);
             const href = rt.href(n.page, params);
             return (
@@ -301,11 +321,17 @@ function Shell({ bundle, principal, children }: { bundle: Bundle; principal: Pri
             );
           })}
         </nav>
-        {principal && <button className="o-button o-button-link" onClick={() => rt.logout()}>Sign out</button>}
+        <LanguageSwitch bundle={bundle} t={rt.t} onChange={(l) => onLanguage(l).catch((e) => rt.toast(describe(e, rt.t), "danger"))} />
+        {principal && <button className="o-button o-button-link" onClick={() => rt.logout()}>{rt.t("Sign out")}</button>}
       </header>
       <main className="o-main">{children}</main>
     </div>
   );
+}
+
+function NotFound({ text }: { text?: string }) {
+  const rt = useRuntimeOrThrow();
+  return <div className="o-empty">{rt.t(text || "This page does not exist.")}</div>;
 }
 
 export interface OrganonAppProps {
@@ -321,8 +347,11 @@ export function OrganonApp({ client: given }: OrganonAppProps) {
   const [error, setError] = useState("");
   const path = usePath();
   const load = useCallback(() => {
+    // The server picks the language: the user's saved choice, then the
+    // one chosen in this browser, then Accept-Language (ADR 0018).
+    const lang = savedLanguage();
     Promise.all([
-      client.request<Bundle>("GET", "/v1/ui"),
+      client.request<Bundle>("GET", lang ? `/v1/ui?lang=${encodeURIComponent(lang)}` : "/v1/ui"),
       client.auth.session().then((s) => s.principal, () => null),
     ]).then(([b, p]) => {
       setBundle(b);
@@ -330,6 +359,24 @@ export function OrganonApp({ client: given }: OrganonAppProps) {
     }, (e) => setError(describe(e)));
   }, [client]);
   useEffect(load, [load]);
+  const language = bundle?.i18n?.language;
+  useEffect(() => {
+    setLocale(language);
+    if (!language) return;
+    document.documentElement.lang = language;
+    document.documentElement.dir = direction(language);
+  }, [language]);
+  // Signed-in users keep their choice in their user record, so it follows
+  // them across devices; the browser remembers it for the sign-in page.
+  // A failed save rejects, and the caller shows why.
+  const changeLanguage = useCallback(async (lang: string) => {
+    if (principal?.kind === "user") {
+      const me = await client.request<Feature>("GET", `/v1/features/_/${encodeURIComponent(principal.id)}`);
+      await client.update(me, { locale: lang });
+    }
+    saveLanguage(lang);
+    load();
+  }, [client, principal, load]);
   useEffect(() => {
     if (!bundle?.styles) return;
     const link = document.createElement("link");
@@ -347,7 +394,7 @@ export function OrganonApp({ client: given }: OrganonAppProps) {
   if (error) return <div className="o-center o-form-error">{error}</div>;
   if (!bundle || principal === undefined) return <div className="o-center"><div className="o-loading" aria-busy="true" /></div>;
   if (bundle.loginRequired || (!principal && !bundle.pages.length)) {
-    return <Login client={client} title={bundle.app.title} onLogin={load} />;
+    return <Login client={client} bundle={bundle} t={translator(bundle.i18n)} onLogin={load} onLanguage={changeLanguage} />;
   }
   const [pathname, search = ""] = path.split("?");
   const found = pathname === "/" && !bundle.pages.some((p) => p.route === "/")
@@ -355,9 +402,9 @@ export function OrganonApp({ client: given }: OrganonAppProps) {
     : resolve(bundle, pathname, search);
   return (
     <RuntimeProvider client={client} bundle={bundle} principal={principal} onLogout={load}>
-      <Shell bundle={bundle} principal={principal}>
+      <Shell bundle={bundle} principal={principal} onLanguage={changeLanguage}>
         {found ? <PageView dto={found.dto} params={found.params} />
-          : <div className="o-empty">{bundle.app.notFound || "This page does not exist."}</div>}
+          : <NotFound text={bundle.app.notFound} />}
       </Shell>
     </RuntimeProvider>
   );

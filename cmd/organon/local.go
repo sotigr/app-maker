@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -120,6 +121,12 @@ func devCmd() *cobra.Command {
 			cfg.Secrets.DataKeyFile, cfg.Secrets.CreateDataKey = filepath.Join(dir, ".organon", "data.key"), true
 			cfg.Bootstrap.AdminEmail = envOr("ORGANON_BOOTSTRAP_ADMIN_EMAIL", "admin@localhost")
 			cfg.Bootstrap.AdminPassword = envOr("ORGANON_BOOTSTRAP_ADMIN_PASSWORD", "admin-password-dev")
+			if cfg.Admin.DisableConsole, err = envBool("ORGANON_DISABLE_ADMIN_CONSOLE"); err != nil {
+				return err
+			}
+			if cfg.Admin.DisableAccounts, err = envBool("ORGANON_DISABLE_ADMIN_ACCOUNTS"); err != nil {
+				return err
+			}
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 			server := app.NewServer(ctx, cfg, app.Options{Log: log})
@@ -128,12 +135,19 @@ func devCmd() *cobra.Command {
 					log.Info("manifest reloaded", "hash", rt.App.Manifest.Hash[:12])
 					return nil
 				}
-				// Seed once, on a fresh database (the admin was just created).
+				// Seed once, on a fresh database (the admin, if any, was just
+				// created).
+				admins := 1
+				if cfg.Admin.DisableAccounts {
+					admins = 0
+				}
 				users, err := rt.Content.SystemPorts().Find(ctx, "urn:sys:feature:user", nil, 2)
-				if err != nil || len(users) > 1 {
+				if err != nil || len(users) > admins {
 					return err
 				}
-				log.Info("admin", "login", cfg.Bootstrap.AdminEmail, "password", cfg.Bootstrap.AdminPassword)
+				if admins > 0 {
+					log.Info("admin", "login", cfg.Bootstrap.AdminEmail, "password", cfg.Bootstrap.AdminPassword)
+				}
 				if s, ok := rt.App.Manifest.Seeds[env]; ok {
 					if err := app.ApplySeed(ctx, rt, s.Data); err != nil {
 						return err
@@ -208,6 +222,19 @@ func manifestStamp(dir string) string {
 		return nil
 	})
 	return b.String()
+}
+
+// envBool reads a boolean environment variable; unset is false.
+func envBool(k string) (bool, error) {
+	v := os.Getenv(k)
+	if v == "" {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, fmt.Errorf("%s: %q is not a boolean", k, v)
+	}
+	return b, nil
 }
 
 func envOr(k, def string) string {

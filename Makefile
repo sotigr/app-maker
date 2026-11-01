@@ -36,6 +36,7 @@ sdk:
 	$(GO) run ./cmd/organon codegen ts examples/tracker --out sdk/ts/smoke/gen --client-import ../../client/src/index.ts
 	cd sdk/ts && pnpm install && pnpm run typecheck
 	node sdk/ts/ui/test/expr.test.ts
+	node sdk/ts/ui/test/texts.test.ts
 
 # Regenerate the code-node protocol (spec 11.1); needs protoc,
 # protoc-gen-go and protoc-gen-go-grpc on PATH.

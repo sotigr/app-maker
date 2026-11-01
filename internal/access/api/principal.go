@@ -28,6 +28,8 @@ type Principal struct {
 	Kind   PrincipalKind
 	Roles  []string
 	Groups []kernel.ID // transitive memberships, from the relationship index
+	// Locale is the user's preferred UI language, or empty (ADR 0018).
+	Locale string
 }
 
 // SystemPrincipalID is the fixed ID of the system principal (spec 8.4).

@@ -18,6 +18,7 @@ myapp/
   tests/*.test.json        # manifest tests                       → 8. Testing and deploying
   ui/app.json              # end-user UI shell                    → 11. User interface
   ui/pages/*.json          # UI pages (component trees)           → 11. User interface
+  ui/i18n/<lang>.json      # UI translations                      → 11. User interface
   ui/styles.css, ui/assets/**  # app CSS, images, fonts           → 11. User interface
   modules/<name>/...       # optional: groups of types/traits/policies/flows/nodes
 ```

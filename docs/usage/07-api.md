@@ -12,8 +12,10 @@ OpenAPI description of your app is at `GET /v1/schema`.
 | OIDC | Browser to `GET /v1/auth/oidc/<provider>/start?redirect=/app`. `GET /v1/auth/oidc` lists providers. Admins create invite links with `POST /v1/auth/users/<id>/oidc-invite`. |
 | MFA | If a login answers `{"mfa": "verify"|"enroll", "ticket"}`, continue with `POST /v1/auth/mfa/verify {ticket, code}` or `POST /v1/auth/mfa/totp/enroll {ticket}` then `/confirm {ticket, code}`. Signed-in users enroll or disable with `/v1/auth/mfa/totp/{enroll,confirm,disable}`. |
 
-Other: `GET /v1/auth/session`, `POST /v1/auth/logout`, `POST /v1/auth/users`
-(admins create users).
+Other: `GET /v1/auth/session` (the principal, with `locale` when the user
+saved a UI language), `POST /v1/auth/logout`, `POST /v1/auth/users`
+(admins create users). Users set their UI language by updating `locale` on
+their own `user` feature.
 
 ## Features
 
@@ -114,12 +116,20 @@ update policy; 30/s per feature).
 3. Set the returned `blob` (`{id, size, contentType}`) on the field in a
    normal create or update.
 
-Reads return `url` (and `thumbnails`) with short-lived signed links.
+Reads return `url` (and, for JPEG, PNG, and GIF fields with `x-thumbnails`,
+`thumbnails` by size) with short-lived signed links. A thumbnail not
+rendered yet is answered with the original image (`Cache-Control: no-store`).
+Images (not SVG), PDF, video, and audio are served `inline` and may be
+framed by the app (`frame-ancestors 'self'`); other types are
+`attachment`. Every download is sandboxed (`Content-Security-Policy:
+sandbox`), sent with `nosniff`, and supports `Range` requests.
 Uploads never committed are deleted after 24 hours.
 
 ## Other endpoints
 
-`GET /v1/ui` (the UI bundle for the caller, [guide 11](11-ui.md)),
+`GET /v1/ui` (the UI bundle for the caller, [guide 11](11-ui.md); with
+`languages`, in the caller's saved `locale`, else `?lang=`, else
+`Accept-Language`),
 `POST /v1/permissions {"checks": [{"id", "op"}]}` (up to 100 `can()` answers:
 `update`, `delete`, `action:<name>`, `create:<type>`; `false` for features
 you cannot read), `GET /v1/ui/catalog`, `GET /v1/ui/source`, and

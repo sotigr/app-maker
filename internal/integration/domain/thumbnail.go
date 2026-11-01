@@ -14,6 +14,15 @@ import (
 // ErrNotImage is returned for content types without thumbnails.
 var ErrNotImage = errors.New("not an image")
 
+// Thumbnailable reports whether Thumbnail supports contentType.
+func Thumbnailable(contentType string) bool {
+	switch contentType {
+	case "image/jpeg", "image/png", "image/gif":
+		return true
+	}
+	return false
+}
+
 // maxPixels bounds decoded images (decompression bombs).
 const maxPixels = 40_000_000
 

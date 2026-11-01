@@ -5,6 +5,8 @@ export interface Principal {
   id: string;
   kind: string;
   roles: string[];
+  /** The user's saved UI language. */
+  locale?: string;
 }
 
 export interface NavItem {
@@ -97,6 +99,8 @@ export interface FieldMeta {
   readOnly?: boolean;
   format?: string;
   thumbnails?: boolean;
+  /** Translated enum values. */
+  labels?: Record<string, string>;
 }
 
 export interface StateMachine {
@@ -111,6 +115,8 @@ export interface TypeMeta {
   stateMachines?: Record<string, StateMachine>;
   children?: string[];
   ownable?: boolean;
+  /** Translated transition buttons. */
+  actionLabels?: Record<string, string>;
   /** Action name to input JSON Schema (null for built-in actions). */
   actions: Record<string, JsonSchema | null>;
 }
@@ -134,6 +140,16 @@ export interface Bundle {
   pages: PageDTO[];
   types: Record<string, TypeMeta>;
   styles?: string;
+  i18n?: I18nDoc;
+}
+
+/** The bundle's language and its translations (ADR 0018). */
+export interface I18nDoc {
+  language: string;
+  languages: string[];
+  messages: Record<string, string>;
+  /** Per-page overrides of messages. */
+  pages?: Record<string, Record<string, string>>;
 }
 
 /** A feature as UI expressions see it: its fields plus id, type, parentId, version. */

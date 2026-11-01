@@ -44,6 +44,16 @@ in a visual builder in the admin console or by agents as JSON, validated by
 - **Styling.** A base theme of CSS variables and stable `o-*` class names,
   plus `ui/styles.css`. No theme-token file and no custom code components.
 
+- **File previews** (added 2026-11-01). The `preview` component shows a
+  file field in the page with the browser's own viewers: `<img>`,
+  `<iframe>` for PDF, `<video>`, `<audio>`. To make that possible, blob
+  downloads of images (not SVG), PDF, video, and audio are served `inline`
+  with `frame-ancestors 'self'` and `Range` support; the response keeps
+  `sandbox` in its CSP (Chromium's PDF viewer works under it) and
+  `nosniff`. No PDF.js bundle. Thumbnail URLs are given only for types the
+  server can thumbnail (JPEG, PNG, GIF) and fall back to the original image
+  until the thumbnail exists, so a fresh upload never shows a broken image.
+
 ## Consequences
 - The framework now owns an end-user surface: the `web/` bundle is
   embedded like `admin/dist` and rebuilt with `make web`.

@@ -11,17 +11,18 @@ function errorValue(e: unknown): Record<string, unknown> {
   return { code: "client", message: e instanceof Error ? e.message : String(e) };
 }
 
-/** describe formats an API error for people. */
-export function describe(e: unknown): string {
+/** describe formats an API error for people; t translates the renderer's
+ * own messages (server messages are not translated). */
+export function describe(e: unknown, t: (text: string) => string = (s) => s): string {
   if (e instanceof OrganonError) {
     const fields = e.errors.map((x) => `${x.path.replace(/^\//, "")}: ${x.message}`).join("; ");
     switch (e.code) {
       case "forbidden":
-        return "You are not allowed to do this.";
+        return t("You are not allowed to do this.");
       case "version_conflict":
-        return "Someone else changed this; try again.";
+        return t("Someone else changed this; try again.");
       case "invalid_transition":
-        return "That change is not allowed in the current state.";
+        return t("That change is not allowed in the current state.");
     }
     return fields || e.message;
   }
@@ -50,7 +51,7 @@ function setPatch(set: Record<string, unknown>): Record<string, unknown> {
 export async function runSteps(steps: StepDoc[] | undefined, env: Env, rt: Runtime, page: PageState | null, fns: Funcs): Promise<boolean> {
   let result: unknown = env.result ?? null;
   for (const st of steps || []) {
-    const ev = makeEval({ ...env, result, error: env.error ?? null }, fns);
+    const ev = makeEval({ ...env, result, error: env.error ?? null }, fns, (s) => rt.t(s, page?.name));
     const map = (v: unknown) => {
       const o: Record<string, unknown> = {};
       for (const [k, e] of Object.entries((v as Record<string, unknown>) || {})) o[k] = ev.ex(e) ?? null;
@@ -105,7 +106,7 @@ export async function runSteps(steps: StepDoc[] | undefined, env: Env, rt: Runti
       if (st.onError) {
         await runSteps(st.onError, { ...env, result, error: errorValue(e) }, rt, page, fns);
       } else {
-        rt.toast(describe(e), "danger");
+        rt.toast(describe(e, rt.t), "danger");
       }
       return false;
     }

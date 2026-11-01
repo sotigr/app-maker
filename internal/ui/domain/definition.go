@@ -20,6 +20,13 @@ type Compiled struct {
 	Styles []byte
 	// Assets holds ui/assets/** by path below ui/assets/.
 	Assets map[string][]byte
+	// Languages lists the UI languages, the language of the ui/ files
+	// first; nil when the app declares none (ADR 0018).
+	Languages []string
+	// Catalogs are the ui/i18n files by language (empty when missing).
+	Catalogs map[string]*Translations
+	// AppTexts are the translatable texts of ui/app.json.
+	AppTexts []string
 }
 
 // App is ui/app.json: the shell around every page.
@@ -54,6 +61,8 @@ type Page struct {
 	Public bool
 	// Types are the feature types the page binds to (for field metadata).
 	Types []string
+	// Texts are the page's translatable texts.
+	Texts []string
 }
 
 // Param is a declared page parameter. Route parameters (":id") are

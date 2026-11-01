@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -247,11 +248,12 @@ func (b *Blobs) Verify(ctx context.Context, p accessapi.Principal, t schemaapi.T
 }
 
 // Link implements contentapi.Blobs. Expiry is rounded to five minutes so
-// URLs stay stable (and cacheable) for a while.
-func (b *Blobs) Link(id string, thumbnails []int) (string, map[string]string) {
+// URLs stay stable (and cacheable) for a while. Thumbnail URLs are given
+// only for content types that get thumbnails.
+func (b *Blobs) Link(id, contentType string, thumbnails []int) (string, map[string]string) {
 	exp := b.d.Clock.Now().Truncate(5 * time.Minute).Add(DownloadURLTTL)
 	var thumbs map[string]string
-	if len(thumbnails) > 0 {
+	if len(thumbnails) > 0 && domain.Thumbnailable(contentType) {
 		thumbs = map[string]string{}
 		for _, s := range thumbnails {
 			tid := thumbID(id, s)
@@ -263,16 +265,24 @@ func (b *Blobs) Link(id string, thumbnails []int) (string, map[string]string) {
 
 func thumbID(id string, size int) string { return id + "_t" + strconv.Itoa(size) }
 
-// Download opens a blob for a signed URL.
-func (b *Blobs) Download(ctx context.Context, id, exp, sig string) (io.ReadCloser, domain.BlobInfo, error) {
+var thumbIDRe = regexp.MustCompile(`^(.+)_t[0-9]+$`)
+
+// Download opens a blob for a signed URL. A thumbnail that is not rendered
+// yet (or could not be) is answered with the original image; fallback
+// reports that, so the response is not cached.
+func (b *Blobs) Download(ctx context.Context, id, exp, sig string) (r io.ReadCloser, info domain.BlobInfo, fallback bool, err error) {
 	if !b.d.Signer.Valid("get", id, exp, sig, b.d.Clock.Now()) {
-		return nil, domain.BlobInfo{}, kernel.NewError(kernel.CodeForbidden, "the download URL is invalid or expired")
+		return nil, domain.BlobInfo{}, false, kernel.NewError(kernel.CodeForbidden, "the download URL is invalid or expired")
 	}
-	r, info, err := b.d.Store.Get(ctx, id)
+	r, info, err = b.d.Store.Get(ctx, id)
+	if m := thumbIDRe.FindStringSubmatch(id); m != nil && errors.Is(err, domain.ErrBlobNotFound) {
+		r, info, err = b.d.Store.Get(ctx, m[1])
+		fallback = err == nil
+	}
 	if errors.Is(err, domain.ErrBlobNotFound) {
-		return nil, domain.BlobInfo{}, kernel.ErrNotFound
+		return nil, domain.BlobInfo{}, false, kernel.ErrNotFound
 	}
-	return r, info, err
+	return r, info, fallback, err
 }
 
 type blobStateArgs struct {

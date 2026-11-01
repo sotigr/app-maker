@@ -1,8 +1,9 @@
 // Board and charts. Charts are plain SVG over the rows a source has loaded
 // (at most 500); exact totals belong in x-aggregate fields.
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Node, register, WithScope, type ComponentProps } from "../render";
-import { formatNumber, typeMeta, useEval, usePage, useRuntime, withClass } from "../runtime";
+import { enumLabel, formatNumber, typeMeta, useEval, usePage, useRuntime, withClass } from "../runtime";
+import { template } from "../expr";
 import { describe } from "../steps";
 import type { NodeDoc, Row } from "../types";
 
@@ -34,13 +35,14 @@ register("board", ({ node, path }: ComponentProps) => {
     const from = row && field(row, f);
     if (!row || from === to) return;
     if (!sm?.transitions.some((t) => t.from === from && t.to === to)) {
-      rt.toast(`Cannot move from ${String(from).replace(/_/g, " ")} to ${to.replace(/_/g, " ")}.`, "warning");
+      const labels = { from: enumLabel(meta?.fields[f], from), to: enumLabel(meta?.fields[f], to) };
+      rt.toast(template(rt.t("Cannot move from {{ from }} to {{ to }}."), labels), "warning");
       return;
     }
     try {
       await rt.client.action(row.type, row.id, "transition", { to });
     } catch (e) {
-      rt.toast(describe(e), "danger");
+      rt.toast(describe(e, rt.t), "danger");
     }
   };
   return (
@@ -53,7 +55,7 @@ register("board", ({ node, path }: ComponentProps) => {
             onDragLeave={() => setOver(undefined)}
             onDrop={(e) => { e.preventDefault(); drop(e.dataTransfer.getData("text/x-organon-id"), st); }}>
             <div className="o-board-head">
-              <span>{st.replace(/_/g, " ")}</span>
+              <span>{enumLabel(meta?.fields[f], st)}</span>
               <span className="o-muted">{items.length}</span>
             </div>
             {items.map((item, index) => (
@@ -76,7 +78,7 @@ interface Point {
   value: number;
 }
 
-function points(node: NodeDoc, ev: ReturnType<typeof useEval>): Point[] | null {
+function points(node: NodeDoc, ev: ReturnType<typeof useEval>, label: (v: string) => string): Point[] | null {
   if (Array.isArray(node.series)) {
     return (node.series as { label: string; value: unknown }[]).map((s) => ({ label: ev.text(s.label), value: Number(ev.ex(s.value)) || 0 }));
   }
@@ -89,24 +91,38 @@ function points(node: NodeDoc, ev: ReturnType<typeof useEval>): Point[] | null {
     groups.set(k, [...(groups.get(k) || []), v]);
   }
   const op = (node.op as string) || "count";
-  return [...groups.entries()].map(([label, vs]) => ({
-    label: label.replace(/_/g, " "),
+  return [...groups.entries()].map(([key, vs]) => ({
+    label: label(key),
     value: op === "count" && !node.value ? vs.length : op === "avg" ? vs.reduce((a, b) => a + b, 0) / vs.length : vs.reduce((a, b) => a + b, 0),
   }));
 }
 
-const W = 320;
+/** useWidth tracks an element's width, so charts draw at 1:1 scale: text
+ * keeps its CSS size and height is in pixels. */
+function useWidth(): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(320);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(120, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+}
 
-function Bars({ ps, h }: { ps: Point[]; h: number }) {
+function Bars({ ps, h, W }: { ps: Point[]; h: number; W: number }) {
   const max = Math.max(1, ...ps.map((p) => p.value));
   const bw = W / Math.max(ps.length, 1);
+  const bar = Math.min(bw * 0.7, 72);
   return (
-    <svg viewBox={`0 0 ${W} ${h + 20}`} className="o-chart-svg" role="img">
+    <svg viewBox={`0 0 ${W} ${h + 20}`} width={W} height={h + 20} className="o-chart-svg" role="img">
       {ps.map((p, i) => {
         const bh = (p.value / max) * (h - 14);
         return (
           <g key={i}>
-            <rect x={i * bw + bw * 0.15} y={h - bh} width={bw * 0.7} height={bh} className={`o-chart-c${i % 6}`} rx={3} />
+            <rect x={i * bw + (bw - bar) / 2} y={h - bh} width={bar} height={bh} className={`o-chart-c${i % 6}`} rx={3} />
             <text x={i * bw + bw / 2} y={h - bh - 3} textAnchor="middle" className="o-chart-value">{formatNumber(p.value, Number.isInteger(p.value) ? 0 : 1)}</text>
             <text x={i * bw + bw / 2} y={h + 14} textAnchor="middle" className="o-chart-label">{p.label}</text>
           </g>
@@ -116,12 +132,12 @@ function Bars({ ps, h }: { ps: Point[]; h: number }) {
   );
 }
 
-function Line({ ps, h }: { ps: Point[]; h: number }) {
+function Line({ ps, h, W }: { ps: Point[]; h: number; W: number }) {
   const max = Math.max(1, ...ps.map((p) => p.value));
   const step = W / Math.max(ps.length - 1, 1);
   const xy = ps.map((p, i) => [ps.length === 1 ? W / 2 : i * step, h - (p.value / max) * (h - 14)] as const);
   return (
-    <svg viewBox={`-6 0 ${W + 12} ${h + 20}`} className="o-chart-svg" role="img">
+    <svg viewBox={`-6 0 ${W + 12} ${h + 20}`} width={W} height={h + 20} className="o-chart-svg" role="img">
       <polyline points={xy.map(([x, y]) => `${x},${y}`).join(" ")} className="o-chart-line" fill="none" />
       {xy.map(([x, y], i) => (
         <g key={i}>
@@ -160,16 +176,22 @@ function Pie({ ps, h }: { ps: Point[]; h: number }) {
 }
 
 register("chart", ({ node }: ComponentProps) => {
+  const rt = useRuntime();
   const ev = useEval();
-  const ps = points(node, ev);
+  const page = usePage();
+  const fm = typeof node.groupBy === "string" ? typeMeta(rt, sourceType(rt, page.name, node.source))?.fields[node.groupBy] : undefined;
+  const ps = points(node, ev, (v) => enumLabel(fm, v));
   const h = Number(node.height) || 160;
   const title = ev.text(node.title);
   const className = withClass("o-chart", node);
+  const [ref, W] = useWidth();
   return (
     <figure className={className}>
       {title && <figcaption>{title}</figcaption>}
-      {!ps ? <div className="o-loading" aria-busy="true" /> : !ps.length ? <div className="o-empty">No data.</div>
-        : node.kind === "pie" ? <Pie ps={ps} h={h} /> : node.kind === "line" ? <Line ps={ps} h={h} /> : <Bars ps={ps} h={h} />}
+      <div ref={ref}>
+        {!ps ? <div className="o-loading" aria-busy="true" /> : !ps.length ? <div className="o-empty">{rt.t("No data.")}</div>
+          : node.kind === "pie" ? <Pie ps={ps} h={h} /> : node.kind === "line" ? <Line ps={ps} h={h} W={W - 12} /> : <Bars ps={ps} h={h} W={W} />}
+      </div>
     </figure>
   );
 });

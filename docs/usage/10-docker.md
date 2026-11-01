@@ -98,6 +98,7 @@ to see what runs where.
 | --- | --- |
 | `ORGANON_ENV` | Which `env/<env>.json` to use (default `dev`). |
 | `ORGANON_BOOTSTRAP_ADMIN_EMAIL`, `ORGANON_BOOTSTRAP_ADMIN_PASSWORD` | Required on the first start (empty database); ignored afterwards. |
+| `ORGANON_DISABLE_ADMIN_CONSOLE=true`, `ORGANON_DISABLE_ADMIN_ACCOUNTS=true` | Serve only the app: no `/admin`, and admins cannot sign in (then deploy by restarting with a new manifest). See [guide 9](09-operations.md#running-without-admins). |
 | `ORGANON_CURSOR_KEY` | Keeps pagination cursors and signed file URLs valid across restarts. |
 | `ORGANON_PUBLIC_URL`, `ORGANON_SECURE_COOKIES=true` | Behind HTTPS (required for OIDC redirects). |
 | `ORGANON_TRUST_PROXY_HEADERS=true` | Only behind a reverse proxy you control: rate limits then use the client IP from `X-Forwarded-For`. |

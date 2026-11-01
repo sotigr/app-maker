@@ -49,6 +49,7 @@ re-run. Do not stop until validate and test pass.
 | End-user UI shell (title, home, nav, login) | `ui/app.json` | [UI](docs/usage/11-ui.md) |
 | A screen of the end-user UI | `ui/pages/<name>.json` (component tree) | [UI](docs/usage/11-ui.md) |
 | UI look | `ui/styles.css` (override `--o-*` variables, `o-*` classes), `ui/assets/**` | [UI](docs/usage/11-ui.md#styling) |
+| UI in more languages | `ui/app.json` `languages` + `ui/i18n/<lang>.json` | [UI](docs/usage/11-ui.md#languages) |
 
 ### Rules that prevent most mistakes
 
@@ -99,6 +100,12 @@ re-run. Do not stop until validate and test pass.
   the target page's route parameters.
 - Add a `page` test step for each page restricted with `visible`.
 - `bin/organon ui schema` writes JSON Schemas for `"$schema"` completion.
+- Translations: write pages in the first of `languages`; a text is its own
+  key in `ui/i18n/<lang>.json` `messages` (keep its `{{ }}` parts), use
+  `"@key"` texts for long ones (their text goes in the first language's
+  file), and translate field labels, enum values, and transition buttons
+  under `types`. After adding texts run
+  `bin/organon ui i18n <app> --lang <l>` and fill the empty entries.
 
 ### Minimal working examples
 
@@ -111,7 +118,9 @@ Copy patterns from [examples/tracker](examples/tracker):
 + `nodes/triage.py` (Python), `tests/task-permissions.test.json`,
 `ui/app.json`, `ui/pages/project.json` (sources, board, chart, tabs,
 dialog with a create form, action button), `ui/pages/task.json` (update
-form, transitions, menu, comments list), `tests/ui-pages.test.json`.
+form, transitions, menu, file preview, comments list), `ui/i18n/el.json`
+(translations; `ui/i18n/en.json` for `@key` texts and labels),
+`tests/ui-pages.test.json`.
 
 The node catalog with inputs is in
 [docs/usage/05-flows.md](docs/usage/05-flows.md#node-reference); the server

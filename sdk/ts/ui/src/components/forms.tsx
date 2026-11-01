@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { OrganonError, type BlobRef } from "@organon/client";
 import { register, type ComponentProps } from "../render";
-import { flatten, typeMeta, useEval, useFuncs, usePage, useRuntime, withClass, type ViewSchema } from "../runtime";
+import { enumLabel, flatten, typeMeta, useEval, useFuncs, usePage, useRuntime, withClass, type ViewSchema } from "../runtime";
 import { describe, runSteps } from "../steps";
 import { labelOf, RefLabel } from "./data";
 import type { FieldMeta, JsonSchema, Row, StepDoc } from "../types";
@@ -75,12 +75,12 @@ function RefPicker({ value, onChange, targets, labelField }: { value: string | n
   return (
     <div className="o-ref-picker">
       <button type="button" className="o-input o-ref-value" onClick={() => setOpen(!open)}>
-        {value ? <RefLabel id={value} /> : <span className="o-muted">Choose…</span>}
+        {value ? <RefLabel id={value} /> : <span className="o-muted">{rt.t("Choose…")}</span>}
       </button>
       {open && (
         <div className="o-ref-menu">
-          <input className="o-input" autoFocus placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button type="button" className="o-ref-option o-muted" onClick={() => { onChange(null); setOpen(false); }}>None</button>
+          <input className="o-input" autoFocus placeholder={rt.t("Search")} value={q} onChange={(e) => setQ(e.target.value)} />
+          <button type="button" className="o-ref-option o-muted" onClick={() => { onChange(null); setOpen(false); }}>{rt.t("None")}</button>
           {shown.map((r) => (
             <button type="button" key={r.id} className="o-ref-option" onClick={() => { onChange(r.id); setOpen(false); }}>{label(r)}</button>
           ))}
@@ -187,7 +187,7 @@ register("form", ({ node }: ComponentProps) => {
         setErrors(byField);
         const unmatched = err.errors.filter((x) => !fields.some((f) => f.name === x.path.replace(/^\//, "").split("/")[0]));
         if (unmatched.length) setFormError(unmatched.map((x) => `${x.path}: ${x.message}`).join("; "));
-      } else setFormError(describe(err));
+      } else setFormError(describe(err, rt.t));
     } finally {
       setBusy(false);
     }
@@ -208,7 +208,7 @@ register("form", ({ node }: ComponentProps) => {
       ))}
       {formError && <div className="o-form-error">{formError}</div>}
       <div className="o-row o-gap-sm">
-        <button className="o-button o-button-primary" type="submit" disabled={busy}>{ev.text(node.submit) || "Save"}</button>
+        <button className="o-button o-button-primary" type="submit" disabled={busy}>{ev.text(node.submit) || rt.t("Save")}</button>
       </div>
     </form>
   );
@@ -224,7 +224,7 @@ function Input({ field, value, set, type, id, parent }: { field: Field; value: u
       return (
         <select className="o-input" value={value == null ? "" : String(value)} onChange={(e) => set(e.target.value === "" ? null : e.target.value)}>
           <option value="">—</option>
-          {(field.enum || []).map((o) => <option key={o} value={o}>{o.replace(/_/g, " ")}</option>)}
+          {(field.enum || []).map((o) => <option key={o} value={o}>{enumLabel(field.meta, o)}</option>)}
         </select>
       );
     case "textarea":
@@ -243,7 +243,7 @@ function Input({ field, value, set, type, id, parent }: { field: Field; value: u
             try {
               set(await rt.client.upload({ type, field: field.name, feature: id, parent: id ? undefined : parent }, file, file.type || "application/octet-stream"));
             } catch (err) {
-              rt.toast(describe(err), "danger");
+              rt.toast(describe(err, rt.t), "danger");
             } finally {
               setUploading(false);
             }

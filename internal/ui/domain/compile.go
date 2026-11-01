@@ -99,6 +99,14 @@ type compiler struct {
 	assets map[string][]byte
 	page   *pageCtx
 	ftypes map[*schemaapi.CompiledType]*rt.Type
+	// Translations (ADR 0018): the languages of ui/app.json, the parsed
+	// ui/i18n files by language, and the pages using each text ("" is
+	// the app shell).
+	langs    []string
+	cats     map[string]*Translations
+	catFiles map[string]string
+	used     map[string]map[string]bool
+	pageName string
 }
 
 func (c *compiler) errf(ptr, format string, args ...any) {
@@ -109,7 +117,8 @@ func (c *compiler) errf(ptr, format string, args ...any) {
 // there are errors; warnings are returned with a non-nil result.
 func Compile(d Deps, sources []Source) (*Compiled, []Problem) {
 	c := &compiler{d: d, pages: map[string]*pageHead{}, assets: map[string][]byte{},
-		ftypes: map[*schemaapi.CompiledType]*rt.Type{}}
+		ftypes: map[*schemaapi.CompiledType]*rt.Type{}, cats: map[string]*Translations{}, catFiles: map[string]string{},
+		used: map[string]map[string]bool{}}
 	out := &Compiled{Assets: c.assets}
 	var appSrc *Source
 	var pageSrcs []Source
@@ -130,6 +139,18 @@ func Compile(d Deps, sources []Source) (*Compiled, []Problem) {
 			out.Styles = s.Data
 		case strings.HasPrefix(rel, "ui/pages/") && path.Ext(rel) == ".json" && !strings.Contains(rel[len("ui/pages/"):], "/"):
 			pageSrcs = append(pageSrcs, s)
+		case strings.HasPrefix(rel, "ui/i18n/") && path.Ext(rel) == ".json" && !strings.Contains(rel[len("ui/i18n/"):], "/"):
+			lang := strings.TrimSuffix(rel[len("ui/i18n/"):], ".json")
+			if !langRe.MatchString(lang) {
+				c.errf("", "translation files are named by language tag, such as ui/i18n/el.json")
+				continue
+			}
+			cat, err := parseCatalog(s.Data)
+			if err != nil {
+				c.errf("", "invalid translation file: %v", err)
+				continue
+			}
+			c.cats[lang], c.catFiles[lang] = cat, s.File
 		case strings.HasPrefix(rel, "ui/assets/"):
 			name := rel[len("ui/assets/"):]
 			if _, ok := AssetTypes[strings.ToLower(path.Ext(name))]; !ok {
@@ -142,7 +163,7 @@ func Compile(d Deps, sources []Source) (*Compiled, []Problem) {
 			total += len(s.Data)
 			c.assets[name] = s.Data
 		default:
-			c.errf("", "unexpected file: ui/ holds app.json, pages/*.json, styles.css, and assets/**")
+			c.errf("", "unexpected file: ui/ holds app.json, pages/*.json, i18n/<language>.json, styles.css, and assets/**")
 		}
 	}
 	if total > MaxAssetsBytes {
@@ -173,6 +194,21 @@ func Compile(d Deps, sources []Source) (*Compiled, []Problem) {
 			out.Pages = append(out.Pages, p)
 		}
 	}
+	for t, pages := range c.used {
+		if pages[""] {
+			out.AppTexts = append(out.AppTexts, t)
+		}
+	}
+	sort.Strings(out.AppTexts)
+	for _, p := range out.Pages {
+		for t, pages := range c.used {
+			if pages[p.Name] {
+				p.Texts = append(p.Texts, t)
+			}
+		}
+		sort.Strings(p.Texts)
+	}
+	c.checkCatalogs(out)
 	sort.SliceStable(c.probs, func(i, j int) bool {
 		if c.probs[i].File != c.probs[j].File {
 			return c.probs[i].File < c.probs[j].File
@@ -316,12 +352,15 @@ func (c *compiler) app(data []byte) *App {
 		c.errf("", "invalid JSON: %v", err)
 		return nil
 	}
-	c.known("", m, "$schema", "title", "logo", "home", "requireLogin", "nav", "notFound", "x-layout")
+	c.known("", m, "$schema", "title", "logo", "home", "requireLogin", "nav", "notFound", "languages", "x-layout")
 	a := &App{RequireLogin: true, Doc: browserDoc(m)}
+	if v, ok := m["languages"]; ok {
+		c.languages(v)
+	}
 	ps := principalScope()
 	a.Title, _ = m["title"].(string)
 	if v, ok := m["title"]; ok {
-		c.text("/title", v, ps)
+		c.text("/title", v, ps, true)
 	}
 	if v, ok := m["logo"]; ok {
 		s, _ := v.(string)
@@ -337,7 +376,7 @@ func (c *compiler) app(data []byte) *App {
 		a.RequireLogin = b
 	}
 	if v, ok := m["notFound"]; ok {
-		c.text("/notFound", v, ps)
+		c.text("/notFound", v, ps, true)
 	}
 	a.Home, _ = m["home"].(string)
 	if h, ok := c.pages[a.Home]; !ok {
@@ -361,7 +400,7 @@ func (c *compiler) app(data []byte) *App {
 			n := NavItem{}
 			c.require(ptr, im, "label", "page")
 			if l, ok := im["label"]; ok {
-				c.text(ptr+"/label", l, ps)
+				c.text(ptr+"/label", l, ps, true)
 			}
 			n.Page, _ = im["page"].(string)
 			c.navigate(ptr, "page", n.Page, "params", im["params"], ps)
@@ -384,6 +423,8 @@ func (c *compiler) require(ptr string, m map[string]any, names ...string) {
 
 func (c *compiler) compilePage(h *pageHead) *Page {
 	c.file = h.file
+	c.pageName = h.name
+	defer func() { c.pageName = "" }()
 	m := h.doc
 	c.known("", m, "$schema", "page", "title", "route", "params", "visible", "state", "data", "body", "x-layout")
 	c.page = &pageCtx{sources: map[string]*srcInfo{}, state: map[string]*rt.Type{}, dialogs: map[string]bool{},
@@ -400,7 +441,7 @@ func (c *compiler) compilePage(h *pageHead) *Page {
 	sc.vars["state"] = rt.MapOf(c.page.state)
 	c.sources(m["data"], sc)
 	if v, ok := m["title"]; ok {
-		c.text("/title", v, sc)
+		c.text("/title", v, sc, true)
 	}
 	if b, ok := m["body"]; ok {
 		c.node("/body", b, sc)
@@ -826,19 +867,36 @@ func quoteHint(src string, err error) string {
 	return ""
 }
 
-func (c *compiler) text(ptr string, v any, sc *scope) {
+// text checks a text prop. Translatable texts are recorded for the
+// translation files; an @key is checked as its source-language text.
+func (c *compiler) text(ptr string, v any, sc *scope, translate bool) {
 	s, ok := v.(string)
 	if !ok {
 		c.errf(ptr, "text must be a string")
 		return
 	}
+	note := ""
+	if translate && s != "" {
+		src, ok := c.useText(ptr, s)
+		if !ok {
+			return
+		}
+		if src != s {
+			note = fmt.Sprintf(" (in the text of %s in ui/i18n/%s.json)", s, c.langs[0])
+		}
+		s = src
+	}
 	exprs, err := splitTemplate(s)
 	if err != nil {
-		c.errf(ptr, "%v", err)
+		c.errf(ptr, "%v%s", err, note)
 		return
 	}
+	n := len(c.probs)
 	for _, e := range exprs {
 		c.expr(ptr, e, sc, "")
+	}
+	for i := n; i < len(c.probs); i++ {
+		c.probs[i].Message += note
 	}
 }
 
@@ -1044,7 +1102,7 @@ func (c *compiler) prop(ptr string, p Prop, v any, sc *scope, nc *nodeCtx) {
 	str, isStr := v.(string)
 	switch p.Kind {
 	case KindText:
-		c.text(ptr, v, sc)
+		c.text(ptr, v, sc, !p.Plain)
 	case KindExpr:
 		c.expr(ptr, v, sc, p.Want)
 	case KindPath:
@@ -1154,6 +1212,12 @@ func (c *compiler) special(ptr string, m map[string]any, sc *scope, nc *nodeCtx)
 		}
 		if _, dl := m["download"]; dl && !url {
 			c.errf(ptr+"/download", "download needs url")
+		}
+	case "preview":
+		if p, ok := m["path"].(string); ok && nc.ct != nil {
+			if f, found := nc.ct.Field(p); found && f.Kind != kernel.KindBlob {
+				c.errf(ptr+"/path", "field %s of %s is not a file (x-kind blob)", p, nc.ct.Name)
+			}
 		}
 	case "heading":
 		if l, ok := m["level"]; ok {

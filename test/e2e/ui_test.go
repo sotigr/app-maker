@@ -1,12 +1,14 @@
 package e2e
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"testing"
 
 	manifestdomain "organon/internal/manifest/domain"
+	"organon/platform/config"
 )
 
 // ADR 0016: GET /v1/ui gives each principal the shell, the pages it may
@@ -98,6 +100,11 @@ func TestUIServing(t *testing.T) {
 	if r := bare.anon().do("GET", "/projects", nil); r.Status != 404 {
 		t.Fatalf("no ui, app route: %d", r.Status)
 	}
+	// ADR 0017: without the console either, the root is not found.
+	none := startFull(t, "memory", nil, func(m *manifestdomain.Manifest) { m.UI = nil }, func(c *config.Config) { c.Admin.DisableConsole = true })
+	if r := none.anon().do("GET", "/", nil); r.Status != 404 {
+		t.Fatalf("no ui, no console: %d", r.Status)
+	}
 }
 
 // ADR 0016: POST /v1/permissions answers can(f, op) with the same policy,
@@ -157,4 +164,59 @@ func TestUIPermissions(t *testing.T) {
 			t.Fatalf("101 checks: %d", r.Status)
 		}
 	})
+}
+
+// ADR 0018: the bundle is in the user's saved language, else the
+// requested one, else the browser's (Accept-Language), else the first;
+// it carries only the translations of the texts it contains.
+func TestUILanguages(t *testing.T) {
+	w := setup(t, "memory")
+	i18n := func(r resp) map[string]any {
+		t.Helper()
+		m, _ := r.Body["i18n"].(map[string]any)
+		if m == nil {
+			t.Fatalf("no i18n: %s", r.Raw)
+		}
+		return m
+	}
+	anon := i18n(mustOK(t, w.anon.do("GET", "/v1/ui", nil, "Accept-Language", "de;q=0.9, el-GR, en;q=0.5"), 200))
+	msgs := anon["messages"].(map[string]any)
+	if anon["language"] != "el" || msgs["Sign in"] != "Σύνδεση" || msgs["Tracker"] != "Tracker" {
+		t.Fatalf("anonymous Greek bundle: %v", anon)
+	}
+	if _, leak := msgs["Nothing assigned to you."]; leak {
+		t.Fatal("texts of pages left out of the bundle stay out")
+	}
+	if got := i18n(mustOK(t, w.anon.do("GET", "/v1/ui", nil), 200))["language"]; got != "en" {
+		t.Fatalf("default language: %v", got)
+	}
+
+	b := mustOK(t, w.editor.do("GET", "/v1/ui?lang=el", nil, "Accept-Language", "en"), 200)
+	if i18n(b)["messages"].(map[string]any)["Nothing assigned to you."] != "Δεν σας έχει ανατεθεί τίποτα." {
+		t.Fatalf("page texts: %v", i18n(b)["messages"])
+	}
+	if i18n(b)["pages"].(map[string]any)["projects"].(map[string]any)["Create"] != "Δημιουργία έργου" {
+		t.Fatalf("page overrides: %v", i18n(b)["pages"])
+	}
+	task := b.Body["types"].(map[string]any)["task"].(map[string]any)
+	status := task["fields"].(map[string]any)["/status"].(map[string]any)
+	if status["title"] != "Κατάσταση" || status["labels"].(map[string]any)["in_progress"] != "Σε εξέλιξη" ||
+		task["actionLabels"].(map[string]any)["start"] != "Έναρξη" {
+		t.Fatalf("type labels: %v", task)
+	}
+
+	// The user's saved choice wins over the request and the browser.
+	me := mustOK(t, w.editor.do("GET", "/v1/features/user/"+w.editor.id, nil), 200)
+	mustOK(t, w.editor.do("PATCH", "/v1/features/user/"+w.editor.id, map[string]any{"locale": "el"},
+		"If-Match", fmt.Sprintf(`"%v"`, me.Body["version"])), 200)
+	if s := mustOK(t, w.editor.do("GET", "/v1/auth/session", nil), 200); s.Body["principal"].(map[string]any)["locale"] != "el" {
+		t.Fatalf("session: %s", s.Raw)
+	}
+	if got := i18n(mustOK(t, w.editor.do("GET", "/v1/ui?lang=en", nil, "Accept-Language", "en"), 200))["language"]; got != "el" {
+		t.Fatalf("saved language: %v", got)
+	}
+	bad := w.editor.do("PATCH", "/v1/features/user/"+w.editor.id, map[string]any{"locale": "<script>"}, "If-Match", `"2"`)
+	if bad.Status != 400 || !strings.Contains(bad.Raw, "pattern") {
+		t.Fatalf("locale must be a language tag: %d %s", bad.Status, bad.Raw)
+	}
 }

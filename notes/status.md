@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-01_
+_Last updated: 2026-11-02_
 
 ## Current phase: 10 – PostgreSQL + Valkey (next; needs Docker running).
 
@@ -267,5 +267,25 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
 - M5 DONE: manifest test `page` step (`expect.visible`), tracker `tests/ui-pages.test.json`, `organon init` scaffolds
   ui/app.json + items/item pages + tests/ui.test.json, docs/usage/11-ui.md + README/02/07/08/10/quickstart, AGENTS.md
   (UI rules, examples, layout, make web), root README.
+- File previews DONE: `preview` component (image/PDF iframe/video/audio, URL kept stable across live re-signing,
+  falls back to the file link on error); `link` `download`; blob field type has url + thumbnails. Blob GET: inline for
+  viewable types, `frame-ancestors 'self'`, http.ServeContent (Range) when the store is seekable; `Link` takes the
+  content type and gives thumbnails only for JPEG/PNG/GIF; a missing thumbnail serves the original (no-store).
+  Tracker attachment: video/* + audio/*, 16 MiB, Attachment card. e2e `TestBlobPreviews`.
+- Admin switches DONE (ADR 0017): `ORGANON_DISABLE_ADMIN_CONSOLE` (no /admin routes; root without UI is 404, and
+  /admin is 404 rather than the SPA), `ORGANON_DISABLE_ADMIN_ACCOUNTS` (`AuthConfig.NoAdmins`: Resolve refuses admin
+  principals, BootstrapAdmin skipped, CreateUser refuses the admin role); organon dev honours both. e2e
+  `TestAdminDisabled` (restart on the same SQLite DB), config `TestAdminSwitches`.
+- Tracker theme: `examples/tracker/ui/styles.css` restyles the base (palette + dark variant, status badges by
+  `o-badge-<value>`, board columns coloured by order, segmented tabs, sign-in page, motion with reduced-motion
+  fallback, phone layout). Charts now draw at 1:1 scale (ResizeObserver width; `height` is pixels; bars max 72px).
+- UI translations DONE (ADR 0018): `ui/app.json` `languages`, `ui/i18n/<lang>.json` (messages keyed by text or
+  `@key`, per-page overrides, per-type field/enum/transition labels); compile checks in `internal/ui/domain/i18n.go`
+  (same `{{ }}` multiset, stale/missing warnings, @key text type-checked at each use); renderer texts listed in
+  `internal/ui/domain/texts.json` (kept in sync by `sdk/ts/ui/test/texts.test.ts`, run by `make sdk`);
+  `organon ui i18n --lang <l> [--prune]`; bundle `i18n` (filtered to visible pages) + translated field metadata;
+  user `locale` field → `Principal.Locale` → session; language switch in header/login, `<html lang dir>`, locale
+  formatting, logical CSS properties. Tracker: en (labels, `@projects.intro`) + el. Not done: plurals, server
+  messages, editing translations in the builder.
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

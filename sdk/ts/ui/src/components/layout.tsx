@@ -73,7 +73,7 @@ register("dialog", ({ node, path }: ComponentProps) => {
     <>
       <div className="o-dialog-head">
         <h3>{ev.text(node.title)}</h3>
-        {!rt.editor && <button className="o-button o-button-link" aria-label="Close" onClick={() => page.closeDialog()}>×</button>}
+        {!rt.editor && <button className="o-button o-button-link" aria-label={rt.t("Close")} onClick={() => page.closeDialog()}>×</button>}
       </div>
       <Children nodes={node.children} path={`${path}/children`} />
     </>
@@ -123,7 +123,7 @@ export function safeURL(u: string): string | undefined {
 
 register("image", ({ node }: ComponentProps) => {
   const ev = useEval();
-  const src = safeURL(ev.text(node.src));
+  const src = safeURL(ev.plain(node.src));
   if (!src) return null;
   return <img className={withClass("o-image", node)} src={src} alt={ev.text(node.alt)} width={Number(node.width) || undefined} />;
 });
@@ -147,11 +147,11 @@ register("link", ({ node }: ComponentProps) => {
       </a>
     );
   }
-  const url = safeURL(ev.text(node.url));
+  const url = safeURL(ev.plain(node.url));
   if (!url) return <span className={className}>{text}</span>;
   // download saves instead of opening; browsers honour it for same-origin
   // URLs such as signed blob links (/v1/blobs/...).
-  if (node.download !== undefined) return <a className={className} href={url} download={ev.text(node.download)}>{text}</a>;
+  if (node.download !== undefined) return <a className={className} href={url} download={ev.plain(node.download)}>{text}</a>;
   return <a className={className} href={url} target="_blank" rel="noopener noreferrer">{text}</a>;
 });
 

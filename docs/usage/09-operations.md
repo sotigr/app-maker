@@ -32,6 +32,9 @@ secrets:
   dataKeyFile: /etc/organon/data.key          # 64 hex chars; encrypts TOTP secrets
   createDataKey: false                   # create it on first start (the Docker image does)
 bootstrap: { adminEmail: admin@example.com, adminPassword: "..." }   # first start only
+admin:
+  disableConsole: false                  # true: /admin is not served
+  disableAccounts: false                 # true: admins cannot sign in; no bootstrap admin
 limits: { requestsPerMinute: 600, anonymousPerMinute: 60 }
 blobs: { driver: fs, dir: /var/lib/organon/blobs }
 runner: { isolation: process, maxWorkers: 4, cacheDir: /var/cache/organon-runner }
@@ -51,9 +54,29 @@ Environment variables: `ORGANON_ROLES`, `ORGANON_TOPOLOGY`, `ORGANON_DEV`, `ORGA
 `ORGANON_BOOTSTRAP_ADMIN_PASSWORD`, `ORGANON_LOG_LEVEL`, `ORGANON_LOG_FORMAT`,
 `ORGANON_LLM_PROVIDER`, `ORGANON_RUNNER_ISOLATION`, `ORGANON_RUNNER_LISTEN`,
 `ORGANON_RUNNER_ADDR`, `ORGANON_BLOBS_DRIVER`, `ORGANON_BLOBS_DIR`, `ORGANON_OTLP_ENDPOINT`,
-`ORGANON_TRUST_PROXY_HEADERS`, `ORGANON_CREATE_DATA_KEY`, `ORGANON_ALLOW_BREAKING`, and
+`ORGANON_TRUST_PROXY_HEADERS`, `ORGANON_CREATE_DATA_KEY`, `ORGANON_ALLOW_BREAKING`,
+`ORGANON_DISABLE_ADMIN_CONSOLE`, `ORGANON_DISABLE_ADMIN_ACCOUNTS`, and
 `ORGANON_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
 configuration stops startup with an error naming the key.
+
+## Running without admins
+
+For a production instance that should expose only the app:
+
+| Setting | Effect |
+| --- | --- |
+| `ORGANON_DISABLE_ADMIN_CONSOLE=true` | `/admin` is not served (404). The admin API stays, for admins. |
+| `ORGANON_DISABLE_ADMIN_ACCOUNTS=true` | Any user or service account with the `admin` role is refused: password and OIDC sign-in return `403 admin accounts are disabled`; its sessions and API keys return 401. No bootstrap admin is created, and admins cannot be created. Other users are unaffected. |
+
+With admin accounts disabled, everything that needs an admin is
+unavailable: `organon plan`/`deploy` over HTTP, creating users with
+passwords, the audit log, flow-run and job retries, and the manifest
+editors. Deploy by restarting `organond` with the new manifest directory
+(`--manifest`; see below). Existing users keep signing in; new users
+need an OIDC provider with `signup: true` (optionally limited by
+`allowedDomains`), so create them before switching admins off otherwise.
+Unset the variable and restart to get the admins back; their accounts
+are kept.
 
 ## Which manifest runs
 

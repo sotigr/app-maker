@@ -33,3 +33,19 @@ func TestEnvOverrides(t *testing.T) {
 		t.Fatalf("unknown role: %v", err)
 	}
 }
+
+// ADR 0017: the admin console and admin accounts can be switched off.
+func TestAdminSwitches(t *testing.T) {
+	c, err := Load("", envOf(map[string]string{"ORGANON_MANIFEST": "m",
+		"ORGANON_DISABLE_ADMIN_CONSOLE": "true", "ORGANON_DISABLE_ADMIN_ACCOUNTS": "1"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Admin.DisableConsole || !c.Admin.DisableAccounts {
+		t.Fatalf("switches not applied: %+v", c.Admin)
+	}
+	if _, err := Load("", envOf(map[string]string{"ORGANON_MANIFEST": "m", "ORGANON_DISABLE_ADMIN_ACCOUNTS": "yes please"})); err == nil ||
+		!strings.Contains(err.Error(), "ORGANON_DISABLE_ADMIN_ACCOUNTS") {
+		t.Fatalf("invalid boolean: %v", err)
+	}
+}

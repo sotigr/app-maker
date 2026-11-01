@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	accessapi "organon/internal/access/api"
 	"organon/internal/integration/application"
@@ -56,7 +57,7 @@ func (h *Handler) put(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	rc, info, err := h.blobs.Download(r.Context(), r.PathValue("id"), q.Get("exp"), q.Get("sig"))
+	rc, info, fallback, err := h.blobs.Download(r.Context(), r.PathValue("id"), q.Get("exp"), q.Get("sig"))
 	if err != nil {
 		httpserver.WriteError(w, r, err)
 		return
@@ -64,15 +65,42 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = rc.Close() }()
 	hd := w.Header()
 	hd.Set("Content-Type", info.ContentType)
-	hd.Set("Content-Length", strconv.FormatInt(info.Size, 10))
-	hd.Set("Cache-Control", "private, max-age=300")
+	if fallback {
+		hd.Set("Cache-Control", "no-store") // the thumbnail replaces it soon
+	} else {
+		hd.Set("Cache-Control", "private, max-age=300")
+	}
 	hd.Set("X-Content-Type-Options", "nosniff")
-	// Uploaded content is never active in the app's origin.
-	hd.Set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self'; media-src 'self'")
-	if strings.HasPrefix(info.ContentType, "image/") && info.ContentType != "image/svg+xml" {
+	// Uploaded content is never active in the app's origin; only the app
+	// itself may frame it (PDF previews).
+	hd.Set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; frame-ancestors 'self'")
+	if viewable(info.ContentType) {
 		hd.Set("Content-Disposition", "inline")
 	} else {
 		hd.Set("Content-Disposition", "attachment")
 	}
+	// Seekable stores answer Range requests, which video and audio need.
+	if rs, ok := rc.(io.ReadSeeker); ok {
+		http.ServeContent(w, r, "", time.Time{}, rs)
+		return
+	}
+	hd.Set("Content-Length", strconv.FormatInt(info.Size, 10))
 	_, _ = io.Copy(w, rc)
+}
+
+// viewable reports whether browsers show contentType themselves without
+// running it in the page: images (not SVG), PDF, video, and audio.
+func viewable(contentType string) bool {
+	switch contentType {
+	case "image/svg+xml":
+		return false
+	case "application/pdf":
+		return true
+	}
+	for _, p := range []string{"image/", "video/", "audio/"} {
+		if strings.HasPrefix(contentType, p) {
+			return true
+		}
+	}
+	return false
 }

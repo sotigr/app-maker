@@ -121,10 +121,11 @@ type principalDTO struct {
 	Kind   string   `json:"kind"`
 	Roles  []string `json:"roles"`
 	Groups []string `json:"groups"`
+	Locale string   `json:"locale,omitempty"`
 }
 
 func toDTO(p accessapi.Principal) principalDTO {
-	d := principalDTO{Kind: string(p.Kind), Roles: append([]string{}, p.Roles...), Groups: []string{}}
+	d := principalDTO{Kind: string(p.Kind), Roles: append([]string{}, p.Roles...), Groups: []string{}, Locale: p.Locale}
 	if !p.ID.IsZero() {
 		d.ID = p.ID.String()
 	}

@@ -69,6 +69,18 @@ type Bundle struct {
 	Pages         []PageDTO           `json:"pages"`
 	Types         map[string]TypeMeta `json:"types"`
 	Styles        string              `json:"styles,omitempty"`
+	// I18n is set when the app declares languages (ADR 0018).
+	I18n *I18n `json:"i18n,omitempty"`
+}
+
+// I18n is the bundle's language and the translations it needs.
+type I18n struct {
+	Language  string   `json:"language"`
+	Languages []string `json:"languages"`
+	// Messages translate the texts of the shell, of the pages in the
+	// bundle, and of the renderer; Pages override them per page.
+	Messages map[string]string            `json:"messages"`
+	Pages    map[string]map[string]string `json:"pages,omitempty"`
 }
 
 // PageDTO is one page of the bundle.
@@ -88,6 +100,8 @@ type TypeMeta struct {
 	StateMachines map[string]StateMeta `json:"stateMachines,omitempty"`
 	Children      []string             `json:"children,omitempty"`
 	Ownable       bool                 `json:"ownable,omitempty"`
+	// ActionLabels are translated transition buttons.
+	ActionLabels map[string]string `json:"actionLabels,omitempty"`
 	// Actions maps every action name to its input schema (null for
 	// state-machine actions, transition, and transfer).
 	Actions map[string]json.RawMessage `json:"actions"`
@@ -104,6 +118,8 @@ type FieldMeta struct {
 	ReadOnly bool     `json:"readOnly,omitempty"`
 	Format   string   `json:"format,omitempty"`
 	Thumbs   bool     `json:"thumbnails,omitempty"`
+	// Labels are translated enum values.
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // StateMeta is a state machine without guards.
@@ -134,14 +150,50 @@ func audience(p accessapi.Principal) schemaapi.Audience {
 	return schemaapi.AudPublic
 }
 
-// Bundle returns the UI for p.
-func (s *Service) Bundle(p accessapi.Principal) Bundle {
+// Language picks the UI language for p: the user's saved choice, then
+// prefs (the requested language, then the browser's) in order, then the
+// first language. Tags match exactly, else by base language ("el-GR"
+// matches "el").
+func (s *Service) Language(p accessapi.Principal, prefs []string) string {
+	langs := s.d.UI.Languages
+	if len(langs) == 0 {
+		return ""
+	}
+	base := func(t string) string { return strings.ToLower(strings.SplitN(t, "-", 2)[0]) }
+	for _, want := range append([]string{p.Locale}, prefs...) {
+		if want == "" {
+			continue
+		}
+		for _, l := range langs {
+			if strings.EqualFold(l, want) {
+				return l
+			}
+		}
+		for _, l := range langs {
+			if base(l) == base(want) {
+				return l
+			}
+		}
+	}
+	return langs[0]
+}
+
+// Bundle returns the UI for p in the language Language picks from prefs.
+func (s *Service) Bundle(p accessapi.Principal, prefs []string) Bundle {
 	b := Bundle{Version: s.d.Version, Pages: []PageDTO{}, Types: map[string]TypeMeta{}}
 	if !s.Enabled() {
 		return b
 	}
 	ui := s.d.UI
 	now := s.d.Clock.Now()
+	var tr *domain.Translations
+	if len(ui.Languages) > 0 {
+		lang := s.Language(p, prefs)
+		tr = ui.Merged(lang)
+		b.I18n = &I18n{Language: lang, Languages: ui.Languages, Messages: map[string]string{}}
+		// Once the pages are chosen; I18n is shared with the returned copy.
+		defer func() { b.I18n.Messages, b.I18n.Pages = s.messages(tr, b.Pages) }()
+	}
 	var app map[string]any
 	_ = json.Unmarshal(ui.App.Doc, &app)
 	if _, ok := app["nav"]; ok {
@@ -180,7 +232,7 @@ func (s *Service) Bundle(p accessapi.Principal) Bundle {
 		if !ok {
 			continue
 		}
-		b.Types[name] = s.meta(ct, aud)
+		b.Types[name] = s.meta(ct, aud, labelsOf(tr, name))
 		// Ref targets are rendered by label, so describe them too.
 		for _, f := range ct.TopFields() {
 			if f.Kind != kernel.KindRef {
@@ -188,7 +240,7 @@ func (s *Service) Bundle(p accessapi.Principal) Bundle {
 			}
 			for _, t := range s.d.Types.Resolve(f.RefTarget) {
 				if _, done := b.Types[t.Name]; !done {
-					b.Types[t.Name] = s.meta(t, aud)
+					b.Types[t.Name] = s.meta(t, aud, labelsOf(tr, t.Name))
 				}
 			}
 		}
@@ -196,7 +248,45 @@ func (s *Service) Bundle(p accessapi.Principal) Bundle {
 	return b
 }
 
-func (s *Service) meta(ct *schemaapi.CompiledType, aud schemaapi.Audience) TypeMeta {
+func labelsOf(tr *domain.Translations, typ string) domain.TypeLabels {
+	if tr == nil {
+		return domain.TypeLabels{}
+	}
+	return tr.Types[typ]
+}
+
+// messages returns the translations of the shell, the renderer, and the
+// given pages only, so a bundle reveals no text of pages it leaves out.
+func (s *Service) messages(tr *domain.Translations, pages []PageDTO) (map[string]string, map[string]map[string]string) {
+	msgs := map[string]string{}
+	add := func(texts []string) {
+		for _, t := range texts {
+			if v, ok := tr.Messages[t]; ok {
+				msgs[t] = v
+			}
+		}
+	}
+	add(s.d.UI.AppTexts)
+	add(domain.BuiltinTexts)
+	var byPage map[string]map[string]string
+	for _, dto := range pages {
+		for _, pg := range s.d.UI.Pages {
+			if pg.Name != dto.Name {
+				continue
+			}
+			add(pg.Texts)
+			if m := tr.Pages[pg.Name]; len(m) > 0 {
+				if byPage == nil {
+					byPage = map[string]map[string]string{}
+				}
+				byPage[pg.Name] = m
+			}
+		}
+	}
+	return msgs, byPage
+}
+
+func (s *Service) meta(ct *schemaapi.CompiledType, aud schemaapi.Audience, labels domain.TypeLabels) TypeMeta {
 	m := TypeMeta{Name: ct.Name, Title: ct.Title, Fields: map[string]FieldMeta{},
 		Ownable: ct.HasTrait(schemaapi.TraitOwnable), Actions: map[string]json.RawMessage{}}
 	if m.Ownable {
@@ -226,6 +316,10 @@ func (s *Service) meta(ct *schemaapi.CompiledType, aud schemaapi.Audience) TypeM
 		if f.Blob != nil && len(f.Blob.Thumbnails) > 0 {
 			fm.Thumbs = true
 		}
+		if l := labels.Fields[f.Path]; l != "" {
+			fm.Title = l
+		}
+		fm.Labels = labels.Values[f.Path]
 		m.Fields[f.Path] = fm
 	}
 	if len(ct.StateMachines) > 0 {
@@ -241,6 +335,7 @@ func (s *Service) meta(ct *schemaapi.CompiledType, aud schemaapi.Audience) TypeM
 			}
 			m.StateMachines[path] = sm2
 		}
+		m.ActionLabels = labels.Actions
 	}
 	for _, c := range ct.Children {
 		for _, t := range s.d.Types.Resolve(c) {
@@ -257,7 +352,7 @@ func (s *Service) AllTypes(p accessapi.Principal) map[string]TypeMeta {
 	out := map[string]TypeMeta{}
 	aud := audience(p)
 	for _, ct := range s.d.Types.All() {
-		out[ct.Name] = s.meta(ct, aud)
+		out[ct.Name] = s.meta(ct, aud, domain.TypeLabels{})
 	}
 	return out
 }

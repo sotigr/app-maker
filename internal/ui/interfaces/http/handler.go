@@ -6,6 +6,8 @@ package http
 import (
 	"io/fs"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 
 	accessapi "organon/internal/access/api"
@@ -23,10 +25,14 @@ type Handler struct {
 	svc *application.Service
 	// web is the built renderer (web/dist): index.html and assets/.
 	web fs.FS
+	// console is whether /admin is served (the root's fallback).
+	console bool
 }
 
 // New returns a handler. web may be nil (no renderer built in).
-func New(svc *application.Service, web fs.FS) *Handler { return &Handler{svc: svc, web: web} }
+func New(svc *application.Service, web fs.FS, console bool) *Handler {
+	return &Handler{svc: svc, web: web, console: console}
+}
 
 // Register adds the routes. "GET /" catches every path no other route
 // matches, so client-side routes load the renderer.
@@ -41,7 +47,37 @@ func (h *Handler) Register(mux *http.ServeMux) {
 
 func (h *Handler) bundle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	httpserver.WriteJSON(w, http.StatusOK, h.svc.Bundle(accessapi.PrincipalFrom(r.Context())))
+	prefs := []string{r.URL.Query().Get("lang")}
+	prefs = append(prefs, acceptLanguages(r.Header.Get("Accept-Language"))...)
+	httpserver.WriteJSON(w, http.StatusOK, h.svc.Bundle(accessapi.PrincipalFrom(r.Context()), prefs))
+}
+
+// acceptLanguages returns the tags of an Accept-Language header, most
+// preferred first.
+func acceptLanguages(header string) []string {
+	type tag struct {
+		name string
+		q    float64
+	}
+	var tags []tag
+	for _, part := range strings.Split(header, ",") {
+		name, params, _ := strings.Cut(strings.TrimSpace(part), ";")
+		q := 1.0
+		if v, ok := strings.CutPrefix(strings.TrimSpace(params), "q="); ok {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				q = f
+			}
+		}
+		if name != "" && name != "*" && q > 0 {
+			tags = append(tags, tag{name, q})
+		}
+	}
+	sort.SliceStable(tags, func(i, j int) bool { return tags[i].q > tags[j].q })
+	out := make([]string, len(tags))
+	for i, t := range tags {
+		out[i] = t.name
+	}
+	return out
 }
 
 func (h *Handler) catalog(w http.ResponseWriter, r *http.Request) {
@@ -102,15 +138,15 @@ func (h *Handler) runtime(w http.ResponseWriter, r *http.Request) {
 }
 
 // page serves index.html for every client-side route of the app. Without
-// a UI the root goes to the admin console.
+// a UI the root goes to the admin console, if it is served.
 func (h *Handler) page(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
-	if strings.HasPrefix(p, "/v1/") || strings.HasPrefix(p, "/admin/") || strings.HasPrefix(p, "/assets/") {
+	if p == "/admin" || strings.HasPrefix(p, "/v1/") || strings.HasPrefix(p, "/admin/") || strings.HasPrefix(p, "/assets/") {
 		httpserver.WriteError(w, r, kernel.ErrNotFound)
 		return
 	}
 	if !h.svc.Enabled() || h.web == nil {
-		if p == "/" {
+		if p == "/" && h.console {
 			http.Redirect(w, r, "/admin/", http.StatusFound)
 			return
 		}

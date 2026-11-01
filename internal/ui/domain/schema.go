@@ -177,6 +177,9 @@ func AppSchema() map[string]any {
 			"home":         obj{"type": "string", "description": "page shown at the app root"},
 			"requireLogin": obj{"type": "boolean", "default": true},
 			"notFound":     obj{"type": "string"},
+			"languages": obj{"type": "array", "minItems": 1, "uniqueItems": true,
+				"description": "UI languages; the first is the language the ui/ files are written in",
+				"items":       obj{"type": "string", "pattern": langRe.String()}},
 			"nav": obj{"type": "array", "items": obj{"type": "object", "required": []string{"label", "page"},
 				"additionalProperties": false, "properties": obj{
 					"label":   obj{"type": "string", "description": "text with {{ expr }} interpolations"},
@@ -185,6 +188,25 @@ func AppSchema() map[string]any {
 					"visible": obj{"type": "string", "description": "expression over principal"},
 				}}},
 			"x-layout": obj{},
+		},
+	}
+}
+
+// I18nSchema returns the JSON Schema of ui/i18n/<lang>.json (ADR 0018).
+func I18nSchema() map[string]any {
+	strs := obj{"type": "object", "additionalProperties": obj{"type": "string"}}
+	return obj{
+		"$schema": draft, "title": "Organon UI translations", "type": "object", "additionalProperties": false,
+		"properties": obj{
+			"$schema":  obj{"type": "string"},
+			"messages": obj{"type": "object", "description": "text as written (or @key) -> translation", "additionalProperties": obj{"type": "string"}},
+			"pages":    obj{"type": "object", "description": "page name -> text -> translation on that page", "additionalProperties": strs},
+			"types": obj{"type": "object", "additionalProperties": obj{"type": "object", "additionalProperties": false,
+				"properties": obj{
+					"fields":  obj{"type": "object", "description": "field path -> label", "additionalProperties": obj{"type": "string"}},
+					"values":  obj{"type": "object", "description": "enum field path -> value -> label", "additionalProperties": strs},
+					"actions": obj{"type": "object", "description": "transition action -> button label", "additionalProperties": obj{"type": "string"}},
+				}}},
 		},
 	}
 }

@@ -109,6 +109,7 @@ func TestValidationRules(t *testing.T) {
 		{"link needs page or url", "", `{"component":"link","text":"x"}`, "/body", "exactly one of page and url"},
 		{"download needs url", "", `{"component":"link","text":"x","page":"p","params":{"id":"'1'"},"download":""}`, "/body/download", "needs url"},
 		{"blob fields have url but no name", taskData, `{"component":"text","text":"{{ data.task.attachment.name }}"}`, "/body/text", "unknown field name"},
+		{"preview of a non-file field", taskData, `{"component":"preview","source":"task","path":"/title"}`, "/body/path", "not a file"},
 		{"form field not writable", "", `{"component":"form","mode":"create","type":"task","fields":[{"path":"/status"}]}`,
 			"/body/fields/0/path", "cannot be written"},
 		{"update form needs id", "", `{"component":"form","mode":"update","type":"task"}`, "/body", "id is required"},
@@ -291,7 +292,7 @@ func mustJSON(v any) []byte {
 // The generated JSON Schemas accept every tracker UI file, so editor
 // completion never contradicts organon validate.
 func TestSchemasAcceptTracker(t *testing.T) {
-	for name, schema := range map[string]map[string]any{"page": domain.PageSchema(), "app": domain.AppSchema()} {
+	for name, schema := range map[string]map[string]any{"page": domain.PageSchema(), "app": domain.AppSchema(), "i18n": domain.I18nSchema()} {
 		c := js.NewCompiler()
 		raw, _ := json.Marshal(schema)
 		doc, _ := js.UnmarshalJSON(strings.NewReader(string(raw)))
@@ -303,8 +304,11 @@ func TestSchemasAcceptTracker(t *testing.T) {
 			t.Fatal(err)
 		}
 		files, _ := filepath.Glob("../../../examples/tracker/ui/pages/*.json")
-		if name == "app" {
+		switch name {
+		case "app":
 			files = []string{"../../../examples/tracker/ui/app.json"}
+		case "i18n":
+			files, _ = filepath.Glob("../../../examples/tracker/ui/i18n/*.json")
 		}
 		for _, f := range files {
 			b, _ := os.ReadFile(f)

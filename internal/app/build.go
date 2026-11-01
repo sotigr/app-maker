@@ -237,6 +237,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		return nil, err
 	}
 	authCfg.Audit = rt.Content.AppendAudit
+	authCfg.NoAdmins = cfg.Admin.DisableAccounts
 	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 	settings := c.Manifest.App.Settings
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
@@ -322,8 +323,10 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		opt.Deployer.register(mux)
 	}
 	(&editorHandler{rt: rt}).register(mux)
-	mux.Handle("GET /admin/", adminui.Handler())
-	mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusFound))
+	if !cfg.Admin.DisableConsole {
+		mux.Handle("GET /admin/", adminui.Handler())
+		mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusFound))
+	}
 	rt.UI = uiapp.New(uiapp.Deps{UI: c.UI, Types: c.Types, Clock: opt.Clock, Version: c.Manifest.Hash[:12],
 		FlowActions: func(ct *schemaapi.CompiledType) map[string]json.RawMessage {
 			out := map[string]json.RawMessage{}
@@ -335,7 +338,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 			return out
 		}})
 	(&uiEditor{rt: rt}).register(mux)
-	uihttp.New(rt.UI, webui.FS()).Register(mux)
+	uihttp.New(rt.UI, webui.FS(), !cfg.Admin.DisableConsole).Register(mux)
 	maxBody := cfg.HTTP.MaxBodyBytes
 	if maxBody == 0 {
 		maxBody = 1 << 20
@@ -445,6 +448,9 @@ func (rt *Runtime) Bootstrap(ctx context.Context) error {
 	}
 	if created {
 		rt.Log.Info("bootstrap admin created", "login", rt.Cfg.Bootstrap.AdminEmail)
+	}
+	if rt.Cfg.Admin.DisableAccounts {
+		rt.Log.Info("admin accounts are disabled; admins cannot sign in")
 	}
 	return nil
 }

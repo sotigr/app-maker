@@ -97,9 +97,11 @@
     },
     "attachment": {
       "x-kind": "blob",
-      "x-maxBytes": 1048576,
+      "x-maxBytes": 16777216,
       "x-contentTypes": [
         "image/*",
+        "video/*",
+        "audio/*",
         "application/pdf",
         "application/json",
         "text/plain"

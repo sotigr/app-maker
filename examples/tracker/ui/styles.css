@@ -1,8 +1,295 @@
-/* App styles, loaded after the Organon base theme. Override the theme
-   variables or style the o-* classes. */
+/* Tracker theme, loaded after the Organon base theme. It overrides the
+   --o-* variables and restyles the stable o-* classes; nothing here is
+   required by the renderer. */
+
+/* ---- Palette ------------------------------------------------------------ */
 :root {
-  --o-accent: #4f46e5;
+  --o-font: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --o-bg: #f5f6f9;
+  --o-surface: #ffffff;
+  --o-text: #171923;
+  --o-muted: #6a7184;
+  --o-line: #e5e7ee;
+  --o-accent: #5b5bd6;
+  --o-accent-text: #ffffff;
+  --o-success: #18794e;
+  --o-warning: #a35200;
+  --o-danger: #cd2b31;
+  --o-radius: 12px;
+  --o-gap: 18px;
+  --o-shadow: 0 1px 2px rgb(23 25 35 / 0.04), 0 2px 8px -2px rgb(23 25 35 / 0.06);
+  --o-chart-0: #5b5bd6;
+  --o-chart-1: #12a594;
+  --o-chart-2: #f5a524;
+  --o-chart-3: #e54666;
+  --o-chart-4: #0090ff;
+  --o-chart-5: #8e4ec6;
+
+  /* Theme-only tokens. */
+  --t-accent-soft: color-mix(in srgb, var(--o-accent) 10%, transparent);
+  --t-accent-strong: #4646c1;
+  --t-raised: 0 1px 2px rgb(23 25 35 / 0.05), 0 8px 24px -6px rgb(23 25 35 / 0.12);
+  --t-overlay: 0 24px 64px -12px rgb(23 25 35 / 0.35);
+  --t-header: rgb(255 255 255 / 0.78);
+  --t-sunken: #eef0f5;
+  --t-todo: #7c8597;
+  --t-progress: #f5a524;
+  --t-done: #12a594;
+  --t-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 62% no-repeat;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --o-bg: #0d0e12;
+    --o-surface: #16181f;
+    --o-text: #eceef4;
+    --o-muted: #969cad;
+    --o-line: #262935;
+    --o-accent: #8d8dff;
+    --o-accent-text: #0d0e1a;
+    --o-success: #3dd68c;
+    --o-warning: #ffc53d;
+    --o-danger: #ff6369;
+    --o-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 2px 8px -2px rgb(0 0 0 / 0.5);
+    --t-accent-strong: #a5a5ff;
+    --t-raised: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 28px -8px rgb(0 0 0 / 0.6);
+    --t-overlay: 0 24px 64px -12px rgb(0 0 0 / 0.8);
+    --t-header: rgb(22 24 31 / 0.78);
+    --t-sunken: #121319;
+    --t-todo: #8b93a7;
+    --t-progress: #ffc53d;
+    --t-done: #3dd68c;
+  }
+}
+
+/* ---- Page --------------------------------------------------------------- */
+body {
+  font-size: 14.5px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1200px 420px at 10% -10%, color-mix(in srgb, var(--o-accent) 9%, transparent), transparent 70%),
+    radial-gradient(900px 380px at 100% 0%, color-mix(in srgb, var(--o-chart-1) 7%, transparent), transparent 70%),
+    var(--o-bg);
+  background-attachment: fixed;
+}
+::selection { background: color-mix(in srgb, var(--o-accent) 25%, transparent); }
+:focus-visible { outline: 2px solid var(--o-accent); outline-offset: 2px; }
+.o-main { max-width: 1160px; padding: 32px 20px 80px; }
+.o-page { animation: t-rise 0.25s var(--t-ease); }
+
+/* ---- Header ------------------------------------------------------------- */
+.o-header {
+  padding: 12px 28px;
+  background: var(--t-header);
+  backdrop-filter: saturate(1.6) blur(14px);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom-color: color-mix(in srgb, var(--o-line) 70%, transparent);
+}
+.o-brand { font-weight: 700; letter-spacing: -0.02em; font-size: 1.02rem; }
+.o-brand::before {
+  content: "";
+  width: 22px; height: 22px; border-radius: 7px;
+  background:
+    var(--t-mark),
+    linear-gradient(135deg, var(--o-accent), var(--o-chart-1));
+  box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--o-accent) 60%, transparent);
+}
+.o-nav { gap: 2px; }
+.o-nav a { font-weight: 500; padding: 6px 12px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
+.o-nav a:hover { background: var(--t-accent-soft); color: var(--o-text); }
+.o-nav a.o-nav-active { background: var(--t-accent-soft); color: var(--t-accent-strong); font-weight: 600; }
+.o-header .o-button-link { color: var(--o-muted); font-weight: 500; }
+.o-header .o-button-link:hover { color: var(--o-text); }
+
+/* ---- Type --------------------------------------------------------------- */
+.o-heading { letter-spacing: -0.022em; font-weight: 700; }
+h1.o-heading { font-size: 1.85rem; }
+h2.o-heading { font-size: 1.35rem; }
+.o-link { font-weight: 500; }
+.o-page > .o-stack > .o-link:first-child { color: var(--o-muted); font-size: 0.9rem; }
+.o-page > .o-stack > .o-link:first-child:hover { color: var(--o-accent); text-decoration: none; }
+
+/* ---- Surfaces ----------------------------------------------------------- */
+.o-card { padding: 20px; gap: 14px; border-color: color-mix(in srgb, var(--o-line) 85%, transparent); }
+.o-card-title { font-size: 0.78rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; color: var(--o-muted); }
+.o-stat {
+  position: relative; overflow: hidden;
+  padding: 18px 20px; box-shadow: var(--o-shadow);
+  display: flex; flex-direction: column-reverse; gap: 2px;
+}
+.o-stat::after {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--o-accent), var(--o-chart-1));
+}
+.o-stat-value { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.o-stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.o-empty { border-radius: var(--o-radius); background: color-mix(in srgb, var(--o-surface) 50%, transparent); padding: 28px; }
+
+/* ---- Buttons ------------------------------------------------------------ */
+.o-button {
+  padding: 7px 14px; border-radius: 9px; font-weight: 550;
+  box-shadow: 0 1px 2px rgb(23 25 35 / 0.06);
+  transition: transform 0.12s var(--t-ease), box-shadow 0.15s, background 0.15s, border-color 0.15s;
+}
+.o-button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--o-muted) 55%, transparent); box-shadow: var(--o-shadow); }
+.o-button:active:not(:disabled) { transform: translateY(1px); }
+.o-button-primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--o-accent) 88%, white), var(--o-accent));
+  border-color: var(--t-accent-strong);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.2) inset, 0 2px 6px -1px color-mix(in srgb, var(--o-accent) 55%, transparent);
+}
+.o-button-primary:hover:not(:disabled) {
+  border-color: var(--t-accent-strong);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.2) inset, 0 6px 16px -4px color-mix(in srgb, var(--o-accent) 65%, transparent);
+}
+.o-button-link, .o-button-link:hover:not(:disabled) { box-shadow: none; }
+.o-menu-items, .o-ref-menu { border-radius: 10px; box-shadow: var(--t-raised); padding: 5px; }
+.o-menu-item, .o-ref-option { border-radius: 6px; }
+.o-menu-item:hover, .o-ref-option:hover { background: var(--t-accent-soft); }
+
+/* ---- Forms -------------------------------------------------------------- */
+.o-form { gap: 14px; }
+.o-field-label { font-size: 0.8rem; font-weight: 600; color: var(--o-text); opacity: 0.8; }
+.o-input {
+  padding: 8px 11px; border-radius: 9px; background: var(--o-surface);
+  box-shadow: 0 1px 1px rgb(23 25 35 / 0.03) inset;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.o-input:hover { border-color: color-mix(in srgb, var(--o-muted) 45%, transparent); }
+.o-input:focus { outline: none; border-color: var(--o-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--o-accent) 22%, transparent); }
+textarea.o-input { resize: vertical; min-height: 84px; }
+.o-file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.9rem; }
+.o-file input[type="file"] { font: inherit; color: var(--o-muted); }
+.o-file input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 550; margin-inline-end: 10px; padding: 6px 12px; cursor: pointer;
+  border: 1px dashed color-mix(in srgb, var(--o-accent) 55%, transparent); border-radius: 8px;
+  background: var(--t-accent-soft); color: var(--t-accent-strong);
+}
+
+/* ---- Tabs: a segmented control ------------------------------------------ */
+.o-tab-list { border-bottom: 0; align-self: flex-start; gap: 2px; padding: 3px; background: var(--t-sunken); border-radius: 10px; }
+.o-tab { border: 0; border-radius: 8px; padding: 5px 14px; font-weight: 550; transition: background 0.15s, color 0.15s; }
+.o-tab:hover { color: var(--o-text); }
+.o-tab-active { background: var(--o-surface); color: var(--o-text); box-shadow: 0 1px 3px rgb(23 25 35 / 0.12); }
+
+/* ---- Tables ------------------------------------------------------------- */
+.o-table-wrap { box-shadow: var(--o-shadow); }
+.o-table th {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  background: color-mix(in srgb, var(--t-sunken) 60%, var(--o-surface)); padding: 10px 16px;
+}
+.o-table td { padding: 12px 16px; }
+.o-table td:first-child { font-weight: 550; }
+.o-table-click tbody tr { transition: background 0.12s; }
+.o-table-click tbody tr:hover { background: var(--t-accent-soft); }
+
+/* ---- Badges: status colours --------------------------------------------- */
+/* Labels come from ui/i18n (en.json too), so no text-transform here. */
+.o-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px 2px 8px; font-size: 0.78rem; font-weight: 600;
+  border: 0; background: color-mix(in srgb, var(--t-todo) 14%, transparent); color: var(--o-text);
+}
+.o-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--t-todo); }
+.o-badge-in_progress { background: color-mix(in srgb, var(--t-progress) 18%, transparent); }
+.o-badge-in_progress::before { background: var(--t-progress); }
+.o-badge-done { background: color-mix(in srgb, var(--t-done) 16%, transparent); }
+.o-badge-done::before { background: var(--t-done); }
+
+/* ---- Detail lists ------------------------------------------------------- */
+.o-detail { gap: 0; border: 1px solid var(--o-line); border-radius: var(--o-radius); background: var(--o-surface); box-shadow: var(--o-shadow); overflow: hidden; }
+.o-detail dt, .o-detail dd { padding: 10px 16px; border-bottom: 1px solid var(--o-line); }
+.o-detail-row:last-child dt, .o-detail-row:last-child dd { border-bottom: 0; }
+.o-detail dt { font-size: 0.82rem; font-weight: 500; background: color-mix(in srgb, var(--t-sunken) 45%, var(--o-surface)); }
+.o-detail dd { font-weight: 500; }
+.o-blob { font-size: 0.9rem; }
+
+/* ---- Board -------------------------------------------------------------- */
+.o-board { gap: 14px; }
+.o-board-col {
+  --col: var(--t-todo);
+  background: var(--t-sunken);
+  border: 1px solid color-mix(in srgb, var(--o-line) 70%, transparent);
+  border-top: 3px solid var(--col);
+  border-radius: var(--o-radius); padding: 10px; gap: 8px; min-height: 160px;
+  transition: background 0.15s, outline-color 0.15s;
+}
+.o-board-col:nth-child(2) { --col: var(--t-progress); }
+.o-board-col:nth-child(3) { --col: var(--t-done); }
+.o-board-over { outline: 2px dashed var(--col); outline-offset: 2px; background: color-mix(in srgb, var(--col) 8%, var(--t-sunken)); }
+.o-board-head { font-size: 0.74rem; letter-spacing: 0.07em; padding: 4px 4px 6px; align-items: center; }
+.o-board-head .o-muted {
+  min-width: 22px; padding: 0 7px; border-radius: 999px; text-align: center;
+  background: color-mix(in srgb, var(--col) 18%, transparent); color: var(--o-text);
 }
 .o-board-card {
-  border-left: 3px solid var(--o-accent);
+  border-radius: 10px; padding: 12px 14px; border-color: color-mix(in srgb, var(--o-line) 80%, transparent);
+  transition: transform 0.15s var(--t-ease), box-shadow 0.15s, border-color 0.15s;
+}
+.o-board-card:hover { transform: translateY(-2px); box-shadow: var(--t-raised); border-color: color-mix(in srgb, var(--col) 50%, var(--o-line)); }
+.o-board-card:active { cursor: grabbing; }
+.o-board-card .o-link { color: var(--o-text); font-weight: 550; }
+.o-board-card .o-link:hover { color: var(--o-accent); text-decoration: none; }
+
+/* ---- Charts ------------------------------------------------------------- */
+.o-chart { border-radius: var(--o-radius); padding: 16px 20px; box-shadow: var(--o-shadow); }
+.o-chart figcaption { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.o-pie svg { filter: drop-shadow(0 4px 10px rgb(23 25 35 / 0.12)); }
+.o-pie path { stroke: var(--o-surface); stroke-width: 2; }
+.o-legend { display: flex; flex-direction: column; gap: 4px; }
+.o-swatch { border-radius: 50%; }
+.o-chart-svg rect { transition: opacity 0.15s; }
+.o-chart-svg rect:hover { opacity: 0.8; }
+.o-chart-value { font-weight: 600; fill: var(--o-text); }
+
+/* ---- Comments (task page) ----------------------------------------------- */
+.o-page[data-page="task"] .o-list { gap: 10px; }
+.o-page[data-page="task"] .o-list-item {
+  border: 0; padding: 12px 14px; border-radius: 10px;
+  background: var(--t-sunken); border-inline-start: 3px solid color-mix(in srgb, var(--o-accent) 45%, transparent);
+}
+.o-page[data-page="task"] .o-list-item .o-field { font-size: 0.78rem; color: var(--o-muted); margin-top: 4px; }
+
+/* ---- Overlays ----------------------------------------------------------- */
+.o-dialog-backdrop { background: rgb(13 14 20 / 0.45); backdrop-filter: blur(3px); animation: t-fade 0.15s ease-out; }
+.o-dialog { border-radius: 16px; padding: 24px; gap: 16px; border: 1px solid var(--o-line); box-shadow: var(--t-overlay); animation: t-pop 0.2s var(--t-ease); }
+.o-dialog-head h3 { font-size: 1.15rem; letter-spacing: -0.015em; }
+.o-toast { border-radius: 10px; padding: 11px 16px; font-weight: 500; box-shadow: var(--t-overlay); animation: t-slide 0.22s var(--t-ease); }
+
+/* ---- Sign-in ------------------------------------------------------------ */
+.o-login-wrap {
+  background:
+    radial-gradient(600px 400px at 20% 20%, color-mix(in srgb, var(--o-accent) 18%, transparent), transparent 70%),
+    radial-gradient(500px 360px at 85% 80%, color-mix(in srgb, var(--o-chart-1) 16%, transparent), transparent 70%);
+}
+.o-login { width: min(400px, 100%); padding: 32px; gap: 16px; border-radius: 18px; box-shadow: var(--t-overlay); animation: t-pop 0.3s var(--t-ease); }
+.o-login .o-heading { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; margin-bottom: 6px; }
+.o-login .o-heading::before {
+  content: ""; width: 30px; height: 30px; border-radius: 9px;
+  background:
+    var(--t-mark),
+    linear-gradient(135deg, var(--o-accent), var(--o-chart-1));
+}
+.o-login .o-button-primary { justify-content: center; padding: 10px 14px; margin-top: 4px; }
+
+/* ---- Motion ------------------------------------------------------------- */
+@keyframes t-rise { from { opacity: 0; transform: translateY(4px); } }
+@keyframes t-fade { from { opacity: 0; } }
+@keyframes t-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes t-slide { from { opacity: 0; transform: translateX(16px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---- Small screens ------------------------------------------------------ */
+@media (max-width: 640px) {
+  .o-header { padding: 10px 16px; gap: 10px; }
+  .o-brand { font-size: 0; gap: 0; }
+  .o-nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .o-nav a { padding: 6px 10px; white-space: nowrap; }
+  .o-main { padding: 20px 16px 64px; }
+  h1.o-heading { font-size: 1.5rem; }
+  .o-board { grid-auto-columns: minmax(78vw, 1fr); scroll-snap-type: x mandatory; }
+  .o-board-col { scroll-snap-align: start; }
 }

@@ -14,6 +14,7 @@ type Blobs interface {
 	// Verify accepts a blob newly set on field path of type t: an upload by
 	// p for that type and field, of the declared size and content type.
 	Verify(ctx context.Context, p accessapi.Principal, t schemaapi.TypeID, path string, b kernel.Blob) error
-	// Link returns a short-lived signed download URL and thumbnail URLs.
-	Link(id string, thumbnails []int) (url string, thumbs map[string]string)
+	// Link returns a short-lived signed download URL and, when the content
+	// type gets thumbnails, thumbnail URLs by size.
+	Link(id, contentType string, thumbnails []int) (url string, thumbs map[string]string)
 }

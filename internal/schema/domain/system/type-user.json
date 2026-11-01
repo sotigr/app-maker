@@ -5,6 +5,8 @@
   "x-traits": ["urn:sys:trait:principal", "urn:sys:trait:timestamped"],
   "properties": {
     "email": { "type": "string", "format": "email", "maxLength": 254,
-               "x-visibility": "owner", "x-write": "admin", "x-indexed": true }
+               "x-visibility": "owner", "x-write": "admin", "x-indexed": true },
+    "locale": { "type": "string", "maxLength": 35, "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$",
+                "description": "Preferred language of the end-user UI (BCP 47)", "x-visibility": "owner" }
   }
 }

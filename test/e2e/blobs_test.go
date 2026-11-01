@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -73,7 +74,7 @@ func TestBlobUploadsAndDownloads(t *testing.T) {
 			t.Fatalf("stranger upload: %s", r.Raw)
 		}
 		for _, bad := range []map[string]any{
-			{"type": "task", "feature": w.task, "field": "attachment", "size": 2 << 20, "contentType": "image/png"},
+			{"type": "task", "feature": w.task, "field": "attachment", "size": 32 << 20, "contentType": "image/png"},
 			{"type": "task", "feature": w.task, "field": "attachment", "size": 10, "contentType": "application/zip"},
 			{"type": "task", "feature": w.task, "field": "title", "size": 10, "contentType": "text/plain"},
 		} {
@@ -125,13 +126,14 @@ func TestBlobUploadsAndDownloads(t *testing.T) {
 		if status, _, _ := w.s.raw("GET", strings.Replace(att["url"].(string), "sig=", "sig=0", 1), "", nil); status != 403 {
 			t.Fatalf("tampered download: %d", status)
 		}
-		// The thumbnail is rendered after commit.
+		// The thumbnail is rendered after commit; until then its URL serves
+		// the original, uncached.
 		thumbURL := att["thumbnails"].(map[string]any)["64"].(string)
 		var thumb []byte
 		eventually(t, "thumbnail", func() bool {
-			s, _, b := w.s.raw("GET", thumbURL, "", nil)
+			s, h, b := w.s.raw("GET", thumbURL, "", nil)
 			thumb = b
-			return s == 200
+			return s == 200 && h.Get("Cache-Control") != "no-store"
 		})
 		ti, err := png.Decode(bytes.NewReader(thumb))
 		if err != nil || ti.Bounds().Dx() != 64 || ti.Bounds().Dy() != 32 {
@@ -167,6 +169,65 @@ func TestBlobUploadsAndDownloads(t *testing.T) {
 		}
 		if status, _, _ := w.s.raw("GET", att["url"].(string), "", nil); status != 404 && status != 403 {
 			t.Fatalf("deleted blob still served: %d", status)
+		}
+	})
+}
+
+// Spec 14.4 and ADR 0016: downloads the browser can show (images, PDF,
+// video, audio) are served inline and frameable by the app, with Range
+// support; thumbnail URLs exist only for thumbnailable types and fall back
+// to the original until the thumbnail exists.
+func TestBlobPreviews(t *testing.T) {
+	eachDriver(t, func(t *testing.T, driver string) {
+		w := setup(t, driver)
+		commit := func(blob map[string]any) map[string]any {
+			t.Helper()
+			r := mustOK(t, w.editor.do("PATCH", "/v1/features/task/"+w.task, map[string]any{"attachment": blob}, "If-Match", w.taskVersion(t, w.task)), 200)
+			return r.Body["data"].(map[string]any)["attachment"].(map[string]any)
+		}
+
+		// No thumbnails are offered for types that never get them.
+		att := commit(w.uploadBlob(t, w.editor, w.task, "image/webp", []byte("RIFF....WEBPVP8 ")))
+		if _, ok := att["thumbnails"]; ok {
+			t.Fatalf("webp thumbnails: %v", att)
+		}
+
+		// A thumbnail that cannot be rendered serves the original, uncached.
+		broken := []byte("not really a png")
+		att = commit(w.uploadBlob(t, w.editor, w.task, "image/png", broken))
+		thumbURL := att["thumbnails"].(map[string]any)["64"].(string)
+		status, hdr, body := w.s.raw("GET", thumbURL, "", nil)
+		if status != 200 || !bytes.Equal(body, broken) || hdr.Get("Cache-Control") != "no-store" {
+			t.Fatalf("thumbnail fallback: %d %v %q", status, hdr, body)
+		}
+		if status, _, _ := w.s.raw("GET", strings.Replace(thumbURL, "sig=", "sig=0", 1), "", nil); status != 403 {
+			t.Fatalf("tampered thumbnail: %d", status)
+		}
+
+		// PDF: inline, frameable by the app only, still sandboxed; ranges work.
+		pdf := []byte("%PDF-1.4 a small document body")
+		att = commit(w.uploadBlob(t, w.editor, w.task, "application/pdf", pdf))
+		status, hdr, _ = w.s.raw("GET", att["url"].(string), "", nil)
+		csp := hdr.Get("Content-Security-Policy")
+		if status != 200 || hdr.Get("Content-Disposition") != "inline" || !strings.Contains(csp, "sandbox") || !strings.Contains(csp, "frame-ancestors 'self'") {
+			t.Fatalf("pdf download: %d %v", status, hdr)
+		}
+		req, _ := http.NewRequest("GET", w.s.url+att["url"].(string), nil)
+		req.Header.Set("Range", "bytes=0-7")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		part, _ := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if res.StatusCode != 206 || string(part) != "%PDF-1.4" || res.Header.Get("Content-Range") != "bytes 0-7/"+strconv.Itoa(len(pdf)) {
+			t.Fatalf("range: %d %v %q", res.StatusCode, res.Header, part)
+		}
+
+		// Other types stay downloads.
+		att = commit(w.uploadBlob(t, w.editor, w.task, "text/plain", []byte("notes")))
+		if _, hdr, _ := w.s.raw("GET", att["url"].(string), "", nil); hdr.Get("Content-Disposition") != "attachment" {
+			t.Fatalf("text download: %v", hdr)
 		}
 	})
 }

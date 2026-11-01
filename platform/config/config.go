@@ -86,6 +86,13 @@ type Config struct {
 		AdminEmail    string `yaml:"adminEmail"`
 		AdminPassword string `yaml:"adminPassword"`
 	} `yaml:"bootstrap"`
+	// Admin switches off the admin console (/admin) and admin accounts
+	// (ADR 0017): principals with the admin role cannot sign in, and no
+	// initial admin is created.
+	Admin struct {
+		DisableConsole  bool `yaml:"disableConsole"`
+		DisableAccounts bool `yaml:"disableAccounts"`
+	} `yaml:"admin"`
 	Log struct {
 		Level  string `yaml:"level"`
 		Format string `yaml:"format"` // json | text
@@ -225,6 +232,12 @@ func (c *Config) applyEnv(env func(string) string) error {
 		return err
 	}
 	if err := boolean("ORGANON_TRUST_PROXY_HEADERS", &c.HTTP.TrustProxyHeaders); err != nil {
+		return err
+	}
+	if err := boolean("ORGANON_DISABLE_ADMIN_CONSOLE", &c.Admin.DisableConsole); err != nil {
+		return err
+	}
+	if err := boolean("ORGANON_DISABLE_ADMIN_ACCOUNTS", &c.Admin.DisableAccounts); err != nil {
 		return err
 	}
 	if v := env("ORGANON_REPOSITORY_DEFAULT_DRIVER"); v != "" {
