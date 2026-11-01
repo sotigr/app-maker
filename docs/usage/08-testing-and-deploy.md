@@ -1,0 +1,105 @@
+# 8. Testing, deploying, migrating
+
+## Manifest tests
+
+`tests/*.test.json` describe fixtures and steps; `fw test` runs each test
+on a fresh in-memory instance (fake LLM, recorded emails, HTTP fixtures).
+
+```json
+[
+  {
+    "name": "only the assignee can complete a task",
+    "given": {
+      "principals": { "ana": { "kind": "user" }, "ben": { "kind": "user", "roles": [] } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana",
+          "data": { "title": "T", "status": "in_progress", "assignee": "ben" } }
+      ],
+      "grants": [ { "subject": "ben", "object": "p", "role": "editor" } ]
+    },
+    "steps": [
+      { "as": "ana", "action": "complete", "on": "t", "expect": { "error": "forbidden" } },
+      { "as": "ben", "action": "complete", "on": "t", "input": { "note": "done" },
+        "expect": { "ok": true, "feature": { "status": "done" }, "output": { "late": false },
+                    "effects": [ { "node": "email.send", "count": 0 } ] } }
+    ],
+    "http": [ { "method": "GET", "url": "https://api.example.com/x", "status": 200, "body": { "ok": true } } ]
+  }
+]
+```
+
+Steps (one operation each, run as `as`):
+
+| Step | Fields |
+| --- | --- |
+| action | `action`, `on` (ref), `input` |
+| create | `create` (type), `parent` (ref), `data`, `ref` (name the result) |
+| update | `update` (ref), `data` |
+| delete | `delete` (ref) |
+| read | `read` (ref) |
+| query | `query` (query document) |
+
+`expect`: `ok`, `error` (code), `feature` (subset of fields after the
+step), `output` (action result subset), `count` (query results),
+`effects` (`[{node, count}]`). Unmatched outbound HTTP requests fail the
+step.
+
+## Plan and apply
+
+```sh
+bin/fw login --server https://app.example.com --email admin@example.com   # stores a token in ~/.config/fw/credentials.json
+bin/fw plan myapp            # diff against the running server
+bin/fw apply myapp --plan <hash>
+```
+
+The plan lists type changes (and whether they are breaking), policy and
+flow changes, newly privileged flows, newly public fields, index builds,
+and migrations. Breaking changes need a migration (or
+`--allow-breaking`). Apply activates the new manifest without a restart.
+`FW_SERVER` and `FW_TOKEN` override the stored credentials.
+
+## Data migrations
+
+To change the shape of existing data: bump the type version
+(`.../task/v2` → `/v3`), change the schema, and add `migrations/<id>.json`:
+
+```json
+{
+  "id": "0001-task-priority",
+  "type": "urn:app:feature:task",
+  "from": 2,
+  "to": 3,
+  "set": {
+    "/priority": "feature.title contains 'urgent' ? 'high' : 'normal'",
+    "/progress": "nil"
+  },
+  "batchSize": 500
+}
+```
+
+- Each migration moves one version (`to = from + 1`). `set` keys are
+  top-level fields of the new version; `"nil"` drops an old field.
+  `feature` in expressions is the **old** document.
+- Right after the deploy, reads of old features are upcast in memory, so
+  clients always see the new shape.
+- Background `migrate_batch` jobs rewrite stored features in batches (with
+  version checks; resumable; re-running is harmless). Progress is in the
+  admin console (Deploys) and in `migration` features. Queries on new
+  fields match stored data once a feature has been rewritten.
+- For logic beyond expressions use `"flow": "<name>"` instead of `set`;
+  that flow must have `runAs: system` and `privileged: true` and is run
+  once per feature.
+- Migrations are not reversed automatically; write a reverse migration to
+  roll back data.
+
+## Operations CLI
+
+| Command | Does |
+| --- | --- |
+| `fw seed [dir] --env dev` | Loads `seed/<env>.json` into the server. |
+| `fw export > data.ndjson` / `fw import data.ndjson` | Every readable feature as NDJSON, parents first. |
+| `fw runs list --flow x --status dead_letter` | Recent flow runs. |
+| `fw runs retry <run id>` | Retries a dead-lettered run. |
+| `fw token create --name ci [--principal <id>]` | API key for yourself or a service account you own. |
+| `fw codegen ts [dir] --out src/gen` | TypeScript client. |

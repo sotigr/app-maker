@@ -219,6 +219,10 @@ _Last updated: 2026-10-31_
   <pw> [ws|sse]` passes both against fw dev.
 - REMAINING (no Docker): React demo UI ("two browsers" M7 criterion); change-log events carrying trace
   context.
+- Usage docs DONE (2026-11-01): README.md, AGENTS.md (app-building + framework-change instructions for
+  agents), docs/usage/01..09 (quickstart, manifest, types, policies, flows + node reference, code/LLM,
+  HTTP API + SDK, testing/deploy/migrations, operations). Keep them in sync when behaviour changes
+  (node catalog table, config keys, env vars, endpoints). Quickstart commands verified against fw dev.
   NEEDS DOCKER: Phase 10 (PostgreSQL, Valkey), S3 blob adapter, container isolation for code nodes.
   Environment facts: protoc at /usr/bin/protoc; python3 3.14.8; no grpcio, no uv, no buf; Docker down.
 

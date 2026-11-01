@@ -1,0 +1,129 @@
+# AGENTS.md
+
+Instructions for AI agents working in this repository. There are two kinds
+of tasks; identify which one you have.
+
+1. **Building an application**: you write a *manifest* (JSON Schemas,
+   policies, flow graphs, optional Python nodes). You do not write Go.
+2. **Changing the framework**: you change the Go server, CLI, SDK, or
+   admin console.
+
+Human-oriented documentation: [docs/usage](docs/usage/README.md). Read the
+guide for the area you touch before editing.
+
+## 1. Building an application
+
+### Workflow
+
+```sh
+make build                              # bin/fw, bin/fwd
+bin/fw init <app>                       # or copy examples/tracker
+# edit files, then after every change:
+bin/fw validate <app>                   # must print "ok: ..."
+bin/fw test <app>                       # must print "N passed, 0 failed"
+bin/fw dev <app> --addr 127.0.0.1:8080  # optional: run and try it
+```
+
+`fw validate` errors name the file and a JSON Pointer
+(`flows/x.json#/nodes/a/in/id: ...`). Fix exactly that location and
+re-run. Do not stop until validate and test pass.
+
+### Where things go
+
+| Need | File | Guide |
+| --- | --- | --- |
+| A kind of record | `types/<name>.json` (JSON Schema, `$id` `urn:app:feature:<name>/v1`) | [types](docs/usage/03-types.md) |
+| Who may read/write | `policies/<name>.json` | [policies](docs/usage/04-policies.md) |
+| Behaviour (validation, side effects, schedules, webhooks, business actions) | `flows/<name>.json` | [flows](docs/usage/05-flows.md) |
+| Logic expressions cannot do | `nodes/<name>.py` + a `python` node | [code nodes](docs/usage/06-code-and-llm.md) |
+| AI generation/classification | `llm.complete` node | [LLM](docs/usage/06-code-and-llm.md#llmcomplete) |
+| Changing the shape of existing data | bump the type version + `migrations/<id>.json` | [migrations](docs/usage/08-testing-and-deploy.md#data-migrations) |
+| Behaviour checks | `tests/<name>.test.json` | [tests](docs/usage/08-testing-and-deploy.md#manifest-tests) |
+| Config values | `app.json` `settings` + `env/<env>.json`, read as `env.<key>` | [manifest](docs/usage/02-manifest.md) |
+
+### Rules that prevent most mistakes
+
+- Strings in flow `in`, `when`, `result`, policies, guards, `x-computed`
+  are **expressions**. String literals need inner quotes: `"'done'"`, not
+  `"done"`.
+- Every type: `"type": "object"`, `"additionalProperties": false`,
+  `required` for mandatory fields. Use only allowed JSON Schema keywords
+  (no `anyOf`, `allOf`, `if/then`, `patternProperties`, `multipleOf`).
+- Add `"x-indexed": true` to every field you filter or sort on.
+- Refs: `"type": "string", "x-kind": "ref", "x-ref": "<type ID>"`;
+  nullable refs with `x-onDelete: "setNull"` need `"type": ["string","null"]`.
+- Money and exact numbers: `"type": "string", "x-kind": "decimal"`.
+- Hide data with `x-visibility` (`owner`, `private`), not by convention.
+- Status fields: an `enum` with `x-stateMachine` and
+  `"x-write": "action:transition"`; each transition is an action. Give each
+  action a policy rule under `actions`.
+- Writes in a flow happen through `feature.create/update/delete/move` nodes
+  and commit together at the end; effects (`email.send`, `webhook.call`,
+  `emit`) run after the commit. Python code cannot write; it returns data.
+- `beforeWrite` flows may only use Pure, DataRead, DataWrite, and Control
+  nodes; use `reject` to refuse a write.
+- `runAs: "system"` requires `"privileged": true`; prefer running as the
+  caller.
+- Never put secrets in the manifest; use `${secret:<name>}`.
+- Manifests use model aliases (`'default'`, `'fast'`), never vendor model
+  IDs.
+- Write at least one test per policy decision and per action, including a
+  denied case (`"expect": {"error": "forbidden"}`).
+
+### Minimal working examples
+
+Copy patterns from [examples/tracker](examples/tracker):
+`types/task.json` (all field features), `policies/task.json`,
+`flows/complete-task.json` (action), `flows/reject-spam.json`
+(beforeWrite), `flows/notify-assignee.json` (event),
+`flows/daily-digest.json` (schedule, forEach), `flows/inbound-issue.json`
+(webhook), `flows/summarize-project.json` (LLM), `flows/triage-task.json`
++ `nodes/triage.py` (Python), `tests/task-permissions.test.json`.
+
+The node catalog with inputs is in
+[docs/usage/05-flows.md](docs/usage/05-flows.md#node-reference); the server
+also lists it at `GET /v1/flows` (admins).
+
+## 2. Changing the framework
+
+### Before you start
+
+- Read `notes/status.md` (current state, open issues), `notes/gotchas.md`
+  (library quirks, commands), and the ADRs in `docs/adr/` for the area.
+- The design document `Schema-Driven Application Framework Design
+  Document (1).md` is the source of truth; deviations need an ADR.
+- Ask the user before decisions the spec leaves open; record the answer in
+  `notes/decisions.md` and an ADR.
+
+### Layout
+
+- `internal/<context>/{api,domain,application,infrastructure,interfaces}`
+  for contexts schema, content, access, query, change, flow, runtime,
+  integration, manifest. `internal/kernel` holds shared value types.
+  `internal/app` wires everything. `platform/` holds technical pieces with
+  no domain logic. `cmd/fwd`, `cmd/fw` are the binaries.
+- Layer rules are enforced by depguard (`make depguard` regenerates
+  `.golangci.yml`): contexts talk only through `api` packages; domain code
+  imports no infrastructure; application code may own goroutines.
+- `sdk/ts` (client, React hooks), `admin/` (React console, built into
+  `admin/dist` and embedded), `runner/python/fwnode` (Python runtime,
+  embedded), `api/proto` (code-node gRPC).
+
+### Checks before you finish
+
+```sh
+go build ./...
+go test -race ./...           # all packages; e2e tests in test/e2e
+golangci-lint run ./...       # must report 0 issues (gofmt included)
+bin/fw test examples/tracker
+make sdk                      # when the SDK, codegen, or tracker types change
+make ui                       # when admin/src changes (commit admin/dist)
+make proto                    # when api/proto changes (needs protoc plugins)
+```
+
+- Golden view files: `go test ./internal/schema/domain -run TestViewsGolden -update`
+  after changing tracker or system types; review the diff.
+- New behaviour gets a test that names the spec section it covers.
+- Match the surrounding code style and comment density.
+- Update `notes/status.md` when you finish a piece of work.
+- Commit only when asked; never commit `todo.md`.
