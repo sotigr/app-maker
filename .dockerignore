@@ -1,0 +1,11 @@
+.git
+.github
+bin
+todo.md
+**/node_modules
+**/.fw
+sdk/ts/gen
+sdk/ts/smoke/gen
+docs
+notes
+test

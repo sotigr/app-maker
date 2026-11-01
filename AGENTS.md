@@ -24,6 +24,11 @@ bin/fw test <app>                       # must print "N passed, 0 failed"
 bin/fw dev <app> --addr 127.0.0.1:8080  # optional: run and try it
 ```
 
+Without a Go toolchain, use the image (`docker build -t app-maker .`) and
+run the same commands as
+`docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work app-maker fw validate <app>`
+([Docker guide](docs/usage/10-docker.md)).
+
 `fw validate` errors name the file and a JSON Pointer
 (`flows/x.json#/nodes/a/in/id: ...`). Fix exactly that location and
 re-run. Do not stop until validate and test pass.
@@ -90,8 +95,8 @@ also lists it at `GET /v1/flows` (admins).
 
 - Read `notes/status.md` (current state, open issues), `notes/gotchas.md`
   (library quirks, commands), and the ADRs in `docs/adr/` for the area.
-- The design document `Schema-Driven Application Framework Design
-  Document (1).md` is the source of truth; deviations need an ADR.
+- The design document `docs/Schema-Driven Application Framework Design
+  Document.md` is the source of truth; deviations need an ADR.
 - Ask the user before decisions the spec leaves open; record the answer in
   `notes/decisions.md` and an ADR.
 
@@ -119,6 +124,7 @@ bin/fw test examples/tracker
 make sdk                      # when the SDK, codegen, or tracker types change
 make ui                       # when admin/src changes (commit admin/dist)
 make proto                    # when api/proto changes (needs protoc plugins)
+make docker                   # when the Dockerfile or runtime dependencies change (needs Docker)
 ```
 
 - Golden view files: `go test ./internal/schema/domain -run TestViewsGolden -update`

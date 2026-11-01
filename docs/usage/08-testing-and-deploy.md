@@ -59,6 +59,11 @@ and migrations. Breaking changes need a migration (or
 `--allow-breaking`). Apply activates the new manifest without a restart.
 `FW_SERVER` and `FW_TOKEN` override the stored credentials.
 
+Alternatively, ship the manifest with the server (a new app image or new
+files in the mounted directory): `fwd` deploys a manifest directory it has
+never run at startup, with the same breaking-change check
+([Docker](10-docker.md#how-the-server-picks-its-manifest)).
+
 ## Data migrations
 
 To change the shape of existing data: bump the type version

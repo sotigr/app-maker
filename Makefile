@@ -1,4 +1,4 @@
-.PHONY: build test lint fuzz ui sdk depguard clean proto
+.PHONY: build test lint fuzz ui sdk depguard clean proto docker
 
 GO ?= go
 
@@ -36,3 +36,8 @@ sdk:
 # protoc-gen-go and protoc-gen-go-grpc on PATH.
 proto:
 	protoc --go_out=. --go_opt=module=app-maker --go-grpc_out=. --go-grpc_opt=module=app-maker api/proto/codenode/v1/codenode.proto
+
+# Build the framework image (fw + fwd); see docs/usage/10-docker.md.
+IMAGE ?= app-maker
+docker:
+	docker build -t $(IMAGE) .

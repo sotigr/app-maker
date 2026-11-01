@@ -30,6 +30,7 @@
 | 0011 | OIDC + MFA | PKCE RP with JWKS verify via egress; sealed state cookie; signup per provider (default off) + admin invite links; TOTP tickets verify/enroll; data key file |
 | 0012 | Observability + audit | kernel.Tel facade, OTLP/HTTP exporters, route-named HTTP spans, job trace carriers, domain metrics; audit rows in commit tx + auth events, GET /v1/audit, 90-day expiry |
 | 0013 | Data migrations | migrations/*.json validated; upcast in typeOf; migrate_batch chain per type with migration records; flow steps as system; repos accept forward type changes |
+| 0014 | Docker image + startup deploys | one image (fw, fwd, python3, uv); apps via /app mount or FROM; never-seen manifest dirs deploy at startup with breaking check; FW_ALLOW_BREAKING, FW_CREATE_DATA_KEY |
 | 0006 | Relationship index from features | hasRole/groups read grant & team features via indexed queries; grants are children of their object |
 
 ## Phase 3 decisions (asked 2026-10-31)
@@ -56,3 +57,5 @@
   requirements run on system python3; requirements without uv fail with a clear error.
 - OIDC first login (2026-11-01): per-provider `signup` (default false) + optional `allowedDomains`; with
   signup off an admin issues a one-time invite link that binds the first OIDC login. Never match by email.
+- Docker (2026-11-01): one framework image; apps via volume mount at /app or `FROM` + COPY; used for both
+  development (`fw dev` in the container) and deployment (`fwd`).

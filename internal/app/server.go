@@ -77,9 +77,11 @@ func (s *Server) Activate(_ context.Context, c *Compiled) error {
 	return nil
 }
 
-// Start activates the manifest directory, or, outside development, the
-// last applied manifest when one exists (spec 14.10: replicas load the
-// active manifest from the database).
+// Start activates the manifest directory or, outside development, the
+// active deploy (spec 14.10: replicas load the active manifest from the
+// database). A directory manifest that was never deployed is a new release
+// (a new image or volume) and is deployed now, with the same breaking-change
+// check as fw apply; one deployed before yields to later fw apply deploys.
 func (s *Server) Start(ctx context.Context, compiled *Compiled) error {
 	if err := s.Activate(ctx, compiled); err != nil {
 		return err
@@ -105,6 +107,24 @@ func (s *Server) Start(ctx context.Context, compiled *Compiled) error {
 	c, err := Compile(m)
 	if err != nil {
 		return fmt.Errorf("active deploy %s: %w", active.Hash[:12], err)
+	}
+	history, err := rt.Deploys.List(ctx)
+	if err != nil {
+		return err
+	}
+	seen := false
+	for _, r := range history {
+		seen = seen || r.Hash == compiled.Manifest.Hash
+	}
+	if !seen {
+		plan := MakePlan(c, compiled)
+		if plan.Breaking && len(plan.Migrations) == 0 && !s.Cfg.AllowBreaking {
+			return fmt.Errorf("the manifest directory has breaking changes against the active deploy %s; add a migration or set FW_ALLOW_BREAKING=true",
+				active.Hash[:12])
+		}
+		rt.Log.Info("deploying the new manifest directory", "from", active.Hash[:12], "to", compiled.Manifest.Hash[:12])
+		return rt.Deploys.Save(ctx, DeployRecord{Hash: compiled.Manifest.Hash, Actor: "startup", At: time.Now().UTC(), Plan: &plan,
+			Files: compiled.Manifest.Files})
 	}
 	rt.Log.Info("running the applied manifest instead of the directory", "active", active.Hash[:12], "dir", compiled.Manifest.Hash[:12])
 	return s.Activate(ctx, c)

@@ -43,6 +43,9 @@ type Config struct {
 	// Dev enables development behavior: the dev-only manifest editing
 	// endpoint (ADR 0002), relaxed cookies, verbose errors in logs.
 	Dev bool `yaml:"dev"`
+	// AllowBreaking lets a new manifest directory with breaking changes and
+	// no migration deploy at startup (like fw apply --allow-breaking).
+	AllowBreaking bool `yaml:"allowBreaking"`
 	// Manifest is the app manifest directory; Env selects env/<env>.json.
 	Manifest string `yaml:"manifest"`
 	Env      string `yaml:"env"`
@@ -75,8 +78,9 @@ type Config struct {
 		// DataKeyFile holds the 32-byte instance data key that encrypts
 		// TOTP secrets (spec 8.2); fw dev creates one under .fw/.
 		DataKeyFile string `yaml:"dataKeyFile"`
-		// CreateDataKey creates DataKeyFile when missing (development).
-		CreateDataKey bool `yaml:"-"`
+		// CreateDataKey creates DataKeyFile with a random key when missing
+		// (fw dev; containers whose key lives on a persistent volume).
+		CreateDataKey bool `yaml:"createDataKey"`
 	} `yaml:"secrets"`
 	Bootstrap struct {
 		AdminEmail    string `yaml:"adminEmail"`
@@ -207,11 +211,20 @@ func (c *Config) applyEnv(env func(string) string) error {
 	if err := boolean("FW_DEV", &c.Dev); err != nil {
 		return err
 	}
+	if err := boolean("FW_ALLOW_BREAKING", &c.AllowBreaking); err != nil {
+		return err
+	}
+	if err := boolean("FW_CREATE_DATA_KEY", &c.Secrets.CreateDataKey); err != nil {
+		return err
+	}
 	str("FW_MANIFEST", &c.Manifest)
 	str("FW_ENV", &c.Env)
 	str("FW_HTTP_ADDR", &c.HTTP.Addr)
 	str("FW_INTERNAL_ADDR", &c.HTTP.InternalAddr)
 	if err := boolean("FW_SECURE_COOKIES", &c.HTTP.SecureCookies); err != nil {
+		return err
+	}
+	if err := boolean("FW_TRUST_PROXY_HEADERS", &c.HTTP.TrustProxyHeaders); err != nil {
 		return err
 	}
 	if v := env("FW_REPOSITORY_DEFAULT_DRIVER"); v != "" {

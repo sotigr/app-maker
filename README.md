@@ -13,7 +13,14 @@ bin/fw validate myapp && bin/fw test myapp
 bin/fw dev myapp                # http://localhost:8080, admin console at /admin
 ```
 
-- Usage guide: [docs/usage/](docs/usage/README.md)
+Or with Docker only (no Go toolchain):
+
+```sh
+docker build -t app-maker .
+docker run --rm -it -p 8080:8080 app-maker fw dev /usr/share/fw/examples/tracker --addr :8080
+```
+
+- Usage guide: [docs/usage/](docs/usage/README.md) ([Docker](docs/usage/10-docker.md))
 - For AI agents: [AGENTS.md](AGENTS.md)
 - Example app: [examples/tracker](examples/tracker)
 - Design decisions: [docs/adr](docs/adr)

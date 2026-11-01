@@ -219,6 +219,11 @@ _Last updated: 2026-10-31_
   <pw> [ws|sse]` passes both against fw dev.
 - REMAINING (no Docker): React demo UI ("two browsers" M7 criterion); change-log events carrying trace
   context.
+- Docker DONE (ADR 0014, NOT built yet: Docker daemon was down): Dockerfile, .dockerignore, `make docker`,
+  examples/docker (app Dockerfile FROM image + compose with dev and app services), docs/usage/10-docker.md.
+  Server.Start deploys never-seen manifest dirs (MakePlan breaking check; FW_ALLOW_BREAKING); config
+  FW_CREATE_DATA_KEY, FW_TRUST_PROXY_HEADERS. Image env defaults verified by running the static fwd with
+  the same FW_* values. TODO when Docker runs: build the image, run fw dev + fwd + compose, then remove this note.
 - Usage docs DONE (2026-11-01): README.md, AGENTS.md (app-building + framework-change instructions for
   agents), docs/usage/01..09 (quickstart, manifest, types, policies, flows + node reference, code/LLM,
   HTTP API + SDK, testing/deploy/migrations, operations). Keep them in sync when behaviour changes

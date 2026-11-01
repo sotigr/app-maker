@@ -23,12 +23,14 @@ http:
   publicURL: "https://app.example.com"   # OIDC redirect URIs
   secureCookies: true
   trustProxyHeaders: false               # client IP from X-Forwarded-For
+allowBreaking: false                     # deploy a breaking manifest directory at startup
 repositories:
   default: { driver: sqlite, dsn: /var/lib/fw/app.db }   # memory | sqlite
 credentials: { driver: sqlite }          # defaults to the default repository's database
 secrets:
   cursorKey: "..."                       # signs cursors and URLs; random per process if empty
   dataKeyFile: /etc/fw/data.key          # 64 hex chars; encrypts TOTP secrets
+  createDataKey: false                   # create it on first start (the Docker image does)
 bootstrap: { adminEmail: admin@example.com, adminPassword: "..." }   # first start only
 limits: { requestsPerMinute: 600, anonymousPerMinute: 60 }
 blobs: { driver: fs, dir: /var/lib/fw/blobs }
@@ -49,8 +51,18 @@ Environment variables: `FW_ROLES`, `FW_TOPOLOGY`, `FW_DEV`, `FW_MANIFEST`,
 `FW_BOOTSTRAP_ADMIN_PASSWORD`, `FW_LOG_LEVEL`, `FW_LOG_FORMAT`,
 `FW_LLM_PROVIDER`, `FW_RUNNER_ISOLATION`, `FW_RUNNER_LISTEN`,
 `FW_RUNNER_ADDR`, `FW_BLOBS_DRIVER`, `FW_BLOBS_DIR`, `FW_OTLP_ENDPOINT`,
-and `FW_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
+`FW_TRUST_PROXY_HEADERS`, `FW_CREATE_DATA_KEY`, `FW_ALLOW_BREAKING`, and
+`FW_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
 configuration stops startup with an error naming the key.
+
+## Which manifest runs
+
+`fwd` records every manifest it runs in its database. At startup, a
+manifest directory it has never run is deployed (after the `fw apply`
+breaking-change check; `FW_ALLOW_BREAKING=true` overrides it), while a
+directory it has run before yields to later `fw apply` deploys. New app
+images and `fw apply` therefore both work. `fw dev` always runs the
+directory.
 
 ## Roles
 
