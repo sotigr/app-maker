@@ -304,12 +304,14 @@ func (f *Feature) MoveTo(parent ParentInfo, ct *schemaapi.CompiledType, at time.
 	if *f.parentID == parent.ID {
 		return nil
 	}
+	from := *f.parentID
 	pid := parent.ID
 	f.parentID = &pid
 	f.ancestors = append(slices.Clone(parent.Ancestors), parent.ID)
 	f.updatedAt = at
 	f.touched = true
 	f.record(EventMoved, nil, nil, at, actor)
+	f.pending[len(f.pending)-1].FromParent = &from
 	return nil
 }
 
@@ -386,4 +388,6 @@ type DomainEvent struct {
 	After     map[string]kernel.Value
 	Actor     kernel.ID
 	At        time.Time
+	// FromParent is the previous parent of a moved feature.
+	FromParent *kernel.ID
 }

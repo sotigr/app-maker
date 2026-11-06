@@ -62,6 +62,7 @@ func Run(t *testing.T, f Factory) {
 		{"Unsupported", testUnsupported},
 		{"AuditLog", testAuditLog},
 		{"Sequences", testSequences},
+		{"MaintainedFields", testMaintainedFields},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { tc.fn(t, f(t)) })
@@ -697,5 +698,37 @@ func testSequences(t *testing.T, h Harness) {
 	}
 	if n, err := numbered("INV"); err != nil || n != writers+1 {
 		t.Fatalf("a failed commit must not use a number: got %d %v", n, err)
+	}
+}
+
+// ADR 0023: a KeepVersion write merges maintained fields without a
+// version check or bump, and an ordinary update preserves them, so the
+// two never conflict or undo each other.
+func testMaintainedFields(t *testing.T, h Harness) {
+	ctx := context.Background()
+	r := root(t, h)
+	a := create(t, h, TypeA, &r, map[string]kernel.Value{"/title": kernel.String("a"), "/n": kernel.Int64(0)})
+	// The user loaded version 1; a maintained write lands first.
+	keep := domain.Mutation{Kind: domain.MutUpdate, Feature: a.Clone(), Expected: 1, KeepVersion: true,
+		Patch: map[string]kernel.Value{"/n": kernel.Int64(7)}}
+	keep.Feature.Fields["/n"] = kernel.Int64(7)
+	if _, err := h.Repo.Apply(ctx, domain.Batch{Mutations: []domain.Mutation{keep}}); err != nil {
+		t.Fatal(err)
+	}
+	got := mustGet(t, h, a.ID)
+	if v, _ := got.Field("/n"); got.Version() != 1 || v != kernel.Int64(7) {
+		t.Fatalf("after maintained write: version %d n %v", got.Version(), v)
+	}
+	// The user's update at version 1 still commits and keeps n = 7.
+	m := update(a, map[string]kernel.Value{"/title": kernel.String("b")})
+	m.Preserve = []string{"/n"}
+	if _, err := h.Repo.Apply(ctx, domain.Batch{Mutations: []domain.Mutation{m}}); err != nil {
+		t.Fatalf("user update after a maintained write: %v", err)
+	}
+	got = mustGet(t, h, a.ID)
+	title, _ := got.Field("/title")
+	n, _ := got.Field("/n")
+	if got.Version() != 2 || title != kernel.String("b") || n != kernel.Int64(7) {
+		t.Fatalf("after user update: version %d title %v n %v", got.Version(), title, n)
 	}
 }

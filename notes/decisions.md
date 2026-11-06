@@ -102,3 +102,12 @@
 | Share links (ADR 0020) | x-shareable types get a `share` action; link principals (kind link) read the subtree, run listed actions (and that action's writes in the subtree), public view only; `/s/<token>` sets an HttpOnly cookie; `ui/app.json linkHome`; manifest tests `as: "link:<ref>"` |
 | Documents (ADR 0022) | `templates/documents/*.json` blocks → `kernel.Document` → `platform/pdf` (fpdf + embedded Noto Sans, rsc.io/qr); `document.render` stores a PDF blob for a Blob field; `email.send` attachments + lang; SMTP sender (`email.*`, `ORGANON_EMAIL_*`) |
 | Sequences (ADR 0021) | `x-sequence` {format, series expr, on create or action:<name>} on indexed, non-required string fields; numbers drawn in the repository transaction through `Batch.Finalize`; deleting leaves a hole (cancel instead) |
+
+## 2026-11-07 (motoshop gaps; plan R1-R6 approved)
+| Topic | Decision |
+|---|---|
+| Aggregates vs user writes (#23) | Aggregates keep the version (merged, no check); ordinary updates preserve stored aggregate fields |
+| Update rule vs actions (#40) | An action's own writes to its feature are authorized by `actions.<name>`; field rules still apply |
+| Staff vs links (#29) | New `x-visibility: member` (signed-in users and service accounts; not anonymous or links) |
+| Unsigned webhooks (#51) | `verify.scheme: token` (URL secret), `allowIPs`, `get` handshake reply |
+| Policy combination (#1) | A type's own policy decides ops it defines; traits only fill undefined ops (ADR 0023) |

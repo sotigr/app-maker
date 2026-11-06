@@ -193,7 +193,7 @@ func (a *Authorizer) Check(ctx context.Context, p accessapi.Principal, req acces
 	vars["parent"] = dataOf(req.Parent)
 	vars["patch"] = orEmpty(req.Patch)
 	vars["input"] = orEmpty(req.Input)
-	for _, pol := range a.policies.For(ct) {
+	for _, pol := range a.policies.Deciding(ct, req.Op) {
 		prog, ok := pol.Progs[req.Op]
 		if !ok {
 			continue
@@ -294,7 +294,7 @@ func (a *Authorizer) Scope(ctx context.Context, p accessapi.Principal, ct *schem
 		return queryapi.InScope{Field: queryapi.ScopeAncestor, IDs: []kernel.ID{p.Link.Object}}, true, nil
 	}
 	var terms []queryapi.Predicate
-	for _, pol := range a.policies.For(ct) {
+	for _, pol := range a.policies.Deciding(ct, accessapi.OpRead) {
 		src, ok := pol.Sources[accessapi.OpRead]
 		if !ok {
 			continue

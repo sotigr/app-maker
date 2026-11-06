@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -482,6 +483,9 @@ func (r *Repository) apply(ctx context.Context, tx *sql.Tx, b domain.Batch) (dom
 		if !exists || (m.Kind != domain.MutPurge && c.deleted) {
 			return res, kernel.NewError(kernel.CodeNotFound, "feature %s not found", s.ID)
 		}
+		if m.KeepVersion {
+			continue // maintained fields: no version check (ADR 0023)
+		}
 		if c.version != m.Expected {
 			conflicts = append(conflicts, kernel.VersionConflict{ID: s.ID, Current: c.version})
 			continue
@@ -606,6 +610,36 @@ func (r *Repository) write(ctx context.Context, tx *sql.Tx, m domain.Mutation) e
 			return uniqueErr(err, s.ID)
 		}
 		return r.setAncestors(ctx, tx, s.ID, anc)
+	}
+	if m.KeepVersion || len(m.Preserve) > 0 {
+		// Merge with the stored row in this transaction (ADR 0023).
+		var rawData, rawKinds []byte
+		var version kernel.Version
+		if err := tx.QueryRowContext(ctx, `SELECT data, kinds, version FROM content_features WHERE id = ?`, id).Scan(&rawData, &rawKinds, &version); err != nil {
+			return err
+		}
+		stored, err := decodeFields(rawData, rawKinds)
+		if err != nil {
+			return err
+		}
+		if m.KeepVersion {
+			for p, v := range m.Patch {
+				stored[p] = v
+			}
+			data, kinds, err := encodeFields(stored)
+			if err != nil {
+				return err
+			}
+			_, err = tx.ExecContext(ctx, `UPDATE content_features SET data = ?, kinds = ? WHERE id = ?`, string(data), string(kinds), id)
+			return err
+		}
+		fields := maps.Clone(s.Fields)
+		for _, p := range m.Preserve {
+			if v, ok := stored[p]; ok {
+				fields[p] = v
+			}
+		}
+		s.Fields = fields
 	}
 	data, kinds, err := encodeFields(s.Fields)
 	if err != nil {

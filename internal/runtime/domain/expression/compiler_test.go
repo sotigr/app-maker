@@ -133,3 +133,33 @@ func TestEqualityWithAbsentOptionalField(t *testing.T) {
 		}
 	}
 }
+
+// Gap 33 (ADR 0023): decimal equality works for equal values, absent
+// (nil) values, and wire strings, instead of failing (which made trigger
+// guards fail open).
+func TestGap33DecimalEquality(t *testing.T) {
+	c := NewCompiler()
+	env := rt.Env{Vars: map[string]*rt.Type{"a": rt.Decimal, "b": rt.Decimal}}
+	for _, tc := range []struct {
+		src  string
+		a, b any
+		want bool
+	}{
+		{"a == b", kernel.MustDecimal("2.50"), kernel.MustDecimal("2.5"), true},
+		{"a != b", kernel.MustDecimal("2.5"), kernel.MustDecimal("2.5"), false},
+		{"a == b", nil, kernel.MustDecimal("1"), false},
+		{"a != b", nil, kernel.MustDecimal("1"), true},
+		{"a == b", nil, nil, true},
+		{"a == b", "3.10", kernel.MustDecimal("3.1"), true},
+		{"a < b", "1", kernel.MustDecimal("2"), true},
+	} {
+		p, err := c.Compile(tc.src, env, rt.Bool, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := p.Eval(map[string]any{"a": tc.a, "b": tc.b})
+		if err != nil || out != tc.want {
+			t.Errorf("%s with a=%v b=%v: %v %v, want %v", tc.src, tc.a, tc.b, out, err, tc.want)
+		}
+	}
+}

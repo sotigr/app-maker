@@ -95,12 +95,15 @@ func (t *ExprTree) Eval(vars map[string]any) (any, error) {
 
 // CompiledNode is a validated node.
 type CompiledNode struct {
-	Name     string
-	Spec     NodeSpec
-	Type     NodeType
-	In       *ExprTree
-	When     rt.Program
-	Deps     []string
+	Name string
+	Spec NodeSpec
+	Type NodeType
+	In   *ExprTree
+	When rt.Program
+	Deps []string
+	// DataDeps are the nodes whose outputs this node reads (nodes.<name>);
+	// only they pass a skip on. Edges only order (ADR 0023).
+	DataDeps []string
 	Body     *Graph // forEach
 	MaxItems int
 	// OutputV validates the output of nodes declaring an outputSchema
@@ -417,6 +420,10 @@ func (c *compiler) runEnv(f *Flow, nodes *rt.Type, extra map[string]*rt.Type) rt
 		"nodes":     nodes,
 		"env":       rt.OpenMap(),
 	}
+	if f.Trigger == TriggerEvent || f.Trigger == TriggerBeforeWrite {
+		// The documents around the change (ADR 0023).
+		vars["before"], vars["after"] = ft, ft
+	}
 	for k, v := range extra {
 		vars[k] = v
 	}
@@ -488,6 +495,7 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 		for ref := range refsOf(n.Spec.In) {
 			if _, ok := specs[ref]; ok && ref != name {
 				deps[name][ref] = true
+				n.DataDeps = append(n.DataDeps, ref)
 			} else if !ok {
 				c.errf(ptr+"/in", "references unknown node %q", ref)
 			}
@@ -501,6 +509,7 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 			for ref := range refsOf(n.Spec.When) {
 				if _, ok := specs[ref]; ok && ref != name {
 					deps[name][ref] = true
+					n.DataDeps = append(n.DataDeps, ref)
 				}
 			}
 		}

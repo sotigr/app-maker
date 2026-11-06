@@ -319,7 +319,13 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
     features. `validate` warns when a read rule cannot be translated.
   - Callers who cannot read a feature get `404`; anonymous callers get
     `401`.
-  - A policy on a trait applies to every type with that trait.
+  - A policy on a trait applies to every type with that trait, for the
+    operations the type's own policy does not define (a type's rule
+    wins: `"transfer": "false"` turns transfer off).
+  - Writes an action makes to its own feature (its transition, or its
+    flow's update of `feature.id`) are authorized by `actions.<name>`;
+    `update` applies to direct edits and other features. Field rules
+    still apply. Setting a field to its current value needs only read.
 - **Grants** give a role on a subtree. A grant is a `grant` feature created
   under the object: `{"subject": "<user/team id>", "role": "editor"}`.
   Teams and organizations can hold grants and own features.
@@ -372,6 +378,8 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 **Strings in `in`, `when`, and `result` are expressions.** Literal text
 needs inner quotes: `"'done'"`. The order between nodes is inferred from
 `nodes.<x>` references; `edges: [["a", "b"]]` adds an order explicitly.
+Only `nodes.<x>` references pass a skip on: a node after a `reject` that
+did not fire still runs, even with an edge from it.
 
 **Triggers.** A flow has exactly one:
 
@@ -384,7 +392,17 @@ needs inner quotes: `"'done'"`. The order between nodes is inferred from
 | webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}", "verify": {"scheme": "stripe"}}` | `POST /v1/hooks/issues`; the JSON body is `input`. The secret is required. The default signature is `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">` within 5 minutes; `verify` selects another scheme (§11). Returns `202`; the run happens in the background. |
 
 Trigger `when` sees `event`, `before`, `after`, `feature`, `op`,
-`principal`, and `changed(path)`.
+`principal`, and `changed(path)`. A `when` that fails to evaluate records a
+failed run (`when_failed`); it is never silently false.
+
+- beforeWrite flows run for every write: API writes, transitions, and
+  writes made by other flows. `runAs: system` makes their staged writes as
+  system; `feature.update` of `feature.id` sets fields of the feature
+  being written (also on create). Nodes see `before` and `after`.
+- Event nodes see `before` and `after`; for `deleted`/`purged` events,
+  `feature` is the last state. A move recomputes aggregates on both
+  parents, and aggregate updates never cause version conflicts.
+- Input takes its schema's types (integers compare as integers).
 
 **Flow keys:**
 

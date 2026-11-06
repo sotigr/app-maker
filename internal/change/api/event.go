@@ -43,6 +43,8 @@ type Event struct {
 	Actor     kernel.ID              `json:"actor"`
 	Causation flowapi.CausationChain `json:"causation,omitempty"`
 	At        time.Time              `json:"at"`
+	// FromParent is the previous parent of a moved feature.
+	FromParent *kernel.ID `json:"fromParent,omitempty"`
 	// Principals and Features name what an access-changed event affects.
 	Principals []kernel.ID `json:"principals,omitempty"`
 	Features   []kernel.ID `json:"features,omitempty"`

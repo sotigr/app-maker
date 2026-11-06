@@ -27,9 +27,12 @@ type WriteOp struct {
 type CommitRequest struct {
 	Principal accessapi.Principal
 	Action    string // unlocks x-write: action:<name> fields
-	Causation flowapi.CausationChain
-	Ops       []WriteOp
-	Jobs      []kernel.JobRequest
+	// ActionFeature is the feature the action runs on; its updates in
+	// this commit are authorized by the action's rule (ADR 0023).
+	ActionFeature string
+	Causation     flowapi.CausationChain
+	Ops           []WriteOp
+	Jobs          []kernel.JobRequest
 }
 
 // CommitResult maps references to IDs and reports new versions.

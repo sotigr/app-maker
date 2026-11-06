@@ -28,6 +28,16 @@ type runFlowArgs struct {
 	Input     map[string]any         `json:"input,omitempty"`
 	Principal *kernel.ID             `json:"principal,omitempty"`
 	Causation flowapi.CausationChain `json:"causation,omitempty"`
+	// Before and After are the event's documents (wire form): nodes see
+	// them as before/after, and runs of deleted and purged features use
+	// them as feature (ADR 0023).
+	Before map[string]any `json:"before,omitempty"`
+	After  map[string]any `json:"after,omitempty"`
+	Type   string         `json:"type,omitempty"`
+	Parent *kernel.ID     `json:"parent,omitempty"`
+	// WhenError records a trigger condition that failed to evaluate: the
+	// run is recorded as failed instead of running or being skipped.
+	WhenError string `json:"whenError,omitempty"`
 }
 
 func runFlowJob(f *domain.Flow, a runFlowArgs) (kernel.JobRequest, error) {
@@ -120,14 +130,21 @@ func (h *EventHook) Jobs(_ context.Context, events []changeapi.Event, causation 
 			if !f.Matches(ct) {
 				continue
 			}
+			whenErr := ""
 			if f.When != nil {
 				ok, err := f.When.Eval(vars)
-				if err != nil || ok != true {
+				if err != nil {
+					// A failing guard neither runs nor silently skips the
+					// flow: the failure is recorded (ADR 0023).
+					h.e.d.Log.Warn("event trigger condition failed", "flow", f.Name, "err", err)
+					whenErr = err.Error()
+				} else if ok != true {
 					continue
 				}
 			}
 			id, actor := ev.FeatureID, ev.Actor
-			j, err := runFlowJob(f, runFlowArgs{FeatureID: &id, Event: vars["event"].(map[string]any), Principal: &actor, Causation: causation})
+			j, err := runFlowJob(f, runFlowArgs{FeatureID: &id, Event: vars["event"].(map[string]any), Principal: &actor, Causation: causation,
+				Before: ev.Before, After: ev.After, Type: string(ev.TypeID), Parent: ev.ParentID, WhenError: whenErr})
 			if err != nil {
 				return nil, err
 			}
@@ -155,8 +172,52 @@ func (e *Engine) HandleRunFlow(ctx context.Context, raw json.RawMessage) error {
 			p = rp
 		}
 	}
+	if a.WhenError != "" {
+		now := e.d.Clock.Now()
+		e.record(ctx, RunRecord{RunID: e.d.IDs.NewID(), Flow: f.Name, Version: f.Version, Trigger: f.Trigger, Principal: p.ID,
+			Started: now, Ended: now, Status: "failed", Causation: a.Causation, Feature: a.FeatureID,
+			Error: map[string]any{"code": "when_failed", "message": "trigger condition: " + a.WhenError}})
+		return nil
+	}
 	req := Request{Flow: f, Principal: p, FeatureID: a.FeatureID, Input: a.Input, Event: a.Event,
 		Causation: a.Causation, Background: true, Trigger: map[string]any{"kind": a.Trigger}, Job: raw}
+	if a.Before != nil || a.After != nil {
+		ct, ok := e.d.Types.Get(schemaapi.TypeID(a.Type))
+		if !ok {
+			ct, _ = e.d.Types.Get(schemaapi.TypeID(a.Type).Base())
+		}
+		// Events carry the changed fields' old values; the rest of before
+		// is after, as in trigger conditions.
+		req.After = typedDoc(ct, a.After)
+		req.Before = make(map[string]any, len(req.After))
+		for k, v := range req.After {
+			req.Before[k] = v
+		}
+		for k, v := range typedDoc(ct, a.Before) {
+			if v == nil {
+				delete(req.Before, k)
+			} else {
+				req.Before[k] = v
+			}
+		}
+		if kind, _ := a.Event["kind"].(string); kind == "deleted" || kind == "purged" {
+			// The feature is gone from reads; its last state stands in.
+			doc := typedDoc(ct, a.After)
+			if len(doc) == 0 {
+				doc = typedDoc(ct, a.Before)
+			}
+			if a.FeatureID != nil {
+				doc["id"] = a.FeatureID.String()
+			}
+			if a.Parent != nil {
+				doc["parentId"] = a.Parent.String()
+			}
+			if ct != nil {
+				doc["type"] = ct.Name
+			}
+			req.Feature = doc
+		}
+	}
 	if f.Trigger == domain.TriggerSchedule || f.Trigger == domain.TriggerWebhook {
 		req.Principal = accessapi.System() // spec 10.9: system principal for schedules
 	}
@@ -199,7 +260,7 @@ func (e *Engine) BeforeWrite(ctx context.Context, op string, ct *schemaapi.Compi
 				fid = &id
 			}
 		}
-		res, err := e.Run(ctx, Request{Flow: f, Principal: p, FeatureID: fid, Feature: feature, Stage: true,
+		res, err := e.Run(ctx, Request{Flow: f, Principal: p, FeatureID: fid, Feature: feature, Stage: true, WritingType: ct.Name,
 			Trigger: map[string]any{"op": op, "before": orEmpty(before), "after": orEmpty(after)}})
 		if err != nil {
 			return nil, asDeclared(err)

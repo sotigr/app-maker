@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 
 	accessapi "organon/internal/access/api"
@@ -61,8 +62,11 @@ func (h *AggregateHook) Jobs(_ context.Context, events []changeapi.Event, _ flow
 		if !children[ev.TypeID.Base()] {
 			continue
 		}
-		if err := add(ev.ParentID); err != nil {
-			return nil, err
+		// A move changes the old parent's aggregates too (ADR 0023).
+		for _, p := range []*kernel.ID{ev.ParentID, ev.FromParent} {
+			if err := add(p); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return jobs, nil
@@ -122,7 +126,7 @@ func (s *Service) recomputeOnce(ctx context.Context, parent kernel.ID) error {
 	if len(patch) == 0 {
 		return nil
 	}
-	_, err = s.Execute(ctx, WriteContext{Principal: accessapi.System(), Fixture: true, SkipBeforeWrite: true},
+	_, err = s.Execute(ctx, WriteContext{Principal: accessapi.System(), Fixture: true, SkipBeforeWrite: true, KeepVersion: true},
 		[]Op{{Op: OpUpdate, Type: ct.Name, ID: parent.String(), Version: f.Version(), Data: patch}})
 	return err
 }
@@ -147,7 +151,12 @@ func (s *Service) aggregate(ctx context.Context, repo domain.FeatureRepository, 
 					vars[k] = v
 				}
 				ok, err := agg.WhereProgram.Eval(vars)
-				if err != nil || ok != true {
+				if err != nil {
+					// Fail the recompute (the job retries and is visible)
+					// rather than count a wrong total (ADR 0023).
+					return nil, fmt.Errorf("x-aggregate %s where: %w", agg.Path, err)
+				}
+				if ok != true {
 					continue
 				}
 			}

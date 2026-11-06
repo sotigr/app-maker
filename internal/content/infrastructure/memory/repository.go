@@ -345,9 +345,25 @@ func (r *Repository) apply(b domain.Batch) (domain.CommitResult, error) {
 			if !ok || (m.Kind != domain.MutPurge && cur.snap.DeletedAt != nil) {
 				return result, kernel.NewError(kernel.CodeNotFound, "feature %s not found", s.ID)
 			}
+			if m.KeepVersion {
+				// Maintained fields merge into the current state, version
+				// unchanged (ADR 0023).
+				merged := cur.snap.Clone()
+				for p, v := range m.Patch {
+					merged.Fields[p] = v
+				}
+				staged[s.ID] = &record{snap: merged, uniqueKey: cur.uniqueKey}
+				result.Versions[s.ID] = merged.Version
+				continue
+			}
 			if cur.snap.Version != m.Expected {
 				conflicts = append(conflicts, kernel.VersionConflict{ID: s.ID, Current: cur.snap.Version})
 				continue
+			}
+			for _, p := range m.Preserve {
+				if v, ok := cur.snap.Fields[p]; ok {
+					s.Fields[p] = v
+				}
 			}
 			if s.TypeID.Base() != cur.snap.TypeID.Base() || s.TypeID.Version() < cur.snap.TypeID.Version() {
 				// Only migrations move a feature, to a newer version (spec 12.5).

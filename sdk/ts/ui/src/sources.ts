@@ -77,10 +77,11 @@ function request(s: SourceDoc, ev: Ev): Req | undefined {
   if (s.search !== undefined) {
     const q = str(s.search);
     if (!q || !s.type) return undefined;
-    const path = `/v1/search?${new URLSearchParams({ q, type: s.type })}`;
+    const type = s.type;
     return {
-      kind: "list", key: `search:${path}`,
-      load: async (c) => (await c.request<{ items: Feature[] }>("GET", path)).items || [],
+      kind: "list", key: `search:${type}:${q}`,
+      // Results are {feature, highlights}; the features are cached by search.
+      load: async (c) => (await c.search(q, type)).items.map((i) => i.feature),
     };
   }
   const q = s.query;

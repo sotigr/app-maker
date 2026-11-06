@@ -40,7 +40,7 @@ func (a *beforeWriteAdapter) BeforeWrite(ctx context.Context, req contentapp.Bef
 		}
 		for _, op := range r.Ops {
 			out.Ops = append(out.Ops, contentapp.Op{Op: contentapp.OpKind(op.Op), Type: op.Type, Ref: rename(op.Ref),
-				ID: rename(op.ID), Parent: rename(op.Parent), Version: op.Version, Data: op.Data})
+				ID: rename(op.ID), Parent: rename(op.Parent), Version: op.Version, Data: op.Data, AsSystem: r.System})
 		}
 	}
 	return out, nil

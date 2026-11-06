@@ -110,8 +110,13 @@ func (x *FlowPorts) Commit(ctx context.Context, req contentapi.CommitRequest) (c
 	for i, o := range req.Ops {
 		ops[i] = Op{Op: OpKind(o.Op), Type: o.Type, Ref: o.Ref, ID: o.ID, Parent: o.Parent, Version: o.Version, Data: o.Data}
 	}
-	res, err := x.s.Execute(ctx, WriteContext{Principal: req.Principal, Action: req.Action, Causation: req.Causation,
-		ExtraJobs: req.Jobs, SkipBeforeWrite: true}, ops)
+	// Flow writes run beforeWrite flows too (ADR 0023); the staged writes
+	// of those flows do not, so they cannot trigger themselves.
+	wc := WriteContext{Principal: req.Principal, Action: req.Action, Causation: req.Causation, ExtraJobs: req.Jobs}
+	if id, err := kernel.ParseID(req.ActionFeature); err == nil && req.Action != "" {
+		wc.ActionFeature = id
+	}
+	res, err := x.s.Execute(ctx, wc, ops)
 	if err != nil {
 		return contentapi.CommitResult{}, err
 	}

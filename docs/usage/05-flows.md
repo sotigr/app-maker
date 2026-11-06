@@ -47,8 +47,9 @@ the commit.
 needs quotes inside: `"'done'"`. Numbers, booleans, and objects may be
 written as JSON literals or expressions; object values are expressions too.
 
-Node options: `when` (skip unless true; nodes depending only on skipped
-nodes are skipped), `onError: "<handler node>"` (the handler runs with
+Node options: `when` (skip unless true; a node whose `nodes.<name>`
+inputs all come from skipped nodes is skipped too, while `edges` only
+order and never pass a skip on), `onError: "<handler node>"` (the handler runs with
 `nodes.<failed>.error`), `retry: {"max": N, "backoff": "exponential"|"fixed"}`
 (External and Code nodes only).
 
@@ -64,7 +65,19 @@ nodes are skipped), `onError: "<handler node>"` (the handler runs with
 
 Trigger `when` conditions see `event` (`kind`, `changed`, `type`, `id`,
 `data`), `before`, `after`, `feature`, `op`, `principal`, and
-`changed(path)`.
+`changed(path)`. A condition that fails to evaluate records a failed run
+(`when_failed`) instead of silently skipping the flow.
+
+- **beforeWrite** flows run for every write of their type: API writes,
+  state-machine transitions, and writes made by other flows (but not the
+  writes they stage themselves). With `runAs: system` (and `privileged`)
+  their staged writes are made as system. A `feature.update` of
+  `feature.id` sets fields of the feature being written, even on create.
+  Nodes see `before`, `after`, and `trigger.op`.
+- **event** flows also see `before` and `after` in nodes. For `deleted`
+  and `purged` events, `feature` is the feature's last state.
+- Action, webhook, and subflow input takes its schema's types: an
+  `"integer"` compares as an integer however the client sent it.
 
 Background runs retry on failure (up to 5 attempts); the last failure is
 recorded as `dead_letter` and can be retried with `organon runs retry <id>` or

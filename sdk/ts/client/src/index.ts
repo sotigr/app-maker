@@ -286,6 +286,16 @@ export class OrganonClient {
     this.cache.remove(f.id);
   }
 
+  /** search runs full-text search; results are cached like query results. */
+  async search(q: string, type?: string): Promise<{ items: { feature: Feature; highlights?: Record<string, string[]> }[] }> {
+    const params = new URLSearchParams({ q });
+    if (type) params.set("type", type);
+    const r = await this.request<{ items: { feature: Feature; highlights?: Record<string, string[]> }[] }>("GET", `/v1/search?${params}`);
+    const items = r.items || [];
+    items.forEach((i) => this.cache.put(i.feature));
+    return { items };
+  }
+
   async query(doc: QueryDoc): Promise<Page<Feature>> {
     const p = await this.request<Page<Feature>>("POST", "/v1/query", doc);
     p.items.forEach((f) => this.cache.put(f));

@@ -48,7 +48,16 @@ a type (or trait). Anything not allowed is denied.
   fields. The system principal (flows with `runAs: system`, jobs) bypasses
   everything.
 - Policies on a trait apply to every type with that trait (e.g. the
-  built-in `transfer` action of `urn:sys:trait:ownable`).
+  built-in `transfer` action of `urn:sys:trait:ownable`), for the
+  operations the type's own policy does not define: a type's rule always
+  wins, so `"actions": {"transfer": "false"}` turns transfer off.
+- Writes an action makes to the feature it runs on (its transition, or its
+  flow's `feature.update` of `feature.id`) are authorized by the action's
+  rule; the `update` rule applies to direct edits and to other features.
+  So `"update": "... && feature.status == 'draft'"` does not block a
+  `markPaid` action. Field rules (`readOnly`, `x-write`) still apply.
+- Setting fields to the values they already have is not a write: it needs
+  only read access.
 
 ## Grants and teams
 

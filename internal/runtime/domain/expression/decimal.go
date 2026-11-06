@@ -1,6 +1,7 @@
 package expression
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/expr-lang/expr"
@@ -12,6 +13,8 @@ import (
 // Int64 have exact semantics; mixing Decimal with Float is a compile error
 // because no Float overload exists).
 
+// toDec accepts the forms a decimal takes at run time: kernel.Decimal,
+// integers, and the wire string or JSON number of a decimal field.
 func toDec(v any) (kernel.Decimal, error) {
 	switch x := v.(type) {
 	case kernel.Decimal:
@@ -20,6 +23,10 @@ func toDec(v any) (kernel.Decimal, error) {
 		return kernel.DecimalFromInt64(int64(x)), nil
 	case int64:
 		return kernel.DecimalFromInt64(x), nil
+	case string:
+		return kernel.ParseDecimal(x)
+	case json.Number:
+		return kernel.ParseDecimal(x.String())
 	}
 	return kernel.Decimal{}, fmt.Errorf("not a decimal: %T", v)
 }
@@ -74,9 +81,20 @@ func decimalOptions() []expr.Option {
 	}
 	for op, c := range cmps {
 		c := c
-		opts = append(opts,
-			expr.Function(c.name, binDec(func(a, b kernel.Decimal) (any, error) { return c.ok(a.Cmp(b)), nil }), decSigs[bool]()...),
-			expr.Operator(op, c.name))
+		cmp := binDec(func(a, b kernel.Decimal) (any, error) { return c.ok(a.Cmp(b)), nil })
+		fn := cmp
+		if op == "==" || op == "!=" {
+			// Equality with an absent (nil) value is false, never an error
+			// (ADR 0023: guards must not fail on missing optional fields).
+			fn = func(params ...any) (any, error) {
+				if params[0] == nil || params[1] == nil {
+					same := params[0] == nil && params[1] == nil
+					return (op == "==") == same, nil
+				}
+				return cmp(params...)
+			}
+		}
+		opts = append(opts, expr.Function(c.name, fn, decSigs[bool]()...), expr.Operator(op, c.name))
 	}
 	opts = append(opts, expr.Function("decimal", func(params ...any) (any, error) {
 		switch x := params[0].(type) {

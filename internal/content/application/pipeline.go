@@ -39,6 +39,9 @@ type Op struct {
 	Parent  string         `json:"parent,omitempty"`
 	Version kernel.Version `json:"version,omitempty"`
 	Data    map[string]any `json:"data,omitempty"`
+	// AsSystem marks a write staged by a beforeWrite flow that runs as
+	// system; it is prepared as the system principal (ADR 0023).
+	AsSystem bool `json:"-"`
 }
 
 // WriteContext carries who writes and why.
@@ -48,6 +51,10 @@ type WriteContext struct {
 	// x-write: action:<name> (spec 10.3). Empty for generic writes and
 	// transactions.
 	Action string
+	// ActionFeature is the feature Action runs on: its updates were
+	// authorized by the action's rule, so the update rule does not apply
+	// (ADR 0023). Zero for writes outside actions.
+	ActionFeature kernel.ID
 	// Causation is the chain of flow runs that led to this write.
 	Causation flowapi.CausationChain
 	// Fixture bypasses write rules and policies for seed data and manifest
@@ -60,6 +67,9 @@ type WriteContext struct {
 	SkipBeforeWrite bool
 	// ExtraJobs are committed with the batch (effects staged by flows).
 	ExtraJobs []kernel.JobRequest
+	// KeepVersion writes maintained fields (aggregate recomputes) without
+	// a version check or bump (ADR 0023).
+	KeepVersion bool
 }
 
 // TxResult is the outcome of a committed transaction.
@@ -135,29 +145,65 @@ func (s *Service) Execute(ctx context.Context, wc WriteContext, ops []Op) (TxRes
 	// Writes staged by before-write flows join the batch and go through
 	// the same pipeline (spec 10.6 step 3).
 	if len(tx.staged) > 0 {
-		extra, extraRefs, err := s.resolve(tx.staged)
+		byID := map[kernel.ID]*work{}
+		for _, w := range works {
+			byID[w.id] = w
+		}
+		inner := wc
+		inner.SkipBeforeWrite = true
+		system := inner
+		system.Principal = accessapi.System()
+		// An update of a feature of this write (even one being created)
+		// merges into it, write rules checked again (ADR 0023).
+		var staged []Op
+		var origin []int
+		for i, op := range tx.staged {
+			iwc := inner
+			if op.AsSystem {
+				iwc = system
+			}
+			id, err := kernel.ParseID(op.ID)
+			orig := byID[id]
+			if err != nil || orig == nil {
+				staged, origin = append(staged, op), append(origin, tx.origin[i])
+				continue
+			}
+			if op.Op != OpUpdate || orig.deleted {
+				return TxResult{}, opErr(orig.index, kernel.NewError(kernel.CodeValidationFailed, "a before-write flow may only update a feature of the write itself"))
+			}
+			merged := &work{index: orig.index, op: op, ct: orig.ct, id: orig.id, feature: orig.feature, before: orig.before, tx: orig.tx}
+			if err := s.prepareUpdate(ctx, iwc, merged, now); err != nil {
+				return TxResult{}, opErr(orig.index, err)
+			}
+			orig.unique, orig.seqs = merged.unique, append(orig.seqs, merged.seqs...)
+		}
+		extra, extraRefs, err := s.resolve(staged)
 		if err != nil {
 			return TxResult{}, err
 		}
-		seen := map[kernel.ID]bool{}
-		for _, w := range works {
-			seen[w.id] = true
-		}
+		var own, sys []*work
 		for i, w := range extra {
 			if w.ct.Repository != repoName {
 				return TxResult{}, kernel.ErrCrossRepository
 			}
-			if seen[w.id] {
+			if byID[w.id] != nil {
 				return TxResult{}, kernel.NewError(kernel.CodeValidationFailed, "a before-write flow changed a feature of the write itself")
 			}
-			w.index = tx.origin[i]
+			w.index = origin[i]
+			if staged[i].AsSystem {
+				sys = append(sys, w)
+			} else {
+				own = append(own, w)
+			}
 		}
+		extra = append(own, sys...)
 		if err := s.loadAll(ctx, repo, extra); err != nil {
 			return TxResult{}, err
 		}
-		inner := wc
-		inner.SkipBeforeWrite = true
-		if err := s.prepareAll(ctx, inner, repo, extra, now); err != nil {
+		if err := s.prepareAll(ctx, inner, repo, own, now); err != nil {
+			return TxResult{}, err
+		}
+		if err := s.prepareAll(ctx, system, repo, sys, now); err != nil {
 			return TxResult{}, err
 		}
 		works = append(works, extra...)
@@ -483,9 +529,26 @@ func (s *Service) prepareUpdate(ctx context.Context, wc WriteContext, w *work, n
 	if err != nil {
 		return err
 	}
+	// Unchanged values are not writes (ADR 0023): setting a field to its
+	// current value needs no permission and changes nothing.
+	for p, v := range in.vals {
+		cur, had := w.feature.Field(p)
+		if (v == nil && !had) || (v != nil && had && kernel.Equal(cur, v)) {
+			delete(in.vals, p)
+		}
+	}
 	merged := in.vals
-	if err := s.authorize(ctx, wc, accessapi.CheckRequest{Op: accessapi.OpUpdate, Type: ct, Feature: ref, Patch: nativePatch(merged)}); err != nil {
-		return err
+	op := accessapi.OpUpdate
+	switch {
+	case len(merged) == 0 && len(in.failed) == 0:
+		op = accessapi.OpRead // nothing to write; the caller must still see it
+	case wc.Action != "" && wc.ActionFeature == w.id:
+		op = "" // the action's rule allowed this action on this feature
+	}
+	if op != "" {
+		if err := s.authorize(ctx, wc, accessapi.CheckRequest{Op: op, Type: ct, Feature: ref, Patch: nativePatch(merged)}); err != nil {
+			return err
+		}
 	}
 	if wc.Fixture || wc.Principal.IsSystem() {
 		w.aud = schemaapi.AudSystem
@@ -702,6 +765,11 @@ func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.Featu
 		for id, v := range cr.Versions {
 			res.Versions[id.String()] = v
 		}
+	} else if len(b.Jobs) > 0 {
+		// Nothing changed, but the run's effects are still due.
+		if err := s.enqueueJobs(ctx, b.Jobs); err != nil {
+			return TxResult{}, err
+		}
 	}
 	return s.finishCommit(res, works, refs), nil
 }
@@ -724,8 +792,26 @@ func (s *Service) batch(ctx context.Context, wc WriteContext, all []*work) (doma
 		case w.op.Op == OpMove:
 			kind = domain.MutMove
 		}
-		b.Mutations = append(b.Mutations, domain.Mutation{Kind: kind, Feature: f.Snapshot(), Expected: f.Version(), UniqueKey: w.unique})
-		b.Events = append(b.Events, f.DrainEvents()...)
+		m := domain.Mutation{Kind: kind, Feature: f.Snapshot(), Expected: f.Version(), UniqueKey: w.unique}
+		events := f.DrainEvents()
+		switch {
+		case wc.KeepVersion && kind == domain.MutUpdate:
+			// Maintained fields only: merged, version unchanged; events
+			// carry version 0 so clients apply them without a bump.
+			m.KeepVersion, m.Feature.Version, m.Patch = true, f.Version(), map[string]kernel.Value{}
+			for i := range events {
+				for _, p := range events[i].Changed {
+					m.Patch[p] = m.Feature.Fields[p]
+				}
+				events[i].Version = 0
+			}
+		case kind == domain.MutUpdate || kind == domain.MutMove:
+			for _, a := range w.ct.Aggregates {
+				m.Preserve = append(m.Preserve, a.Path)
+			}
+		}
+		b.Mutations = append(b.Mutations, m)
+		b.Events = append(b.Events, events...)
 	}
 	b.Audit = s.auditRecords(wc, b.Events)
 	events := s.toChangeEvents(b.Events, wc.Causation)

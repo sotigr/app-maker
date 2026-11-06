@@ -201,6 +201,25 @@ func (s *PolicySet) For(ct *schemaapi.CompiledType) []*Policy {
 	return out
 }
 
+// Deciding returns the policies that decide op on a type (ADR 0023): the
+// type's own policy alone when it defines op, else its traits' policies
+// (any of which may allow). So a type can restrict an action a trait
+// default allows, such as the Ownable transfer.
+func (s *PolicySet) Deciding(ct *schemaapi.CompiledType, op accessapi.Operation) []*Policy {
+	if p, ok := s.byTarget[ct.Base()]; ok {
+		if _, defines := p.Sources[op]; defines {
+			return []*Policy{p}
+		}
+	}
+	var out []*Policy
+	for _, t := range ct.Traits {
+		if p, ok := s.byTarget[t.Base()]; ok {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // Targets returns the IDs that have policies, sorted.
 func (s *PolicySet) Targets() []schemaapi.TypeID {
 	out := make([]schemaapi.TypeID, 0, len(s.byTarget))

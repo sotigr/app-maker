@@ -320,5 +320,16 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   (task-report.json, flows/task-report.json, report(.el).txt, menu item). Tests: platform/pdf TestRender,
   TestDocumentRules/Evaluate, TestSMTPSender (fake server), tracker test, e2e TestDocumentsAndAttachments.
   Phase A complete; next B1 (query groups).
+- Motoshop gaps plan (approved 2026-11-07, 51 items, waves R1-R6 before phase B). R1 DONE (ADR 0023):
+  `PolicySet.Deciding` (#1); `WriteContext.ActionFeature` skips the update rule for the action's own writes (#40);
+  unchanged keys dropped, no-op updates need read only, effects of no-op runs enqueued (#22); decimal ==/!= nil-safe
+  and string-aware (#33), `when` errors → failed run `when_failed` (runFlowArgs.WhenError), aggregate where errors
+  fail the recompute; beforeWrite runs for flow writes/transitions (no SkipBeforeWrite in FlowPorts.Commit) (#13/#30),
+  `Result.System` → `Op.AsSystem` (#31), staged updates of batch features merge (#6, `run.writing`); event jobs carry
+  before/after/type/parent, deleted/purged runs use them (#32/#34); `DomainEvent.FromParent` + both parents
+  recomputed (#5); `Mutation.KeepVersion/Patch/Preserve` + `WriteContext.KeepVersion` for aggregates (#23), Stage
+  fills type when a version is given; `typedValue` input conversion (#14); `CompiledNode.DataDeps` skip rule (#17);
+  `client.search()` + search source (#2). Tests: internal/app/gaps_test.go (TestGap01/13/17/22/31/32/33), repotest
+  MaintainedFields, e2e test/e2e/gaps_test.go (TestGap05And23, TestGap14), expression TestGap33DecimalEquality.
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

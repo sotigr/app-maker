@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"math/rand/v2"
 	"net/http"
 	"strings"
@@ -126,15 +127,21 @@ type Request struct {
 	FeatureID *kernel.ID
 	// Feature overrides the `feature` variable (beforeWrite passes the
 	// state being written).
-	Feature   map[string]any
-	Input     map[string]any
-	Event     map[string]any
-	Trigger   map[string]any
-	Causation flowapi.CausationChain
+	Feature map[string]any
+	Input   map[string]any
+	Event   map[string]any
+	Trigger map[string]any
+	// Before and After are the documents around the triggering change
+	// (event runs); beforeWrite runs pass them in Trigger.
+	Before, After map[string]any
+	Causation     flowapi.CausationChain
 	// Action unlocks x-write: action:<name> fields when committing.
 	Action string
 	// Stage returns the write set instead of committing (beforeWrite).
 	Stage bool
+	// WritingType is the type of the feature being written when Stage is
+	// set: staged updates of it join that write (ADR 0023).
+	WritingType string
 	// Background runs retry on version conflicts (spec 10.6).
 	Background bool
 	// Job is the run_flow arguments of a background run (dead-letter retry).
@@ -146,6 +153,9 @@ type Result struct {
 	RunID  kernel.ID
 	Output any
 	Ops    []contentapi.WriteOp
+	// System is set when the run ran as the system principal (runAs:
+	// system); its staged writes are made as system (ADR 0023).
+	System bool
 	Jobs   []kernel.JobRequest
 	Commit contentapi.CommitResult
 }
@@ -249,6 +259,17 @@ func (e *Engine) runOnce(ctx context.Context, runID kernel.ID, req Request) (Res
 			return Result{}, nil, nil, kernel.NewValidationError(errs...)
 		}
 	}
+	// Input values take their schema's types, however they were decoded
+	// (HTTP keeps numbers as json.Number), so expressions behave the same
+	// everywhere (ADR 0023).
+	if len(f.Def.Input) > 0 {
+		var schema map[string]any
+		if json.Unmarshal(f.Def.Input, &schema) == nil {
+			if typed, ok := typedValue(schema, input).(map[string]any); ok {
+				input = typed
+			}
+		}
+	}
 	feature := req.Feature
 	if feature == nil && req.FeatureID != nil {
 		doc, err := e.d.Content.Storage(ctx, *req.FeatureID)
@@ -275,12 +296,23 @@ func (e *Engine) runOnce(ctx context.Context, runID kernel.ID, req Request) (Res
 	}
 	r := &run{e: e, ctx: ctx, id: runID, principal: principal, writes: newWriteSet(), depth: 0, nodes: map[string]any{}, trace: map[string]any{},
 		calls: map[string][]rt.LLMCall{}, chain: req.Causation.With(link)}
+	if req.Stage && req.FeatureID != nil {
+		r.writing, r.writingType = *req.FeatureID, req.WritingType
+	}
 	base := e.d.Authorizer.Bindings(ctx, principal)
 	base["principal"] = principal.ExprValue()
 	base["trigger"] = trigger
 	base["feature"] = feature
 	base["input"] = input
 	base["event"] = event
+	before, after := req.Before, req.After
+	if b, ok := trigger["before"].(map[string]any); ok {
+		before = b
+	}
+	if a, ok := trigger["after"].(map[string]any); ok {
+		after = a
+	}
+	base["before"], base["after"] = orEmpty(before), orEmpty(after)
 	base["env"] = e.d.Settings
 	base[rt.FnNow] = e.d.Clock.Now
 	base[rt.FnUUID] = func() string { return e.d.IDs.NewID().String() }
@@ -293,13 +325,17 @@ func (e *Engine) runOnce(ctx context.Context, runID kernel.ID, req Request) (Res
 			return Result{}, r.nodes, r.trace, fmt.Errorf("flow %s: result does not match the output schema: %v", f.Name, errs)
 		}
 	}
-	res := Result{RunID: runID, Output: out, Ops: r.writes.ops, Jobs: r.writes.jobs}
+	res := Result{RunID: runID, Output: out, Ops: r.writes.ops, Jobs: r.writes.jobs, System: principal.IsSystem()}
 	if req.Stage {
 		return res, r.nodes, r.trace, nil
 	}
-	cr, err := e.d.Content.Commit(ctx, contentapi.CommitRequest{
+	commit := contentapi.CommitRequest{
 		Principal: principal, Action: req.Action, Causation: req.Causation.With(link), Ops: r.writes.ops, Jobs: r.writes.jobs,
-	})
+	}
+	if req.Action != "" && req.FeatureID != nil {
+		commit.ActionFeature = req.FeatureID.String()
+	}
+	cr, err := e.d.Content.Commit(ctx, commit)
 	if err != nil {
 		return Result{}, r.nodes, r.trace, err
 	}
@@ -344,6 +380,10 @@ type run struct {
 	trace     map[string]any
 	calls     map[string][]rt.LLMCall // LLM calls per node (spec 11.7)
 	chain     flowapi.CausationChain  // causation including this run
+	// writing is the feature being written by a staged (beforeWrite) run,
+	// and its type; it is not in the repository yet.
+	writing     kernel.ID
+	writingType string
 }
 
 func (r *run) llmCalls(node string) []rt.LLMCall {
@@ -387,8 +427,10 @@ func (r *run) execGraph(g *domain.Graph, base map[string]any, prefix []string) (
 		eg, ctx := errgroup.WithContext(r.ctx)
 		for _, name := range level {
 			n := g.Nodes[name]
-			skip := len(n.Deps) > 0
-			for _, d := range n.Deps {
+			// Only data dependencies pass a skip on; edges only order
+			// (ADR 0023).
+			skip := len(n.DataDeps) > 0
+			for _, d := range n.DataDeps {
 				if !states[d].skipped {
 					skip = false
 				}
@@ -782,17 +824,25 @@ func (n *nodeRuntime) Children(ctx context.Context, id, typeName string, limit i
 
 // Stage adds a write; updates without a version use the current one.
 func (n *nodeRuntime) Stage(op contentapi.WriteOp) (string, error) {
-	if op.Op != "create" && op.Version == 0 && !strings.HasPrefix(op.ID, "$") {
+	if op.Op != "create" && (op.Version == 0 || op.Type == "") && !strings.HasPrefix(op.ID, "$") {
 		fid, err := kernel.ParseID(op.ID)
 		if err != nil {
 			return "", kernel.NewError(kernel.CodeValidationFailed, "invalid feature id %q", op.ID)
+		}
+		if fid == n.run.writing && op.Op == "update" {
+			// The feature a beforeWrite flow runs for: the update joins
+			// that write, which may be a create (ADR 0023).
+			op.Type = n.run.writingType
+			return n.run.writes.stage(op)
 		}
 		f, err := n.run.e.d.Content.Read(n.run.ctx, n.run.principal, fid)
 		if err != nil {
 			return "", err
 		}
-		v, _ := f["version"].(int64)
-		op.Version = kernel.Version(v)
+		if op.Version == 0 {
+			v, _ := f["version"].(int64)
+			op.Version = kernel.Version(v)
+		}
 		if op.Type == "" {
 			op.Type, _ = f["type"].(string)
 		}
@@ -873,3 +923,60 @@ func (n *nodeRuntime) Subflow(_ context.Context, name string, input map[string]a
 
 // SetHTTP replaces the outbound HTTP client (manifest tests use fixtures).
 func (e *Engine) SetHTTP(h HTTPDoer) { e.d.HTTP = h }
+
+// typedValue converts a decoded JSON value to the expression type its
+// schema describes: integers to int64, numbers to float64, date-time
+// strings to time.Time, recursively through objects and arrays.
+func typedValue(schema map[string]any, v any) any {
+	t, _ := schema["type"].(string)
+	if l, ok := schema["type"].([]any); ok && len(l) > 0 {
+		t, _ = l[0].(string)
+	}
+	switch x := v.(type) {
+	case nil:
+		return nil
+	case json.Number:
+		if t == "integer" {
+			if n, err := x.Int64(); err == nil {
+				return n
+			}
+		}
+		if f, err := x.Float64(); err == nil {
+			if t == "integer" && f == math.Trunc(f) {
+				return int64(f)
+			}
+			return f
+		}
+	case float64:
+		if t == "integer" && x == math.Trunc(x) {
+			return int64(x)
+		}
+	case int:
+		if t == "number" {
+			return float64(x)
+		}
+		return int64(x)
+	case string:
+		if t == "string" && schema["format"] == "date-time" {
+			if tm, err := time.Parse(time.RFC3339, x); err == nil {
+				return tm
+			}
+		}
+	case map[string]any:
+		props, _ := schema["properties"].(map[string]any)
+		out := make(map[string]any, len(x))
+		for k, e := range x {
+			ps, _ := props[k].(map[string]any)
+			out[k] = typedValue(ps, e)
+		}
+		return out
+	case []any:
+		items, _ := schema["items"].(map[string]any)
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = typedValue(items, e)
+		}
+		return out
+	}
+	return v
+}

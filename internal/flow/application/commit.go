@@ -7,7 +7,7 @@ import (
 )
 
 func commitReq(p accessapi.Principal, action string, id kernel.ID, typeName string, v kernel.Version, data map[string]any) contentapi.CommitRequest {
-	return contentapi.CommitRequest{Principal: p, Action: action, Ops: []contentapi.WriteOp{
+	return contentapi.CommitRequest{Principal: p, Action: action, ActionFeature: id.String(), Ops: []contentapi.WriteOp{
 		{Op: "update", Type: typeName, ID: id.String(), Version: v, Data: data},
 	}}
 }

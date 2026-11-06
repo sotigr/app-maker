@@ -36,6 +36,14 @@ type Mutation struct {
 	// UniqueKey, when set, must be unique among the live children of the
 	// feature's parent (x-uniqueName, spec 3.4).
 	UniqueKey string
+	// KeepVersion marks a system write of maintained fields (x-aggregate):
+	// only Patch is merged into the stored data, without a version check
+	// or bump, so it never conflicts with user writes (ADR 0023).
+	KeepVersion bool
+	Patch       map[string]kernel.Value
+	// Preserve lists maintained fields that an ordinary update keeps from
+	// the stored data, so a concurrent maintained write is not undone.
+	Preserve []string
 }
 
 // Batch is committed atomically by one repository (spec 5.1, 5.2).

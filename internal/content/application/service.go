@@ -283,7 +283,7 @@ func (s *Service) toChangeEvents(events []domain.DomainEvent, causation flowapi.
 		ev := changeapi.Event{
 			Kind: changeapi.EventKind(e.Kind), FeatureID: e.FeatureID, TypeID: e.TypeID, ParentID: e.ParentID,
 			OwnerID: e.OwnerID, Ancestors: e.Ancestors, Version: e.Version, Changed: e.Changed,
-			After: domain.WireDocument(ct, e.After), Actor: e.Actor, Causation: causation, At: e.At,
+			After: domain.WireDocument(ct, e.After), Actor: e.Actor, Causation: causation, At: e.At, FromParent: e.FromParent,
 		}
 		if len(e.Before) > 0 {
 			ev.Before = map[string]any{}

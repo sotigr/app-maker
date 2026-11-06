@@ -86,10 +86,15 @@ func testPermissionMatrix(t *testing.T, driver string) {
 		r := w.admin.do("GET", "/v1/features/project/"+w.project, nil)
 		return r.Header.Get("ETag")
 	}
+	n := 0
 	check("update project", all(200, 200, 200, 403, 404, 401), func(c *client) resp {
+		// A distinct value each time: writing the current value is a no-op
+		// that needs only read access (ADR 0023).
+		n++
+		desc := fmt.Sprint("x", n)
 		// Aggregate recomputes may bump the version in between: retry conflicts.
 		for i := 0; ; i++ {
-			r := c.do("PATCH", "/v1/features/project/"+w.project, map[string]any{"description": "x"}, "If-Match", version())
+			r := c.do("PATCH", "/v1/features/project/"+w.project, map[string]any{"description": desc}, "If-Match", version())
 			if r.Status != 409 || i == 20 {
 				return r
 			}
