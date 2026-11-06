@@ -10,7 +10,8 @@ of tasks; identify which one you have.
    admin console.
 
 Human-oriented documentation: [docs/usage](docs/usage/README.md). Read the
-guide for the area you touch before editing.
+guide for the area you touch before editing. The complete feature reference
+for building apps is [docs/APP-BUILDER.md](docs/APP-BUILDER.md).
 
 ## 1. Building an application
 

@@ -3,6 +3,9 @@
 An application is a directory of JSON files (the **manifest**). The
 framework reads it at startup; there is nothing to compile.
 
+For AI agents building apps, [APP-BUILDER.md](../APP-BUILDER.md) lists every
+feature in one self-contained file.
+
 | Guide | What it covers |
 | --- | --- |
 | [1. Quickstart](01-quickstart.md) | Build, scaffold, run, and call your first app |
