@@ -70,8 +70,15 @@ directory in version control; production servers are changed only through
 - `${secret:name}` is never written into the manifest. The server resolves
   it from the environment variable `ORGANON_SECRET_<NAME>` (upper case, `-` and
   `.` become `_`), e.g. `${secret:oidc-google}` → `ORGANON_SECRET_OIDC_GOOGLE`.
-  Secrets are used for OIDC client secrets, webhook signing keys, and LLM
-  provider keys, and never reach flows or code nodes.
+  Secrets are used for OIDC client secrets, webhook signing keys, LLM
+  provider keys, and API keys of outbound requests. Their values never
+  reach flow expressions, run records, or code nodes.
+- A secret used by `http.request` or `ctx.http` must list the hosts it may
+  be sent to (`*.domain` allowed); `organon plan` shows changes:
+
+  ```json
+  "secrets": { "stripe": { "hosts": ["api.stripe.com"] } }
+  ```
 
 ## Seed data
 

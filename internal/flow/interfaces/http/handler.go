@@ -77,7 +77,7 @@ func (h *Handler) hook(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "unreadable body"))
 		return
 	}
-	if err := h.engine.Webhook(r.Context(), r.PathValue("name"), body, r.Header.Get("X-Organon-Signature")); err != nil {
+	if err := h.engine.Webhook(r.Context(), r.PathValue("name"), body, r.Header); err != nil {
 		httpserver.WriteError(w, r, err)
 		return
 	}

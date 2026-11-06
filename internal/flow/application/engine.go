@@ -79,6 +79,9 @@ type Deps struct {
 	Recorder RunRecorder
 	Log      *slog.Logger
 	Secrets  func(ref string) (string, bool)
+	// SecretHosts are the hosts each secret may be sent to (app.json
+	// secrets, ADR 0019).
+	SecretHosts map[string][]string
 	// Nodes is the node catalog, published to the visual editor.
 	Nodes *domain.NodeRegistry
 	// LLM serves llm.complete (spec 11.7); nil disables the node at run time.
@@ -647,6 +650,26 @@ func (n *nodeRuntime) host(ctx context.Context, method string, args json.RawMess
 		out = list
 	case "llm.complete":
 		out, err = n.codeLLM(ctx, a)
+	case "http.request":
+		// auth names a secret declared by the node; the engine adds it to
+		// the request, so code never handles the value (ADR 0019).
+		if auth, ok := a["auth"].(map[string]any); ok {
+			h, _ := a["headers"].(map[string]any)
+			if h == nil {
+				h = map[string]any{}
+			}
+			header := str(auth["header"])
+			if header == "" {
+				header = "Authorization"
+			}
+			h[header] = str(auth["prefix"]) + "${secret:" + str(auth["secret"]) + "}"
+			a["headers"] = h
+		}
+		out, err = httpRequest(ctx, a, n)
+		var re *retryable
+		if errors.As(err, &re) {
+			err = kernel.NewError("http_failed", "%v", re.err)
+		}
 	case "log":
 		kv := []any{}
 		if m, ok := a["kv"].(map[string]any); ok {
@@ -778,6 +801,24 @@ func (n *nodeRuntime) HTTP(_ context.Context, req *http.Request) (*http.Response
 		return nil, errors.New("outbound HTTP is not configured")
 	}
 	return n.run.e.d.HTTP.Do(req)
+}
+
+// Secret implements domain.Runtime: only secrets written in this node's
+// inputs, only to their declared hosts, and never into run records.
+func (n *nodeRuntime) Secret(name, host string) (string, error) {
+	d := n.run.e.d
+	if n.cn == nil || !n.cn.Secrets[name] {
+		return "", kernel.NewError(kernel.CodeForbidden, "secret %s is not written in this node", name)
+	}
+	if !domain.HostAllowed(host, d.SecretHosts[name]) {
+		return "", kernel.NewError(kernel.CodeForbidden, "secret %s may not be sent to %s", name, host)
+	}
+	if d.Secrets != nil {
+		if v, ok := d.Secrets("${secret:" + name + "}"); ok && v != "" {
+			return v, nil
+		}
+	}
+	return "", kernel.NewError("secret_missing", "secret %s is not configured", name)
 }
 
 func (n *nodeRuntime) Render(name string, vars map[string]any) (string, error) {

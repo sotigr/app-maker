@@ -2,11 +2,9 @@ package application
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -331,9 +329,9 @@ func (e *Engine) InvokeAction(ctx context.Context, p accessapi.Principal, typeNa
 	return ActionResult{}, kernel.NewError(kernel.CodeNotFound, "unknown action %q", action)
 }
 
-// Webhook verifies an inbound webhook (HMAC-SHA256 over the body with the
-// trigger's secret, header "sha256=<hex>") and enqueues its run (spec 10.2).
-func (e *Engine) Webhook(ctx context.Context, name string, body []byte, signature string) error {
+// Webhook verifies an inbound webhook with the trigger's scheme and
+// secret (domain.VerifyWebhook, ADR 0019) and enqueues its run (spec 10.2).
+func (e *Engine) Webhook(ctx context.Context, name string, body []byte, headers http.Header) error {
 	f, ok := e.d.Flows.Webhook(name)
 	if !ok {
 		return kernel.ErrNotFound
@@ -345,10 +343,7 @@ func (e *Engine) Webhook(ctx context.Context, name string, body []byte, signatur
 	if !ok || secret == "" {
 		return kernel.NewError(kernel.CodeForbidden, "webhook secret is not configured")
 	}
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	want := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-	if !hmac.Equal([]byte(want), []byte(signature)) {
+	if domain.VerifyWebhook(f.Verify, secret, body, headers, e.d.Clock.Now()) != nil {
 		return kernel.NewError(kernel.CodeUnauthenticated, "invalid webhook signature")
 	}
 	var input map[string]any

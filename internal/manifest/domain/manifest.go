@@ -52,6 +52,22 @@ type AppConfig struct {
 	LLM          json.RawMessage     `json:"llm,omitempty"`
 	Python       json.RawMessage     `json:"python,omitempty"`
 	Settings     map[string]any      `json:"settings,omitempty"`
+	// Secrets lists, per secret, the hosts flows may send it to (ADR 0019).
+	Secrets map[string]SecretConfig `json:"secrets,omitempty"`
+}
+
+// SecretConfig is one entry of app.json secrets.
+type SecretConfig struct {
+	Hosts []string `json:"hosts"`
+}
+
+// SecretHosts returns the allowed hosts by secret name.
+func (a AppConfig) SecretHosts() map[string][]string {
+	out := map[string][]string{}
+	for k, v := range a.Secrets {
+		out[k] = v.Hosts
+	}
+	return out
 }
 
 // AuthConfig is the auth section of app.json.

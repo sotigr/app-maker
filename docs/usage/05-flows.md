@@ -60,7 +60,7 @@ nodes are skipped), `onError: "<handler node>"` (the handler runs with
 | beforeWrite | `{"beforeWrite": ["create","update"], "on": "<type>", "when": "..."}` | Inside the write; may stage more writes to the same repository or `reject` it. Only Pure, DataRead, DataWrite, and Control nodes. |
 | event | `{"event": ["created","updated"], "on": "<type>", "when": "changed('/assignee')"}` | In the background after commit. Lifecycle events: `created`, `updated`, `moved`, `deleted`, `purged`; custom dotted events from `emit` (e.g. `task.reminded`). |
 | schedule | `{"schedule": "0 8 * * *"}` | Cron (UTC), as system. |
-| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}"}` | `POST /v1/hooks/issues` with header `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">`. |
+| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}"}` | `POST /v1/hooks/issues` with header `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">` (within 5 minutes). Add `"verify"` for other providers, see [Secrets](#secrets-and-signatures). |
 
 Trigger `when` conditions see `event` (`kind`, `changed`, `type`, `id`,
 `data`), `before`, `after`, `feature`, `op`, `principal`, and
@@ -71,6 +71,32 @@ recorded as `dead_letter` and can be retried with `organon runs retry <id>` or
 from the admin console. Causation is tracked: a flow that would re-trigger
 itself on the same feature, or a chain deeper than 8, is stopped
 (`loop_stopped`).
+
+## Secrets and signatures
+
+`http.request` may use `${secret:name}` in header values and the URL query
+string. The engine puts the value into the request after evaluating the
+inputs, only for hosts listed in `app.json` `secrets.<name>.hosts`; run
+records keep the reference.
+
+```json
+"charge": { "node": "http.request",
+  "in": { "method": "'POST'", "url": "'https://api.stripe.com/v1/payment_intents'",
+          "headers": { "Authorization": "'Bearer ${secret:stripe}'" },
+          "body": { "amount": "nodes.total.out" } } }
+```
+
+Inbound webhooks choose how they are signed with `trigger.verify`:
+
+| `scheme` | Checks |
+| --- | --- |
+| `organon` (default) | `X-Organon-Signature: t=<unix>,v1=<hex>` as sent by `webhook.call` (the older `sha256=<hex>` also works) |
+| `stripe` | `Stripe-Signature` (same timestamped scheme, 5-minute window) |
+| `hmac-sha256` | `header` holding `prefix` + HMAC-SHA256 of the body, `encoding` `hex` (default) or `base64` |
+
+```json
+"trigger": { "webhook": "payments", "secret": "${secret:stripe-webhook}", "verify": { "scheme": "stripe" } }
+```
 
 ## Variables available to nodes
 

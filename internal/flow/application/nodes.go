@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"text/template"
 	"time"
@@ -230,55 +231,8 @@ func Builtins() []domain.NodeType {
 		&builtin{name: "http.request", kind: domain.KindExternal, desc: "Calls an HTTP API through the egress policy (GET, HEAD, or idempotent calls).",
 			inputs: []domain.Param{param("url", rt.String, true, "URL"), param("method", rt.String, false, "GET by default"),
 				mapParam("headers", "request headers"), param("body", rt.Any, false, "JSON body")},
-			out: rt.MapOf(map[string]*rt.Type{"status": rt.Int, "body": rt.Any, "headers": rt.OpenMap()}),
-			exec: func(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
-				method := strings.ToUpper(str(in["method"]))
-				if method == "" {
-					method = http.MethodGet
-				}
-				var body io.Reader
-				if b, ok := in["body"]; ok && b != nil {
-					raw, err := json.Marshal(toWire(b))
-					if err != nil {
-						return nil, err
-					}
-					body = bytes.NewReader(raw)
-				}
-				req, err := http.NewRequestWithContext(ctx, method, str(in["url"]), body)
-				if err != nil {
-					return nil, err
-				}
-				if h, ok := in["headers"].(map[string]any); ok {
-					for k, v := range h {
-						req.Header.Set(k, fmt.Sprint(v))
-					}
-				}
-				if body != nil {
-					req.Header.Set("Content-Type", "application/json")
-				}
-				res, err := r.HTTP(ctx, req)
-				if err != nil {
-					return nil, &retryable{err}
-				}
-				defer func() { _ = res.Body.Close() }()
-				raw, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-				if err != nil {
-					return nil, &retryable{err}
-				}
-				if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
-					return nil, &retryable{fmt.Errorf("HTTP %d", res.StatusCode)}
-				}
-				var parsed any = string(raw)
-				var js any
-				if json.Unmarshal(raw, &js) == nil {
-					parsed = js
-				}
-				headers := map[string]any{}
-				for k := range res.Header {
-					headers[k] = res.Header.Get(k)
-				}
-				return map[string]any{"status": int64(res.StatusCode), "body": parsed, "headers": headers}, nil
-			}},
+			out:  rt.MapOf(map[string]*rt.Type{"status": rt.Int, "body": rt.Any, "headers": rt.OpenMap()}),
+			exec: httpRequest},
 		&builtin{name: "llm.complete", kind: domain.KindExternal,
 			desc: "Calls a language model by alias (default, fast, large); with an outputSchema the reply is that JSON document, otherwise {text}.",
 			inputs: []domain.Param{param("prompt", rt.String, false, "user message"), param("model", rt.String, false, "model alias; 'default' by default"),
@@ -499,4 +453,106 @@ func runCode(ctx context.Context, in map[string]any, r domain.Runtime) (any, err
 		return nil, err
 	}
 	return fromJSON(out)
+}
+
+// withSecrets replaces ${secret:name} in s after evaluation (ADR 0019);
+// the run record keeps the references, never the values.
+func withSecrets(s, host string, r domain.Runtime, escape bool) (string, error) {
+	var err error
+	out := domain.SecretRef.ReplaceAllStringFunc(s, func(m string) string {
+		name := domain.SecretRef.FindStringSubmatch(m)[1]
+		v, e := r.Secret(name, host)
+		if e != nil && err == nil {
+			err = e
+		}
+		if escape {
+			return url.QueryEscape(v)
+		}
+		return v
+	})
+	return out, err
+}
+
+// secretURL substitutes secrets in the query string of raw; the host is
+// fixed before substitution, and secrets elsewhere in the URL are refused.
+func secretURL(raw string, r domain.Runtime) (string, error) {
+	if !domain.SecretRef.MatchString(raw) {
+		return raw, nil
+	}
+	base, query, _ := strings.Cut(raw, "?")
+	if domain.SecretRef.MatchString(base) {
+		return "", kernel.NewError(kernel.CodeValidationFailed, "secrets may only appear in the query string of a URL")
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		return "", err
+	}
+	q, err := withSecrets(query, u.Hostname(), r, true)
+	if err != nil {
+		return "", err
+	}
+	return base + "?" + q, nil
+}
+
+// httpRequest serves http.request and code nodes' ctx.http (ADR 0019).
+func httpRequest(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
+	method := strings.ToUpper(str(in["method"]))
+	if method == "" {
+		method = http.MethodGet
+	}
+	var body io.Reader
+	if b, ok := in["body"]; ok && b != nil {
+		raw, err := json.Marshal(toWire(b))
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(raw)
+	}
+	target, err := secretURL(str(in["url"]), r)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, method, target, body)
+	if err != nil {
+		return nil, err
+	}
+	if h, ok := in["headers"].(map[string]any); ok {
+		for k, v := range h {
+			val, err := withSecrets(fmt.Sprint(v), req.URL.Hostname(), r, false)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set(k, val)
+		}
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	res, err := r.HTTP(ctx, req)
+	if err != nil {
+		// url.Error repeats the URL, which may hold a secret.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = fmt.Errorf("%s %s: %w", method, req.URL.Host, ue.Err)
+		}
+		return nil, &retryable{err}
+	}
+	defer func() { _ = res.Body.Close() }()
+	raw, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err != nil {
+		return nil, &retryable{err}
+	}
+	if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
+		return nil, &retryable{fmt.Errorf("HTTP %d", res.StatusCode)}
+	}
+	var parsed any = string(raw)
+	var js any
+	if json.Unmarshal(raw, &js) == nil {
+		parsed = js
+	}
+	headers := map[string]any{}
+	for k := range res.Header {
+		headers[k] = res.Header.Get(k)
+	}
+	return map[string]any{"status": int64(res.StatusCode), "body": parsed, "headers": headers}, nil
 }

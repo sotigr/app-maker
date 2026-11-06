@@ -42,6 +42,10 @@ Rules:
   the `inputSchema` properties (type-checked by `organon validate`); the output
   is validated before later nodes see it.
 - `ctx` provides `get_feature(id)`, `query(type, where=, sort=, scope=, limit=)`,
+  `http(method, url, headers=, body=, auth=)` (through the egress policy;
+  `auth={"secret": "stripe", "header": "Authorization", "prefix": "Bearer "}`
+  names a secret the node lists in `"secrets": ["stripe"]`, which the
+  engine adds so your code never sees it),
   `llm(prompt=, model=, system=, schema=, max_tokens=, messages=)`,
   `log(msg, **fields)`, `idempotency_key` (stable across retries of the
   same run and node), and `remaining_ms()`. Host calls fail with
@@ -51,7 +55,7 @@ Rules:
 - Code may run more than once (retries, worker crashes). Pass
   `ctx.idempotency_key` to external APIs.
 - `print` goes to the server log. No credentials or app secrets are in the
-  environment; outbound HTTP works only for hosts in `limits.network`
+  environment (use `ctx.http` with `auth`); outbound HTTP works only for hosts in `limits.network`
   (`host:port`, `host:*`, `*.domain:port`) through the runner's proxy.
 - Limits: `timeoutMs` (capped by the flow budget), `memoryMb` (default
   512), output ≤ 1 MiB.

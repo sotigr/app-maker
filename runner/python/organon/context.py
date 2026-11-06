@@ -58,6 +58,17 @@ class Context:
         out = self._call("llm.complete", args)
         return out if schema is not None else out.get("text")
 
+    def http(self, method, url, headers=None, body=None, auth=None):
+        """Calls an HTTP API through the engine's egress policy. ``auth`` is
+        ``{"secret": name, "header": "Authorization", "prefix": "Bearer "}``
+        for a secret the node declares; the engine adds it, so the value
+        never reaches this process. Returns ``{status, body, headers}``."""
+        args = {"method": method, "url": url}
+        for k, v in (("headers", headers), ("body", body), ("auth", auth)):
+            if v is not None:
+                args[k] = v
+        return self._call("http.request", args)
+
     def log(self, msg, **kv):
         """Writes a structured log line attributed to the run and node."""
         self._call("log", {"msg": str(msg), "kv": {k: _plain(v) for k, v in kv.items()}})

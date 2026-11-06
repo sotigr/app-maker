@@ -48,6 +48,9 @@ type CompileDeps struct {
 	// CodeFiles lists the manifest's code files (nodes/...); nil skips the
 	// existence checks of code nodes.
 	CodeFiles map[string]bool
+	// SecretHosts are the hosts each secret may be sent to (app.json
+	// secrets, ADR 0019).
+	SecretHosts map[string][]string
 }
 
 // ExprTree mirrors an `in` or `result` JSON value: string leaves are
@@ -107,6 +110,9 @@ type CompiledNode struct {
 	InputV schemaapi.Validator
 	// Limits of code nodes (spec 11.3).
 	Limits rt.CodeLimits
+	// Secrets are the secret names written literally in the node's
+	// inputs; only these are substituted at run time (ADR 0019).
+	Secrets map[string]bool
 }
 
 // Graph is a validated DAG with topological levels.
@@ -134,6 +140,8 @@ type Flow struct {
 	InputV    schemaapi.Validator
 	OutputV   schemaapi.Validator
 	WebSecret string
+	// Verify is the webhook's signature scheme.
+	Verify Verify
 }
 
 // Matches reports whether the flow's `on` covers type ct.
@@ -331,6 +339,24 @@ func (c *compiler) compileTrigger(f *Flow) {
 			c.errf("/trigger/secret", "webhook triggers need a signing secret (${secret:<name>})")
 		}
 		f.WebSecret = t.Secret
+		if v := t.Verify; v != nil {
+			switch v.Scheme {
+			case VerifyOrganon, VerifyStripe:
+			case VerifyHMAC:
+				if v.Header == "" {
+					c.errf("/trigger/verify/header", "hmac-sha256 needs the signature header")
+				}
+				if v.Encoding != "" && v.Encoding != "hex" && v.Encoding != "base64" {
+					c.errf("/trigger/verify/encoding", "encoding must be hex or base64")
+				}
+			default:
+				c.errf("/trigger/verify/scheme", "scheme must be organon, stripe, or hmac-sha256")
+			}
+			f.Verify = *v
+		}
+	}
+	if t.Verify != nil && f.Trigger != TriggerWebhook {
+		c.errf("/trigger/verify", "only webhook triggers verify signatures")
 	}
 	for _, op := range t.BeforeWrite {
 		if op != "create" && op != "update" && op != "delete" && op != "move" {
@@ -431,6 +457,8 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 		if nt.Kind() == KindCode {
 			c.compileCode(f, cn, ptr)
 		}
+		cn.Secrets = c.secretRefs(ptr+"/in", spec.Node, spec.In)
+		c.codeSecrets(ptr, nt.Kind(), spec.Secrets, cn)
 		nodeFields[name] = rt.MapOf(map[string]*rt.Type{"out": out, "error": rt.OpenMap()})
 		g.Nodes[name] = cn
 	}

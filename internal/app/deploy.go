@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,7 +52,10 @@ type Plan struct {
 	// to anonymous callers (ADR 0016).
 	UI          []NamedDiff `json:"ui"`
 	PublicPages []string    `json:"newPublicPages"`
-	Breaking    bool        `json:"breaking"`
+	// SecretHosts lists secrets whose allowed hosts changed, as
+	// "name: host, host" (ADR 0019).
+	SecretHosts []string `json:"secretHosts"`
+	Breaking    bool     `json:"breaking"`
 }
 
 // MakePlan compares the deployed and the new compiled manifest.
@@ -124,7 +128,28 @@ func MakePlan(cur, next *Compiled) Plan {
 	}
 	p.UI = diffFiles(cur.Manifest.UI, next.Manifest.UI)
 	p.PublicPages = newPublicPages(cur, next)
+	p.SecretHosts = secretHostChanges(cur.Manifest.App.SecretHosts(), next.Manifest.App.SecretHosts())
 	return p
+}
+
+// secretHostChanges lists secrets whose allowed hosts differ.
+func secretHostChanges(cur, next map[string][]string) []string {
+	out := []string{}
+	for name, hosts := range next {
+		if strings.Join(hosts, ",") != strings.Join(cur[name], ",") {
+			if len(hosts) == 0 {
+				hosts = []string{"(none)"}
+			}
+			out = append(out, name+": "+strings.Join(hosts, ", "))
+		}
+	}
+	for name := range cur {
+		if _, ok := next[name]; !ok {
+			out = append(out, name+": (removed)")
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // newPublicPages lists pages anonymous callers may see now but not before.

@@ -151,7 +151,8 @@ myapp/
   "limits": { "requestsPerMinute": 600, "maxDocumentBytes": 262144 },
   "llm": { "aliases": { "default": "${env.llm.default}" }, "monthlyBudgetUsd": 50 },
   "python": { "allowedPackages": ["httpx"] },
-  "settings": { "supportEmail": "${env.supportEmail}" }
+  "settings": { "supportEmail": "${env.supportEmail}" },
+  "secrets": { "stripe": { "hosts": ["api.stripe.com"] } }
 }
 ```
 
@@ -168,7 +169,10 @@ myapp/
 - `${env.a.b}` is replaced from `env/<env>.json`. A missing value is a
   validation error.
 - `${secret:name}` is resolved by the server from `ORGANON_SECRET_NAME`.
-  **Never put secrets in files.** Secrets never reach flows or Python.
+  **Never put secrets in files.** Their values never reach flow
+  expressions, run records, or Python.
+- A secret used for outbound requests lists the hosts it may be sent to
+  (see §11).
 
 ---
 
@@ -544,7 +548,29 @@ You are now the assignee of "{{.title}}".
 - Use `email.send` with `{"to": "...", "template": "'assigned'", "vars": {...}}`.
 - `webhook.call` POSTs signed JSON after the commit.
 - `http.request` calls an outside API synchronously.
-- Inbound webhooks: see §7.
+
+**Authenticating to outside APIs.** Write `${secret:name}` inside header
+values or the URL query string of `http.request`. The engine puts the
+value into the request after evaluation, so it never appears in
+expressions or run records. Each secret must list its hosts in `app.json`
+`secrets`; other hosts are refused.
+
+```json
+"charge": { "node": "http.request",
+  "in": { "method": "'POST'", "url": "'https://api.stripe.com/v1/payment_intents'",
+          "headers": { "Authorization": "'Bearer ${secret:stripe}'" }, "body": { "amount": "nodes.total.out" } } }
+```
+
+- In Python, list `"secrets": ["stripe"]` on the node and call
+  `ctx.http("POST", url, body=..., auth={"secret": "stripe", "prefix": "Bearer "})`.
+- Secrets anywhere else (`body`, URL path or host, other nodes) are
+  validation errors. Missing secrets fail the node with `secret_missing`.
+
+**Inbound webhooks** verify the signature with `trigger.verify`:
+- `{"scheme": "organon"}` (default): `X-Organon-Signature: t=<unix>,v1=<hex>`.
+- `{"scheme": "stripe"}`: `Stripe-Signature`.
+- `{"scheme": "hmac-sha256", "header": "X-Hub-Signature-256", "prefix": "sha256=", "encoding": "hex"|"base64"}`:
+  other providers.
 
 ---
 

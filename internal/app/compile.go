@@ -146,7 +146,7 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 		codeFiles[f.Path] = true
 	}
 	flows, fp := flowdomain.Compile(flowdomain.CompileDeps{Types: reg, Exprs: exprs, Nodes: nodes, Validators: jsonschema.Factory{},
-		CodeFiles: codeFiles}, fsrc)
+		CodeFiles: codeFiles, SecretHosts: m.App.SecretHosts()}, fsrc)
 	for _, p := range fp {
 		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
 	}

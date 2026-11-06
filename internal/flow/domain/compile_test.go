@@ -32,7 +32,8 @@ func deps(t *testing.T) domain.CompileDeps {
 	for _, n := range flowapp.Builtins() {
 		_ = nodes.Register(n)
 	}
-	return domain.CompileDeps{Types: reg, Exprs: expression.NewCompiler(), Nodes: nodes, Validators: jsonschema.Factory{}}
+	return domain.CompileDeps{Types: reg, Exprs: expression.NewCompiler(), Nodes: nodes, Validators: jsonschema.Factory{},
+		SecretHosts: map[string][]string{"stripe": {"api.stripe.com"}}}
 }
 
 func compile(t *testing.T, src string) []domain.Problem {
@@ -103,6 +104,26 @@ func TestValidationRules(t *testing.T) {
 		{"trigger needs exactly one kind", `{"flow":"f","trigger":{"action":"x","schedule":"* * * * *"},"nodes":{}}`, "/trigger", "exactly one"},
 		{"bad cron", `{"flow":"f","trigger":{"schedule":"61 * * * *"},"nodes":{}}`, "/trigger/schedule", "out of range"},
 		{"webhook without secret", `{"flow":"f","trigger":{"webhook":"x"},"nodes":{}}`, "/trigger/secret", "secret"},
+		// ADR 0019: secrets only in http.request headers and url, only with hosts.
+		{"secret in an http.request body", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"http.request","in":{"url":"'https://api.stripe.com/x'","body":{"k":"'${secret:stripe}'"}}}}}`,
+			"/nodes/a/in/body/k", "only be used in headers and url"},
+		{"secret in another node", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"expr","in":{"expr":"'${secret:stripe}'"}}}}`, "/nodes/a/in/expr", "cannot use secrets"},
+		{"secret without allowed hosts", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"http.request","in":{"url":"'https://x.example/'","headers":{"Authorization":"'Bearer ${secret:other}'"}}}}}`,
+			"/nodes/a/in/headers/Authorization", "no allowed hosts"},
+		{"code node secret without hosts", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"python","code":"nodes/a.py","secrets":["other"],"inputSchema":{"type":"object"},"outputSchema":{"type":"object"}}}}`,
+			"/nodes/a/secrets/0", "no allowed hosts"},
+		{"secrets declared on a non-code node", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"expr","secrets":["stripe"],"in":{"expr":"1"}}}}`, "/nodes/a/secrets/0", "only code nodes"},
+		{"unknown webhook scheme", `{"flow":"f","trigger":{"webhook":"x","secret":"${secret:s}","verify":{"scheme":"md5"}},"nodes":{}}`,
+			"/trigger/verify/scheme", "organon, stripe, or hmac-sha256"},
+		{"hmac-sha256 without header", `{"flow":"f","trigger":{"webhook":"x","secret":"${secret:s}","verify":{"scheme":"hmac-sha256"}},"nodes":{}}`,
+			"/trigger/verify/header", "header"},
+		{"verify on a non-webhook trigger", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task","verify":{"scheme":"stripe"}},"nodes":{}}`,
+			"/trigger/verify", "only webhook"},
 		{"unknown edge node", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
 			"nodes":{"a":{"node":"expr","in":{"expr":"1"}}},"edges":[["a","zzz"]]}`, "/edges/0", "unknown node"},
 		{"budget above maximum", `{"flow":"f","trigger":{"beforeWrite":["create"],"on":"urn:app:feature:task"},"timeoutMs":60000,"nodes":{}}`,

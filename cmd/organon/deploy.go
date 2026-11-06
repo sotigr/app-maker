@@ -50,6 +50,9 @@ func printPlan(p app.Plan) {
 	for _, pg := range p.PublicPages {
 		fmt.Printf("  ! page visible without login (review): %s\n", pg)
 	}
+	for _, h := range p.SecretHosts {
+		fmt.Printf("  ! secret may be sent to (review): %s\n", h)
+	}
 	for _, e := range p.Exposures {
 		fmt.Printf("  ! new public field (data exposure, review): %s\n", e)
 	}

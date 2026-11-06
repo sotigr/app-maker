@@ -38,6 +38,8 @@ func testSecrets(ref string) (string, bool) {
 		return "s3cret", true
 	case "${secret:oidc-test}":
 		return "client-secret", true
+	case "${secret:pay}":
+		return "sk_live_SECRETVALUE", true
 	}
 	return "", false
 }

@@ -90,3 +90,12 @@
 | User preference | `locale` field on the system user type (owner-visible, owner-writable); saved choice > `?lang` (browser's remembered choice) > Accept-Language > first language |
 | Scope | UI only; server messages, flow `reject` messages, and emails stay untranslated |
 | Example | Tracker in English and Greek (`ui/i18n/en.json`, `ui/i18n/el.json`) |
+
+## 2026-11-06 (app builder gaps; plan approved)
+| Topic | Decision |
+|---|---|
+| Scope | All gaps of the shop-builder report, in phases A (secrets, share links, sequences, PDFs), B (aggregation, flow sources, calendar), C (smaller items) |
+| Customer access | Share links only (no self-signup) |
+| PDF | Pure-Go layout from JSON templates, embedded Noto fonts; no browser |
+| Sequences | Gapless, assigned inside the commit transaction |
+| Outbound secrets (ADR 0019) | Substituted by the engine in http.request headers/query and ctx.http auth; per-secret host allowlist in app.json; inbound verifiers organon/stripe/hmac-sha256 |

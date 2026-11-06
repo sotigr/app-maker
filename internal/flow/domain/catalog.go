@@ -87,6 +87,9 @@ type Runtime interface {
 	Effect(job kernel.JobRequest)
 	// HTTP performs an outbound request through the egress policy.
 	HTTP(ctx context.Context, req *http.Request) (*http.Response, error)
+	// Secret returns a secret written in the node's inputs, if host may
+	// receive it (ADR 0019).
+	Secret(name, host string) (string, error)
 	// Subflow runs another flow inline and returns its result.
 	Subflow(ctx context.Context, name string, input map[string]any) (any, error)
 	// Render renders a manifest template.

@@ -45,6 +45,7 @@ type Trigger struct {
 	On          string   `json:"on,omitempty"`     // type or trait ID
 	When        string   `json:"when,omitempty"`   // condition for event and beforeWrite
 	Secret      string   `json:"secret,omitempty"` // webhook signing secret, ${secret:name}
+	Verify      *Verify  `json:"verify,omitempty"` // webhook signature scheme (ADR 0019)
 }
 
 // TriggerKind names a trigger kind.
@@ -98,6 +99,8 @@ type NodeSpec struct {
 	Code         string          `json:"code,omitempty"`
 	Requirements string          `json:"requirements,omitempty"`
 	Limits       json.RawMessage `json:"limits,omitempty"`
+	// Secrets code nodes may send with ctx.http (ADR 0019).
+	Secrets []string `json:"secrets,omitempty"`
 }
 
 // Retry configures retries of External nodes (spec 10.10).

@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: 2026-11-02_
+_Last updated: 2026-11-06_
 
 ## Current phase: 10 – PostgreSQL + Valkey (next; needs Docker running).
 
@@ -290,5 +290,14 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
 - Fixed: a page with a non-streamable query source (sorted, e.g. the tracker's projects list) re-queried every
   400 ms forever, because each reload's cache puts notified the reload listener. `Cache.put` now notifies only
   when the feature changed (version, pending, or content).
+- App-builder gaps plan (approved 2026-11-06; plan in ~/.claude/plans, ADRs 0019-0024): phases A1 secrets, A2 share
+  links, A3 sequences, A4 documents/PDF/SMTP/attachments, B1 query groups, B2 query flows + flow sources, B3 calendar,
+  C small items, then examples/workshop.
+- A1 DONE (ADR 0019): `${secret:x}` substituted by the engine in http.request header values and URL query
+  (`flow/application/nodes.go` withSecrets/secretURL, `nodeRuntime.Secret`), only names literal in the node and only to
+  `app.json secrets.<x>.hosts` (`flow/domain/secrets.go`); url.Error redacted; code nodes `secrets: [...]` +
+  `ctx.http(..., auth=)` host call; webhook `trigger.verify` organon (t=,v1= + legacy sha256=) / stripe / hmac-sha256
+  (`flow/domain/verify.go`); plan lists `secretHosts`. Tests: flow compile rules, TestVerifyWebhook, e2e
+  TestSecretsInOutboundRequests, TestWebhookTimestampedSignature.
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.
