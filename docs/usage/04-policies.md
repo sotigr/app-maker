@@ -63,6 +63,37 @@ curl -H "$H" "localhost:8080/v1/features/grant?parent=$PROJECT" \
 Teams (`team` features with `members`) and organizations can hold grants
 and own features; members inherit them.
 
+## Share links
+
+A type with `x-shareable` gets the action `share` (give it a rule under
+`actions`, like any action). It returns `{url, token, expiresAt, ...}`;
+anyone with the URL can, until it expires or is revoked:
+
+- read the shared feature and everything under it (public fields only);
+- run the actions listed in `x-shareable.actions` on the shared feature,
+  including that action's own writes (its transition, or its flow's
+  updates of the feature and creates under it).
+
+Nothing else: no other writes, deletes, uploads, or new links. App
+policies are not consulted for link holders. In expressions they are
+`principal.kind == 'link'` and `principal.object` is the shared feature.
+
+```json
+"x-shareable": { "actions": ["approveEstimate"], "maxDays": 30 }
+```
+
+```sh
+curl -H "$H" localhost:8080/v1/actions/repairOrder/$ID/share -d '{"expiresInDays": 14, "note": "for the customer"}'
+```
+
+- Input: `expiresInDays` (default 7, at most `maxDays`), `actions` (a
+  subset), `note`.
+- `GET /s/<token>` stores the link in an HttpOnly cookie and opens the
+  app; scripts send `Authorization: Link <token>`.
+- Revoke by deleting the `shareLink` feature (a child of the shared
+  feature); its creator and admins of the shared feature may.
+- Flows that run because of a link action run as the link holder.
+
 ## Defaults for system types
 
 When the manifest has no policy for them: signed-in users read `root`,

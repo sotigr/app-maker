@@ -177,6 +177,7 @@ func AppSchema() map[string]any {
 			"home":         obj{"type": "string", "description": "page shown at the app root"},
 			"requireLogin": obj{"type": "boolean", "default": true},
 			"notFound":     obj{"type": "string"},
+			"linkHome":     obj{"type": "string", "description": "page opened by share links, with params.id = the shared feature"},
 			"languages": obj{"type": "array", "minItems": 1, "uniqueItems": true,
 				"description": "UI languages; the first is the language the ui/ files are written in",
 				"items":       obj{"type": "string", "pattern": langRe.String()}},

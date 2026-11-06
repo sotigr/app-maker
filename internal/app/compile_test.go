@@ -13,7 +13,7 @@ func TestTrackerManifestCompiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Flows.All()) != 7 {
+	if len(c.Flows.All()) != 8 {
 		t.Fatalf("flows: %d", len(c.Flows.All()))
 	}
 	for _, w := range c.Warnings {
@@ -76,5 +76,22 @@ func TestPlanUI(t *testing.T) {
 	// projects, project, and task have no visible rule; myTasks needs a user.
 	if strings.Join(p.PublicPages, ",") != "project,projects,task" {
 		t.Fatalf("public pages: %v", p.PublicPages)
+	}
+}
+
+// ADR 0020: every action of x-shareable is a transition or a flow action.
+func TestShareableActionsExist(t *testing.T) {
+	m, err := manifestfs.Load("../../examples/tracker", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, f := range m.Types {
+		if strings.HasSuffix(f.Path, "task.json") {
+			m.Types[i].Data = []byte(strings.Replace(string(f.Data), `"actions": ["start"]`, `"actions": ["start", "fly"]`, 1))
+		}
+	}
+	_, err = Compile(m)
+	if err == nil || !strings.Contains(err.Error(), "/x-shareable/actions/1") || !strings.Contains(err.Error(), `no action "fly"`) {
+		t.Fatalf("want an error for the unknown action, got %v", err)
 	}
 }

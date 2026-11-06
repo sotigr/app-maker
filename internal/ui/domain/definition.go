@@ -165,3 +165,9 @@ func stateType(t string) (*rt.Type, error) {
 	}
 	return nil, fmt.Errorf("state type must be string, integer, number, boolean, array, or object")
 }
+
+// ShareInput is the input schema of the built-in share action (ADR 0020).
+var ShareInput = json.RawMessage(`{"type":"object","properties":{` +
+	`"expiresInDays":{"type":"integer","minimum":1,"maximum":365,"title":"Valid for (days)"},` +
+	`"actions":{"type":"array","items":{"type":"string"}},` +
+	`"note":{"type":"string","maxLength":200,"title":"Note"}},"additionalProperties":false}`)

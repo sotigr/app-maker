@@ -51,6 +51,14 @@ type ComputedField struct {
 	Type    *ValueType
 }
 
+// ShareDef is a compiled x-shareable (ADR 0020).
+type ShareDef struct {
+	// Actions link holders may run on the shared feature.
+	Actions []string
+	// MaxDays bounds a link's lifetime (default 30, at most 365).
+	MaxDays int
+}
+
 // AggregateDef is a compiled x-aggregate (spec 4.2).
 type AggregateDef struct {
 	Path  string
@@ -133,6 +141,11 @@ type CompiledType struct {
 	Computed      []ComputedField
 	Aggregates    []AggregateDef
 	StateMachines map[string]*StateMachine
+	// Sequences are the x-sequence fields (ADR 0021).
+	Sequences []SequenceDef
+	// Shareable is x-shareable: the type offers the built-in share action
+	// (ADR 0020); nil otherwise.
+	Shareable *ShareDef
 	// Root is the value type of the whole document.
 	Root *ValueType
 	// Source is the trait-merged, $ref-resolved schema document.

@@ -57,6 +57,10 @@
         "chore"
       ]
     },
+    "number": {
+      "title": "Number",
+      "type": "string"
+    },
     "owner": {
       "format": "uuid",
       "type": "string"

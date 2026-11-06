@@ -352,7 +352,7 @@ func (c *compiler) app(data []byte) *App {
 		c.errf("", "invalid JSON: %v", err)
 		return nil
 	}
-	c.known("", m, "$schema", "title", "logo", "home", "requireLogin", "nav", "notFound", "languages", "x-layout")
+	c.known("", m, "$schema", "title", "logo", "home", "linkHome", "requireLogin", "nav", "notFound", "languages", "x-layout")
 	a := &App{RequireLogin: true, Doc: browserDoc(m)}
 	if v, ok := m["languages"]; ok {
 		c.languages(v)
@@ -383,6 +383,18 @@ func (c *compiler) app(data []byte) *App {
 		c.errf("/home", "home must name a page")
 	} else if len(h.needed) > 0 {
 		c.errf("/home", "the home page must not need route parameters")
+	}
+	if v, ok := m["linkHome"]; ok {
+		// The page share-link holders open, with params.id = the shared
+		// feature (ADR 0020).
+		name, _ := v.(string)
+		h, found := c.pages[name]
+		switch {
+		case !found:
+			c.errf("/linkHome", "linkHome must name a page")
+		case len(h.needed) > 1 || (len(h.needed) == 1 && h.needed[0] != "id"):
+			c.errf("/linkHome", "the link page may only need the route parameter id (the shared feature)")
+		}
 	}
 	if v, ok := m["nav"]; ok {
 		items, isList := v.([]any)
@@ -1345,6 +1357,9 @@ func (c *compiler) action(ct *schemaapi.CompiledType, name string) (json.RawMess
 	}
 	if name == "transfer" && ct.HasTrait(schemaapi.TraitOwnable) {
 		return nil, true
+	}
+	if name == "share" && ct.Shareable != nil {
+		return ShareInput, true
 	}
 	for _, sm := range ct.StateMachines {
 		for _, t := range sm.Transitions {

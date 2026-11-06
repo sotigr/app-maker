@@ -20,7 +20,19 @@ type EmailMessage struct {
 	Subject  string
 	Body     string
 	Delivery string // idempotency key: runID:node
+	// Attachments are files sent with the message (ADR 0022).
+	Attachments []Attachment
 }
+
+// Attachment is a file attached to an email.
+type Attachment struct {
+	Name        string
+	ContentType string
+	Data        []byte
+}
+
+// MaxAttachmentBytes bounds the attachments of one email.
+const MaxAttachmentBytes = 10 << 20
 
 // WebhookCall is one outbound webhook.
 type WebhookCall struct {

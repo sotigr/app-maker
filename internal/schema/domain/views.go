@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"organon/internal/kernel"
 	rt "organon/internal/runtime/api"
@@ -66,6 +67,10 @@ func (b *typeBuilder) compileExpressions(reg *Registry) {
 			continue
 		}
 		ct.Computed = append(ct.Computed, api.ComputedField{Path: f.Path, Program: p, Type: f.Type})
+	}
+
+	for _, path := range sortedKeysMap(b.sequences) {
+		b.sequence(path, b.sequences[path], featureEnv)
 	}
 
 	for _, path := range sortedKeysMap(b.machines) {
@@ -316,4 +321,49 @@ func sortedKeysMap[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// sequence compiles one x-sequence (ADR 0021). The series expression sees
+// the feature's fields like x-computed; on names an action, checked
+// against the app's flows by app.Compile.
+func (b *typeBuilder) sequence(path string, m map[string]any, env rt.Env) {
+	ptr := "/properties/" + escape(path[1:]) + "/x-sequence"
+	f, _ := b.ct.Field(path)
+	d := api.SequenceDef{Path: path, SeriesConst: b.ct.Name + path}
+	for k, v := range m {
+		switch k {
+		case "format":
+			d.Format, _ = v.(string)
+			if err := api.CheckSequenceFormat(d.Format); err != nil {
+				b.errf(ptr+"/format", "%v", err)
+			}
+		case "series":
+			s, _ := v.(string)
+			p, err := b.c.exprs.Compile(s, env, rt.String, false)
+			if err != nil {
+				b.errf(ptr+"/series", "%v", err)
+				continue
+			}
+			d.Series = p
+		case "on":
+			s, _ := v.(string)
+			name, isAction := strings.CutPrefix(s, "action:")
+			switch {
+			case s == "create":
+			case isAction && name != "":
+				d.On = name
+			default:
+				b.errf(ptr+"/on", "on is create (default) or action:<name>")
+			}
+		default:
+			b.errf(ptr+"/"+escape(k), "unknown member %q", k)
+		}
+	}
+	if d.Format == "" {
+		b.errf(ptr+"/format", "format is required, e.g. \"INV-{year}-{n:06}\"")
+	}
+	if !f.Indexed {
+		b.errf(ptr, "x-sequence fields need \"x-indexed\": true")
+	}
+	b.ct.Sequences = append(b.ct.Sequences, d)
 }

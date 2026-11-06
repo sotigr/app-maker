@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime"
 	"net/http"
+	"strings"
 
 	"organon/internal/integration/domain"
 	"organon/internal/kernel"
@@ -30,14 +32,21 @@ type Delivery struct {
 	Templates *domain.Templates
 	Secrets   func(ref string) (string, bool)
 	Clock     kernel.Clock
+	// Blob reads stored files for attachments; nil refuses attachments.
+	Blob func(ctx context.Context, id string, max int64) ([]byte, string, error)
 }
 
 type emailArgs struct {
-	To       string         `json:"to"`
-	Template string         `json:"template"`
-	Subject  string         `json:"subject"`
-	Vars     map[string]any `json:"vars"`
-	Delivery string         `json:"delivery"`
+	To          string         `json:"to"`
+	Template    string         `json:"template"`
+	Subject     string         `json:"subject"`
+	Vars        map[string]any `json:"vars"`
+	Delivery    string         `json:"delivery"`
+	Lang        string         `json:"lang"`
+	Attachments []struct {
+		Blob string `json:"blob"`
+		Name string `json:"name"`
+	} `json:"attachments"`
 }
 
 // HandleEmail renders templates/email/<template> and sends it.
@@ -49,6 +58,16 @@ func (d *Delivery) HandleEmail(ctx context.Context, raw json.RawMessage) error {
 	name := a.Template
 	if d.Templates != nil && !d.Templates.Has(name) && d.Templates.Has("email/"+name) {
 		name = "email/" + name
+	}
+	// Per-language templates: <name>.<lang>, then <name>.<base language>.
+	if d.Templates != nil && a.Lang != "" {
+		base, _, _ := strings.Cut(a.Lang, "-")
+		for _, l := range []string{a.Lang, base} {
+			if d.Templates.Has(name + "." + l) {
+				name += "." + l
+				break
+			}
+		}
 	}
 	body := ""
 	subject := a.Subject
@@ -65,7 +84,34 @@ func (d *Delivery) HandleEmail(ctx context.Context, raw json.RawMessage) error {
 	} else {
 		body = fmt.Sprintf("%v", a.Vars)
 	}
-	return d.Email.Send(ctx, domain.EmailMessage{To: a.To, Subject: subject, Body: body, Delivery: a.Delivery})
+	m := domain.EmailMessage{To: a.To, Subject: subject, Body: body, Delivery: a.Delivery}
+	left := int64(domain.MaxAttachmentBytes)
+	for i, at := range a.Attachments {
+		if d.Blob == nil {
+			return fmt.Errorf("attachments are not configured")
+		}
+		data, ct, err := d.Blob(ctx, at.Blob, left)
+		if err != nil {
+			return fmt.Errorf("attachment %d: %w", i+1, err)
+		}
+		left -= int64(len(data))
+		n := at.Name
+		if n == "" {
+			n = fmt.Sprintf("attachment-%d%s", i+1, extension(ct))
+		}
+		m.Attachments = append(m.Attachments, domain.Attachment{Name: n, ContentType: ct, Data: data})
+	}
+	return d.Email.Send(ctx, m)
+}
+
+func extension(contentType string) string {
+	if exts, _ := mime.ExtensionsByType(contentType); len(exts) > 0 {
+		if contentType == "application/pdf" {
+			return ".pdf"
+		}
+		return exts[0]
+	}
+	return ""
 }
 
 type webhookArgs struct {

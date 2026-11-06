@@ -299,5 +299,26 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   `ctx.http(..., auth=)` host call; webhook `trigger.verify` organon (t=,v1= + legacy sha256=) / stripe / hmac-sha256
   (`flow/domain/verify.go`); plan lists `secretHosts`. Tests: flow compile rules, TestVerifyWebhook, e2e
   TestSecretsInOutboundRequests, TestWebhookTimestampedSignature.
+- A2 DONE (ADR 0020): `x-shareable` (schema/domain/fields.go, ShareDef), system type `shareLink`, default policy,
+  `AuthService.Share`/`AuthenticateLink`/`linkPrincipal` (access/application/links.go), `Principal.Link` + kind link,
+  `Authorizer.linkCheck` (+ `CheckRequest.InAction` set from the write context), Scope/Audience for links, middleware
+  `Authorization: Link` + `organon_link` cookie with derived CSRF, `GET /s/{token}`, engine `Deps.Share`, app compile
+  `shareProblems`, UI `linkHome` + share action metadata, renderer link start page, manifest tests `as: "link:<ref>"`.
+  Tracker: task shareable (start), Share menu + dialog, `sharedTask` page. Tests: TestShareableKeyword,
+  TestShareableActionsExist, UI linkHome rules, tracker test, e2e TestShareLinks; checked in headless Brave.
+- A3 DONE (ADR 0021): `x-sequence` (schema/api/sequence.go format + SequenceDef, fields.go/views.go compile),
+  `Batch.Finalize` + `NextFunc` (content/domain), sqlite `content_sequences` drawn in the tx, memory counters committed
+  with the batch, pipeline `pendingSequences` (create or wc.Action) + `Feature.AssignSequence` (joins the pending event),
+  `commit` split into `batch`/`finishCommit`; app compile checks `on: action:x`. Tracker: task `number` T-{n:04}.
+  Tests: repotest Sequences (concurrency, failed commit), TestSequenceKeyword, TestFormatSequence, tracker test, e2e
+  TestSequences (concurrent creates, on action).
+- A4 DONE (ADR 0022): `flow/domain/document.go` (templates, checks, Evaluate with locale/time zone formatting),
+  `kernel/document.go`, `platform/pdf` (fpdf, embedded Noto Sans + OFL, QR, wrapped tables with repeated headers,
+  page numbers), node `document.render` → `Runtime.Document` → `app/documents.go` (images from blobs or templates/,
+  `Blobs.StoreGenerated`), `email.send` attachments + lang (Delivery reads `Blobs.Bytes`), `SMTPSender` + config
+  `email.*`, tzdata embedded, manifest-test `expect.feature` nested subset match. Tracker: `report` action
+  (task-report.json, flows/task-report.json, report(.el).txt, menu item). Tests: platform/pdf TestRender,
+  TestDocumentRules/Evaluate, TestSMTPSender (fake server), tracker test, e2e TestDocumentsAndAttachments.
+  Phase A complete; next B1 (query groups).
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

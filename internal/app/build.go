@@ -238,6 +238,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	}
 	authCfg.Audit = rt.Content.AppendAudit
 	authCfg.NoAdmins = cfg.Admin.DisableAccounts
+	authCfg.PublicURL = cfg.HTTP.PublicURL
 	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 	settings := c.Manifest.App.Settings
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
@@ -247,11 +248,15 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	if err != nil {
 		return nil, err
 	}
+	var blobSvc *integrationapp.Blobs // set below; used at run time by documents and attachments
 	rt.Engine = flowapp.NewEngine(flowapp.Deps{
 		Flows: c.Flows, Content: rt.Content.FlowAccess(), Authorizer: rt.Authorizer, Types: c.Types,
 		Clock: opt.Clock, IDs: opt.IDs, Jobs: rt.Enqueuer, HTTP: out, Templates: templates, Settings: settings,
 		Resolve: rt.Auth.Resolve, Recorder: runRecorder{w: sys}, Log: opt.Log, Secrets: secrets, Nodes: c.Nodes,
-		SecretHosts: c.Manifest.App.SecretHosts(), LLM: rt.LLM, Ephemeral: rt.ephemeral, Code: code, Bundle: newBundles(c).get,
+		SecretHosts: c.Manifest.App.SecretHosts(), Document: renderDocument(c, opt.Clock, func() *integrationapp.Blobs { return blobSvc }), Share: func(ctx context.Context, p accessapi.Principal, id kernel.ID,
+			def *schemaapi.ShareDef, input map[string]any) (any, error) {
+			return rt.Auth.Share(ctx, p, id, def, input)
+		}, LLM: rt.LLM, Ephemeral: rt.ephemeral, Code: code, Bundle: newBundles(c).get,
 	})
 	rt.Content.SetBeforeWrite(&beforeWriteAdapter{engine: rt.Engine})
 	rt.Content.SetMigrations(c.Migrations, rt.Engine.RunForFeature)
@@ -264,13 +269,28 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	rt.JobKinds.Register(flowapp.JobRunFlow, rt.Engine.HandleRunFlow, 15*time.Minute)
 	rt.JobKinds.Register(flowapp.JobEmitEvent, rt.Engine.HandleEmitEvent, time.Minute)
 	email := opt.Email
+	if email == nil && cfg.Email.Driver == "smtp" {
+		pw := ""
+		if cfg.Email.Password != "" {
+			v, ok := secrets(cfg.Email.Password)
+			if !ok {
+				return nil, fmt.Errorf("email.password: secret %s is not set", cfg.Email.Password)
+			}
+			pw = v
+		}
+		email = integrationinfra.SMTPSender{Addr: cfg.Email.Addr, From: cfg.Email.From, Username: cfg.Email.Username, Password: pw, TLS: cfg.Email.TLS}
+	}
 	if email == nil {
 		email = integrationinfra.LogSender{Log: opt.Log}
 	}
-	delivery := &integrationapp.Delivery{Email: email, HTTP: out, Templates: templates, Secrets: secrets, Clock: opt.Clock}
+	delivery := &integrationapp.Delivery{Email: email, HTTP: out, Templates: templates, Secrets: secrets, Clock: opt.Clock,
+		Blob: func(ctx context.Context, id string, max int64) ([]byte, string, error) {
+			return blobSvc.Bytes(ctx, id, max)
+		}}
 	rt.JobKinds.Register(flowapp.JobDeliverEmail, delivery.HandleEmail, time.Minute)
 	rt.JobKinds.Register(flowapp.JobDeliverWebhook, delivery.HandleWebhook, time.Minute)
 	blobs, err := rt.blobService(cfg, cursorKey, opt)
+	blobSvc = blobs
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +320,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	// HTTP (spec 6).
 	mux := http.NewServeMux()
 	accessH := accesshttp.New(rt.Auth, cfg.HTTP.SecureCookies)
-	accessH.Signed = []string{"/v1/blobs/"}
+	accessH.Signed = []string{"/v1/blobs/", "/s/"}
 	accessH.PublicURL = cfg.HTTP.PublicURL
 	accessH.Register(mux)
 	integrationhttp.New(blobs).Register(mux)

@@ -82,6 +82,7 @@ On the type:
 | `x-traits` | Trait IDs merged into the type (e.g. `urn:sys:trait:ownable` adds `owner`, `urn:sys:trait:timestamped` adds `createdAt`/`updatedAt`, `urn:sys:trait:taggable` adds `tags`). |
 | `x-allowedChildren` | Types that may be created under features of this type. |
 | `x-uniqueName` | A field that must be unique among siblings (e.g. `"slug"`). |
+| `x-shareable` | `{"actions": ["approve"], "maxDays": 30}`: the type gets the built-in `share` action, which creates expiring links for people without accounts ([Policies](04-policies.md#share-links)). |
 | `x-retention` | How long soft-deleted features are kept before purge (Go duration, e.g. `"720h"`). |
 | `x-repository` | Repository name from the server configuration (default `default`). |
 
@@ -97,11 +98,34 @@ On fields:
 | `readOnly` / `writeOnly` | Never accepted from clients / never returned. |
 | `x-ref`, `x-onDelete` | Target of a ref, and what happens when the target is deleted: `restrict`, `setNull` (field must be nullable), or `dangle`. |
 | `x-computed` | Expression evaluated on every write; read-only. |
+| `x-sequence` | Gapless numbers for a string field (invoices): `{"format": "INV-{year}-{n:06}", "series": "'INV'", "on": "create"}`. See [Sequence numbers](#sequence-numbers). |
 | `x-aggregate` | Maintained in the background from children: `{"op": "count"\|"sum"\|"min"\|"max"\|"avg", "of": "<child type>", "field": "/x", "where": "<expr>"}`. |
 | `x-stateMachine` | On an enum: `{"initial": "...", "transitions": [{"from", "to", "action", "guard"?}]}`. Each transition is an action; `guard` is an expression. |
 | `x-stream` | Live update behaviour: `{"mode": "state" \| "append", "maxRate": <per second>}`. State mode coalesces bursts. |
 | `x-persist: false` | Ephemeral field: streamed to subscribers, never stored (presence, typing indicators, LLM drafts). |
 | `x-maxBytes`, `x-contentTypes`, `x-thumbnails` | Blob limits (default 25 MiB), allowed types (`image/*` patterns), thumbnail sizes in pixels (JPEG, PNG, and GIF only). |
+
+## Sequence numbers
+
+```json
+"number": { "type": "string", "x-indexed": true,
+            "x-sequence": { "format": "INV-{year}-{n:06}", "series": "'INV-' + branch", "on": "action:issue" } }
+```
+
+- The number is drawn inside the commit that creates the feature (or runs
+  the `on` action): numbers are sequential per series with no gaps, also
+  under concurrent writes, and a failed write uses no number.
+- `format`: `{n}` or `{n:06}` (zero-padded) once; `{year}`, `{yy}`,
+  `{month}`, `{day}` (UTC commit time); `{series}`.
+- `series`: an expression over the fields naming the counter (default:
+  one per type and field). Use it for a series per year
+  (`"'INV-' + now().Format('2006')"`), branch, or document kind.
+- `on`: `create` (default) or `action:<name>`, a transition or flow
+  action; the field is numbered once.
+- The field must be a string, `x-indexed`, and not `required`; nobody can
+  write it.
+- Deleting a numbered feature leaves a hole: cancel invoices with a
+  status instead.
 
 Expressions in `x-computed`, `x-aggregate.where`, and guards see the
 feature's fields directly (`dueAt`, `status`) plus `now()`; guards also see
@@ -120,7 +144,7 @@ builds client types from them.
 
 Always present: `root`, `user`, `team` (with `members`), `organization`,
 `serviceAccount`, `grant` (`subject`, `role`, `object`), `flowRun`,
-`blob`, `migration`. Apps may write policies for them; the defaults let
+`blob`, `migration`, `shareLink` (`object`, `actions`, `expiresAt`, `createdBy`, `note`). Apps may write policies for them; the defaults let
 signed-in users read users and teams, and grants are managed by principals
 with the `admin` role on the granted feature (see [Policies](04-policies.md#defaults-for-system-types)).
 

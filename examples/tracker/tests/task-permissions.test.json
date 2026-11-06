@@ -52,5 +52,62 @@
       { "as": "vic", "query": { "type": "task" }, "expect": { "count": 1 } },
       { "as": "vic", "create": "comment", "parent": "t", "data": { "body": "BUY NOW" }, "expect": { "error": "spam" } }
     ]
+  },
+  {
+    "name": "a share link opens one task: read it, start it, nothing else",
+    "given": {
+      "principals": { "ana": { "kind": "user" } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "T" } },
+        { "ref": "other", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "Other" } }
+      ]
+    },
+    "steps": [
+      { "as": "link:t", "read": "t", "expect": { "ok": true, "feature": { "title": "T" } } },
+      { "as": "link:t", "read": "other", "expect": { "error": "not_found" } },
+      { "as": "link:t", "read": "p", "expect": { "error": "not_found" } },
+      { "as": "link:t", "update": "t", "data": { "title": "hijacked" }, "expect": { "error": "forbidden" } },
+      { "as": "link:t", "action": "start", "on": "t", "expect": { "ok": true, "feature": { "status": "in_progress" } } },
+      { "as": "link:t", "action": "reopen", "on": "t", "expect": { "error": "forbidden" } },
+      { "as": "link:t", "page": "sharedTask", "expect": { "visible": true } },
+      { "as": "link:t", "page": "task", "expect": { "visible": false } },
+      { "as": "ana", "page": "sharedTask", "expect": { "visible": false } }
+    ]
+  },
+  {
+    "name": "tasks are numbered on create, gaplessly; the number cannot be written",
+    "given": {
+      "principals": { "ana": { "kind": "user" } },
+      "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } } ],
+      "grants": [ { "subject": "ana", "object": "p", "role": "editor" } ]
+    },
+    "steps": [
+      { "as": "ana", "create": "task", "parent": "p", "data": { "title": "one" }, "ref": "t1",
+        "expect": { "ok": true, "feature": { "number": "T-0001" } } },
+      { "as": "ana", "create": "task", "parent": "p", "data": { "title": "buy now" }, "ref": "t2",
+        "expect": { "ok": true, "feature": { "number": "T-0002" } } },
+      { "as": "ana", "update": "t1", "data": { "number": "T-9999" }, "expect": { "error": "validation_failed" } },
+      { "as": "ana", "create": "task", "parent": "p", "data": { "title": "three" },
+        "expect": { "ok": true, "feature": { "number": "T-0003" } } }
+    ]
+  },
+  {
+    "name": "a PDF report is rendered, attached to the task, and emailed",
+    "given": {
+      "principals": { "ana": { "kind": "user" }, "vic": { "kind": "user" } },
+      "features": [
+        { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "Launch" } },
+        { "ref": "t", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "Αλλαγή λαδιών", "estimate": "1.5" } },
+        { "ref": "c", "type": "comment", "parent": "t", "owner": "ana", "data": { "body": "Έτοιμο για παράδοση" } }
+      ],
+      "grants": [ { "subject": "ana", "object": "p", "role": "editor" }, { "subject": "vic", "object": "p", "role": "viewer" } ]
+    },
+    "steps": [
+      { "as": "vic", "action": "report", "on": "t", "expect": { "error": "forbidden" } },
+      { "as": "ana", "action": "report", "on": "t",
+        "expect": { "ok": true, "feature": { "attachment": { "contentType": "application/pdf" } },
+                    "effects": [ { "node": "email.send", "count": 1 } ] } }
+    ]
   }
 ]

@@ -15,7 +15,7 @@ func TestTrackerManifestTests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results) != 4 {
+	if len(results) != 7 {
 		t.Fatalf("ran %d tests", len(results))
 	}
 	for _, r := range results {

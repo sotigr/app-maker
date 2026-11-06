@@ -2,6 +2,7 @@
   "page": "projects",
   "title": "Projects",
   "route": "/",
+  "visible": "principal.kind != 'link'",
   "data": {
     "projects": { "query": { "type": "project", "sort": [ { "field": "/title", "dir": "asc" } ], "limit": 100 } }
   },

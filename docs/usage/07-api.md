@@ -12,6 +12,11 @@ OpenAPI description of your app is at `GET /v1/schema`.
 | OIDC | Browser to `GET /v1/auth/oidc/<provider>/start?redirect=/app`. `GET /v1/auth/oidc` lists providers. Admins create invite links with `POST /v1/auth/users/<id>/oidc-invite`. |
 | MFA | If a login answers `{"mfa": "verify"|"enroll", "ticket"}`, continue with `POST /v1/auth/mfa/verify {ticket, code}` or `POST /v1/auth/mfa/totp/enroll {ticket}` then `/confirm {ticket, code}`. Signed-in users enroll or disable with `/v1/auth/mfa/totp/{enroll,confirm,disable}`. |
 
+Share links: `POST /v1/actions/<type>/<id>/share` (types with
+`x-shareable`) returns a `url` of the form `/s/<token>`. `GET /s/<token>`
+sets an HttpOnly `organon_link` cookie (CSRF as for sessions) and redirects
+to `/`; scripts send `Authorization: Link <token>`.
+
 Other: `GET /v1/auth/session` (the principal, with `locale` when the user
 saved a UI language), `POST /v1/auth/logout`, `POST /v1/auth/users`
 (admins create users). Users set their UI language by updating `locale` on

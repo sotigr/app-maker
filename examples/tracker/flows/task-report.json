@@ -1,0 +1,20 @@
+{
+  "flow": "taskReport",
+  "title": "Print a task as PDF, attach it, and email it",
+  "trigger": { "action": "report", "on": "urn:app:feature:task" },
+  "output": { "type": "object", "properties": { "size": { "type": "integer" } } },
+  "nodes": {
+    "project":  { "node": "feature.get", "in": { "id": "feature.parentId" } },
+    "me":       { "node": "feature.get", "in": { "id": "principal.id" } },
+    "comments": { "node": "feature.children", "in": { "id": "feature.id", "type": "'comment'", "limit": "200" } },
+    "pdf":      { "node": "document.render",
+                  "in": { "template": "'task-report'", "type": "'task'", "field": "'/attachment'",
+                          "vars": { "task": "feature", "project": "nodes.project.out", "comments": "nodes.comments.out" } } },
+    "attach":   { "node": "feature.update", "in": { "id": "feature.id", "set": { "/attachment": "nodes.pdf.out" } } },
+    "mail":     { "node": "email.send",
+                  "in": { "to": "env.supportEmail", "template": "'report'", "lang": "nodes.me.out.locale ?? 'en'",
+                          "vars": { "title": "feature.title", "number": "feature.number" },
+                          "attachments": "[ { 'blob': nodes.pdf.out, 'name': feature.number + '.pdf' } ]" } }
+  },
+  "result": { "size": "nodes.pdf.out.size" }
+}

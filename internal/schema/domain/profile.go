@@ -52,10 +52,10 @@ var (
 	assertedFormats = set("date-time", "date", "email", "uri", "uuid")
 
 	// x- vocabulary (spec 4.2) by position.
-	typeVocab  = set("x-traits", "x-allowedChildren", "x-uniqueName", "x-retention", "x-repository")
+	typeVocab  = set("x-traits", "x-allowedChildren", "x-uniqueName", "x-retention", "x-repository", "x-shareable")
 	fieldVocab = set("x-kind", "x-indexed", "x-visibility", "x-write", "x-immutable", "x-ref",
 		"x-onDelete", "x-computed", "x-aggregate", "x-stream", "x-persist", "x-stateMachine",
-		"x-searchable", "x-maxBytes", "x-contentTypes", "x-thumbnails")
+		"x-searchable", "x-maxBytes", "x-contentTypes", "x-thumbnails", "x-sequence")
 	nestedVocab = set("x-kind", "x-ref", "x-onDelete", "x-maxBytes", "x-contentTypes")
 	jsonTypes   = set("string", "integer", "number", "boolean", "object", "array", "null")
 )

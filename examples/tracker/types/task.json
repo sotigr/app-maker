@@ -10,7 +10,14 @@
   "x-allowedChildren": [
     "urn:app:feature:comment"
   ],
+  "x-shareable": { "actions": ["start"], "maxDays": 30 },
   "properties": {
+    "number": {
+      "type": "string",
+      "title": "Number",
+      "x-indexed": true,
+      "x-sequence": { "format": "T-{n:04}" }
+    },
     "title": {
       "type": "string",
       "maxLength": 200,

@@ -492,3 +492,73 @@ func (b *Blobs) thumbnails(ctx context.Context, id string, sizes []int) error {
 	}
 	return b.d.Writer.Update(ctx, "blob", f.ID, f.Version, map[string]any{"thumbnails": done})
 }
+
+// StoreGenerated stores bytes produced on the server (a rendered document,
+// ADR 0022) as an uploaded blob for field of typeName, owned by p, so a
+// write by p in the same run can set it on that field. Field limits apply
+// as for uploads; unused blobs are cleaned up after 24 hours.
+func (b *Blobs) StoreGenerated(ctx context.Context, p accessapi.Principal, typeName, field, contentType string, data []byte) (kernel.Blob, error) {
+	field = "/" + strings.TrimPrefix(field, "/")
+	ct, ok := b.d.Types.ByName(typeName)
+	if !ok {
+		return kernel.Blob{}, kernel.NewError(kernel.CodeValidationFailed, "unknown type %q", typeName)
+	}
+	fd, ok := ct.Field(field)
+	if !ok || fd.Blob == nil || !fd.Top {
+		return kernel.Blob{}, kernel.NewError(kernel.CodeValidationFailed, "%s is not a Blob field of %s", field, typeName)
+	}
+	limit := fd.Blob.MaxBytes
+	if limit <= 0 {
+		limit = DefaultMaxBlobBytes
+	}
+	size := int64(len(data))
+	if size == 0 || size > limit {
+		return kernel.Blob{}, kernel.NewError(kernel.CodeValidationFailed, "the document is %d bytes; %s%s allows at most %d", size, typeName, field, limit)
+	}
+	if !contentTypeAllowed(contentType, fd.Blob.ContentTypes) {
+		return kernel.Blob{}, kernel.NewError(kernel.CodeValidationFailed, "%s%s does not accept %s (x-contentTypes)", typeName, field, contentType)
+	}
+	now := b.d.Clock.Now().UTC()
+	rec := map[string]any{"state": "pending", "target": string(ct.Base()), "field": field, "size": size,
+		"contentType": contentType, "expiresAt": now.Add(UploadURLTTL).Format(time.RFC3339Nano)}
+	if !p.ID.IsZero() {
+		rec["principal"] = p.ID.String()
+	}
+	id, err := b.d.Writer.Create(ctx, "blob", nil, rec, nil)
+	if err != nil {
+		return kernel.Blob{}, err
+	}
+	if err := b.d.Store.Put(ctx, id.String(), bytes.NewReader(data), size, contentType); err != nil {
+		return kernel.Blob{}, err
+	}
+	f, err := b.d.Reader.Get(ctx, id)
+	if err != nil {
+		return kernel.Blob{}, err
+	}
+	if err := b.d.Writer.Update(ctx, "blob", id, f.Version, map[string]any{"state": "uploaded",
+		"uploadedAt": now.Format(time.RFC3339Nano)}); err != nil {
+		return kernel.Blob{}, err
+	}
+	return kernel.Blob{ID: id.String(), Size: size, ContentType: contentType}, nil
+}
+
+// Bytes reads a stored blob of at most max bytes (document images, email
+// attachments).
+func (b *Blobs) Bytes(ctx context.Context, id string, max int64) ([]byte, string, error) {
+	r, info, err := b.d.Store.Get(ctx, id)
+	if errors.Is(err, domain.ErrBlobNotFound) {
+		return nil, "", kernel.ErrNotFound
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() { _ = r.Close() }()
+	data, err := io.ReadAll(io.LimitReader(r, max+1))
+	if err != nil {
+		return nil, "", err
+	}
+	if int64(len(data)) > max {
+		return nil, "", fmt.Errorf("blob %s is larger than %d bytes", id, max)
+	}
+	return data, info.ContentType, nil
+}

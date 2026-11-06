@@ -16,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	_ "time/tzdata" // document templates name time zones (ADR 0022)
 
 	"organon/internal/app"
 	"organon/platform/config"

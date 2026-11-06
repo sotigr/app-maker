@@ -168,6 +168,9 @@ func (a *Authorizer) Check(ctx context.Context, p accessapi.Principal, req acces
 	if superuser(p) {
 		return accessapi.Decision{Allowed: true, Reason: "superuser"}, nil
 	}
+	if p.IsLink() {
+		return linkCheck(p, req), nil
+	}
 	ct := req.Type
 	if ct == nil && req.Feature != nil {
 		ct = req.Feature.Type
@@ -207,6 +210,31 @@ func (a *Authorizer) Check(ctx context.Context, p accessapi.Principal, req acces
 	return accessapi.Decision{Allowed: false, Reason: "no policy allows " + string(req.Op)}, nil
 }
 
+// linkCheck answers for share-link holders without consulting app
+// policies (ADR 0020): read the shared feature and its subtree, and run
+// the link's actions on the shared feature itself. The writes of such an
+// action (its transition, or its flow's writes) may update the shared
+// feature and create features in its subtree.
+func linkCheck(p accessapi.Principal, req accessapi.CheckRequest) accessapi.Decision {
+	inAction := req.InAction != "" && slices.Contains(p.Link.Actions, req.InAction)
+	if req.Op == accessapi.OpCreate && inAction && req.Parent != nil && slices.Contains(req.Parent.Lineage(), p.Link.Object) {
+		return accessapi.Decision{Allowed: true, Reason: "share link action"}
+	}
+	f := req.Feature
+	if f == nil {
+		return accessapi.Decision{Reason: "not covered by the share link"}
+	}
+	switch {
+	case req.Op == accessapi.OpUpdate && inAction && f.ID == p.Link.Object:
+		return accessapi.Decision{Allowed: true, Reason: "share link action"}
+	case req.Op == accessapi.OpRead && slices.Contains(f.Lineage(), p.Link.Object):
+		return accessapi.Decision{Allowed: true, Reason: "share link"}
+	case req.Op.Action() != "" && f.ID == p.Link.Object && slices.Contains(p.Link.Actions, req.Op.Action()):
+		return accessapi.Decision{Allowed: true, Reason: "share link"}
+	}
+	return accessapi.Decision{Reason: "not covered by the share link"}
+}
+
 func (a *Authorizer) defines(ct *schemaapi.CompiledType, op accessapi.Operation) bool {
 	for _, pol := range a.policies.For(ct) {
 		if _, ok := pol.Progs[op]; ok {
@@ -238,6 +266,8 @@ func (a *Authorizer) Audience(ctx context.Context, p accessapi.Principal, f *acc
 		return schemaapi.AudSystem, nil
 	case p.HasRole("admin"):
 		return schemaapi.AudAdmin, nil
+	case p.IsLink():
+		return schemaapi.AudPublic, nil
 	}
 	if f != nil {
 		ok, err := a.hasRole(ctx, p, f.Data, "admin")
@@ -259,6 +289,9 @@ func (a *Authorizer) Audience(ctx context.Context, p accessapi.Principal, f *acc
 func (a *Authorizer) Scope(ctx context.Context, p accessapi.Principal, ct *schemaapi.CompiledType) (queryapi.Predicate, bool, error) {
 	if superuser(p) {
 		return queryapi.True{}, true, nil
+	}
+	if p.IsLink() {
+		return queryapi.InScope{Field: queryapi.ScopeAncestor, IDs: []kernel.ID{p.Link.Object}}, true, nil
 	}
 	var terms []queryapi.Predicate
 	for _, pol := range a.policies.For(ct) {

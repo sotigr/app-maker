@@ -9,9 +9,9 @@ not write Go, JavaScript, SQL, or HTML. From the manifest, Organon serves:
 - an end-user web UI at `/`;
 - an admin console at `/admin`.
 
-This guide lists everything you can use. §18 maps common `organon
-validate` errors to fixes, and §19 is the checklist to finish with. When in
-doubt, copy from the example app `tracker` (see [§20](#20-reference-app)).
+This guide lists everything you can use. §19 maps common `organon
+validate` errors to fixes, and §20 is the checklist to finish with. When in
+doubt, copy from the example app `tracker` (see [§21](#21-reference-app)).
 
 ---
 
@@ -121,7 +121,8 @@ myapp/
   policies/*.json            # who may do what                                               §6
   flows/*.json               # behaviour                                                     §7
   nodes/*.py                 # Python for `python` nodes (+ optional requirements.lock)      §9
-  templates/email/*.txt      # templates for email.send                                      §11
+  templates/email/*.txt      # templates for email.send (<name>.<lang>.txt per language)     §11
+  templates/documents/*.json # PDF templates for document.render                             §11
   migrations/*.json          # data migrations after breaking type changes                   §17
   seed/<env>.json            # users, features, grants for organon dev / organon seed        §15
   tests/*.test.json          # manifest tests                                                §16
@@ -159,12 +160,14 @@ myapp/
 | Key | Use |
 | --- | --- |
 | `roles` | Role names and the roles each includes. `admin` is special: it bypasses policies, but not `private` fields. |
-| `auth.password` | Password sign-in. Admins create users; there is no self-signup. |
+| `auth.password` | Password sign-in. Admins create users; there is no self-signup (give customers share links, §6). |
 | `auth.oidc[]` | OIDC providers. `google` and `gitlab` have built-in issuers; others need `issuer`. With `signup: true`, users are created on first login (optionally only for `allowedDomains`). |
 | `auth.mfa` | TOTP for `requiredForRoles`, or `requiredForAll: true`. |
 | `limits` | May only lower the server's defaults. |
 | `llm.aliases` | Alias → `"<provider>:<model>"`. Built-in aliases are `default`, `large`, and `fast`. Flows use aliases only. |
 | `settings` | Free-form values; flows read them as `env.<key>`. |
+| `secrets` | Per secret, the `hosts` outbound requests may send it to (`*.domain` allowed). Required for every secret used by `http.request` or `ctx.http` (§11). |
+| `python.allowedPackages` | When set, every package in a `requirements.lock` must be listed. |
 
 - `${env.a.b}` is replaced from `env/<env>.json`. A missing value is a
   validation error.
@@ -253,6 +256,7 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 | `x-allowedChildren` | Types that may be created under this type. |
 | `x-uniqueName` | A field that must be unique among siblings, such as `"slug"`. |
 | `x-retention` | How long soft-deleted features are kept, such as `"720h"`. |
+| `x-shareable` | `{"actions": ["approveEstimate"], "maxDays": 30}`: adds the built-in `share` action, which creates expiring links for people without accounts (§6). |
 
 **Field keywords:**
 
@@ -266,6 +270,7 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 | `readOnly` / `writeOnly` | Never accepted from clients / never returned. |
 | `x-ref`, `x-onDelete` | Ref target. On delete of the target: `restrict`, `setNull` (the field must be nullable), or `dangle`. |
 | `x-computed` | Expression evaluated on every write; implies read-only. Sees the fields by name plus `now()`. |
+| `x-sequence` | Gapless numbering (invoices, orders): `{"format": "INV-{year}-{n:06}", "series": "<expr>", "on": "create" \| "action:<name>"}`. Numbers are drawn inside the commit: sequential per series, no gaps or duplicates under concurrency, none used by failed writes. `format` has `{n}`/`{n:06}` once, plus `{year}` `{yy}` `{month}` `{day}` (UTC) and `{series}`; `series` is an expression over the fields (default: one per type and field), e.g. `"'INV-' + now().Format('2006')"` for a series per year; `on` numbers at create or once when the action runs. The field must be a string, `x-indexed`, not `required`; nobody can write it. Deleting leaves a hole, so cancel with a status instead. |
 | `x-aggregate` | Kept up to date from children in the background: `{"op": "count"\|"sum"\|"min"\|"max"\|"avg", "of": "<child type ID>", "field": "/x", "where": "<expr>"}`. |
 | `x-stateMachine` | On an enum. Each transition `{from, to, action, guard?}` becomes an action. Pair it with `"x-write": "action:transition"`. |
 | `x-stream` | Live-update behaviour: `{"mode": "state"\|"append", "maxRate": n}`. |
@@ -274,7 +279,7 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 
 **System types** always exist: `root`, `user`, `team` (`members`),
 `organization`, `serviceAccount`, `grant` (`subject`, `role`, `object`),
-`flowRun`, `blob`, `migration`.
+`flowRun`, `blob`, `migration`, `shareLink`.
 - `user` has `email` (owner-visible), `displayName`, `roles`, `status`,
   and `locale`.
 - Refer to people with `x-ref: urn:sys:trait:principal`.
@@ -318,6 +323,23 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 - **Grants** give a role on a subtree. A grant is a `grant` feature created
   under the object: `{"subject": "<user/team id>", "role": "editor"}`.
   Teams and organizations can hold grants and own features.
+- **Share links** give people without accounts (customers) access to one
+  record:
+  1. Mark the type `"x-shareable": {"actions": ["approveEstimate"], "maxDays": 30}`;
+     each action must be a transition or a flow action.
+  2. Allow sharing in the policy: `"actions": {"share": "hasRole(feature, 'editor')"}`.
+  3. Staff run `share` (input `expiresInDays` default 7, `actions` subset,
+     `note`); the output has `url` (`/s/<token>`), `token`, `expiresAt`.
+  4. Whoever opens the URL can read that feature and its subtree (public
+     fields only), and run the listed actions on it, including the
+     action's own writes (its transition, or its flow's updates of the
+     feature and creates under it). Nothing else; app policies are not
+     consulted for them.
+  - In expressions they are `principal.kind == 'link'`, with
+    `principal.object` = the shared feature.
+  - Revoke by deleting the `shareLink` feature (a child of the shared
+    feature). Expired links stop working by themselves.
+  - Send links privately: anyone with the URL has the access.
 - **Defaults for system types** when you write no policy for them:
   - signed-in users read users, teams, organizations, and the root;
   - users update themselves;
@@ -359,7 +381,7 @@ needs inner quotes: `"'done'"`. The order between nodes is inferred from
 | beforeWrite | `{"beforeWrite": ["create", "update"], "on": "<type ID>", "when": "..."}` | Inside the write. It may stage more writes or `reject` the write. Only Pure, DataRead, DataWrite, and Control nodes are allowed. |
 | event | `{"event": ["created", "updated"], "on": "<type ID>", "when": "changed('/assignee')"}` | In the background after the commit. Events are `created`, `updated`, `moved`, `deleted`, `purged`, or custom dotted names raised by `emit`. |
 | schedule | `{"schedule": "0 8 * * *"}` | Cron (UTC), with no caller. To write or read across the tree, use `runAs: system` and `privileged: true` (see `daily-digest.json`). |
-| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}"}` | `POST /v1/hooks/issues`, signed with `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">`; the body is `input`. The secret is required. |
+| webhook | `{"webhook": "issues", "secret": "${secret:issues-webhook}", "verify": {"scheme": "stripe"}}` | `POST /v1/hooks/issues`; the JSON body is `input`. The secret is required. The default signature is `X-Organon-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "<unix>.<body>">` within 5 minutes; `verify` selects another scheme (§11). Returns `202`; the run happens in the background. |
 
 Trigger `when` sees `event`, `before`, `after`, `feature`, `op`,
 `principal`, and `changed(path)`.
@@ -382,6 +404,7 @@ Trigger `when` sees `event`, `before`, `after`, `feature`, `op`,
 - `onError: "<handler node>"`: the handler sees `nodes.<failed>.error`.
 - `retry: {"max": n, "backoff": "exponential"|"fixed"}`: External and
   Code nodes only.
+- `secrets: ["name"]`: Code nodes only; the secrets `ctx.http` may use.
 
 **Variables in nodes:**
 - `feature` (the trigger feature), `input`, `event`, `trigger`,
@@ -402,10 +425,11 @@ Trigger `when` sees `event`, `before`, `after`, `feature`, `op`,
 | `feature.update` | DataWrite | id*, set, version | `set` maps `"/field"` → expression. |
 | `feature.delete` | DataWrite | id*, version | Soft delete. |
 | `feature.move` | DataWrite | id*, parent*, version | Moves a subtree. |
-| `email.send` | Effect | to*, template*, subject, vars | Sends `templates/email/<template>.txt` after commit. |
+| `email.send` | Effect | to*, template*, subject, vars, attachments, lang | Sends `templates/email/<template>.txt` after commit; `lang` picks `<template>.<lang>.txt`; `attachments` are file values or `{blob, name}` (10 MiB in all). |
 | `webhook.call` | Effect | url*, payload, secret | POSTs signed JSON after commit. |
 | `emit` | Effect | event*, feature*, data | Raises a custom event such as `task.reminded`, which can trigger event flows. |
-| `http.request` | External | url*, method, headers, body | Calls an outside HTTP API (private networks are blocked). Output `{status, body, headers}`. |
+| `document.render` | External | template*, vars, type*, field* | Renders `templates/documents/<template>.json` to PDF, stored for that Blob field; output is the file value for `feature.update` (§11). |
+| `http.request` | External | url*, method, headers, body | Calls an outside HTTP API (private networks are blocked; JSON body; response ≤ 1 MiB; 5xx and 429 are retryable). Output `{status, body, headers}`. `${secret:x}` allowed in header values and the URL query (§11). |
 | `llm.complete` | External | prompt, model, system, messages, maxTokens, temperature, streamTo | §10. |
 | `python` | Code | from `inputSchema` | §9. |
 | `if` | Control | cond* | Branch with `when: "nodes.<if>.out"`. |
@@ -490,6 +514,11 @@ def run(input, ctx):
   - `get_feature(id)`;
   - `query(type, where=, sort=, scope=, limit=)`;
   - `llm(prompt=, model=, system=, schema=, max_tokens=, messages=)`;
+  - `http(method, url, headers=, body=, auth=)`: an outside API through the
+    egress policy, returning `{status, body, headers}`.
+    `auth={"secret": "stripe", "header": "Authorization", "prefix": "Bearer "}`
+    names a secret listed in the node's `"secrets"`; the engine adds it, so
+    your code never sees the value;
   - `log(msg, **fields)`;
   - `idempotency_key`;
   - `remaining_ms()`.
@@ -499,8 +528,9 @@ def run(input, ctx):
 - Code may run twice. Pass `ctx.idempotency_key` to outside APIs.
 - `inputSchema` and `outputSchema` are required, and output is validated.
   Output is limited to 1 MiB.
-- Network access is limited to `limits.network` hosts. Secrets are not in
-  the environment.
+- Direct network access (your own HTTP client) is limited to
+  `limits.network` hosts (`host:port`, `host:*`, `*.domain:port`). Secrets
+  are not in the environment; use `ctx.http` with `auth`.
 - You may import sibling modules in `nodes/`.
 - For dependencies, add `"requirements": "nodes/requirements.lock"`
   (pinned, with hashes) and optionally `app.json`
@@ -546,6 +576,13 @@ You are now the assignee of "{{.title}}".
 ```
 
 - Use `email.send` with `{"to": "...", "template": "'assigned'", "vars": {...}}`.
+- **Languages:** `"lang": "nodes.customer.out.locale ?? 'el'"` uses
+  `templates/email/<name>.<lang>.txt` when it exists (then the base
+  language, then `<name>.txt`).
+- **Attachments:** `"attachments": "[ { 'blob': nodes.pdf.out, 'name': 'invoice.pdf' } ]"`
+  (file values, at most 10 MiB in all).
+- **Sending:** emails go to the log unless the server is configured for
+  SMTP (`ORGANON_EMAIL_*`, §18).
 - `webhook.call` POSTs signed JSON after the commit.
 - `http.request` calls an outside API synchronously.
 
@@ -565,6 +602,47 @@ expressions or run records. Each secret must list its hosts in `app.json`
   `ctx.http("POST", url, body=..., auth={"secret": "stripe", "prefix": "Bearer "})`.
 - Secrets anywhere else (`body`, URL path or host, other nodes) are
   validation errors. Missing secrets fail the node with `secret_missing`.
+
+**PDF documents** (invoices, job cards, receipts). Describe the layout in
+`templates/documents/<name>.json`; `document.render` fills it and stores
+the PDF for a Blob field (its `x-maxBytes` and `x-contentTypes` apply, so
+allow `application/pdf`); set the result with `feature.update`:
+
+```json
+"pdf":  { "node": "document.render", "in": { "template": "'invoice'", "type": "'invoice'", "field": "'/pdf'",
+          "vars": { "invoice": "feature", "lines": "nodes.lines.out" } } },
+"save": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/pdf": "nodes.pdf.out" } } }
+```
+
+```json
+{
+  "vars": { "type": "object", "properties": { "invoice": { "type": "object" }, "lines": { "type": "array", "items": { "type": "object" } } } },
+  "page": { "size": "A4", "margin": 18 }, "locale": "el", "timezone": "Europe/Athens",
+  "header": [ { "image": "'templates/documents/logo.png'", "width": 40 } ],
+  "footer": [ { "text": "{{ vars.invoice.number }} · {{ page }}/{{ pages }}", "align": "center", "size": 8 } ],
+  "body": [
+    { "heading": "Τιμολόγιο {{ vars.invoice.number }}", "level": 1 },
+    { "fields": [ { "label": "ΑΦΜ", "value": "{{ vars.invoice.vat }}" } ], "columns": 2 },
+    { "table": { "rows": "vars.lines",
+        "columns": [ { "label": "Περιγραφή", "value": "{{ row.description }}", "width": 4 },
+                     { "label": "Ποσό", "value": "{{ formatNumber(row.amount, 2) }} €", "align": "right" } ],
+        "footer": [ [ "Σύνολο", "{{ formatNumber(vars.invoice.total, 2) }} €" ] ] } },
+    { "qr": "{{ vars.invoice.qrUrl }}", "size": 25, "align": "right", "when": "vars.invoice.qrUrl != nil" }
+  ]
+}
+```
+
+- Blocks: `heading` (`level` 1-3), `text` (`**bold**`, `align`, `size`),
+  `fields` (`[{label, value}]`, `columns`), `table` (`rows` expression,
+  `columns` `[{label, value, width, align}]` with `row`/`index`, `footer`
+  rows; the header repeats per page), `image` (a file value or a
+  `templates/...` PNG/JPEG/GIF; `width` mm), `qr` (e.g. the myDATA URL;
+  `size` mm), `spacer` (mm), `pageBreak`. Any block may have `when`.
+- Texts are literal with `{{ expr }}`; headers and footers also see `page`
+  and `pages`. `formatNumber(n, digits)` and `formatDate(t, 'date' |
+  'datetime' | 'time' | '<Go layout>')` follow `locale` and `timezone`.
+- `vars` with `properties` is closed: misspelt names fail validation.
+  The built-in font (Noto Sans) covers Latin, Greek, and Cyrillic.
 
 **Inbound webhooks** verify the signature with `trigger.verify`:
 - `{"scheme": "organon"}` (default): `X-Organon-Signature: t=<unix>,v1=<hex>`.
@@ -597,8 +675,10 @@ These are available to the UI, scripts, and `feature.query` nodes.
   - Operators: `eq ne lt lte gt gte in nin prefix contains exists`,
     combined with `and`, `or`, `not` (at most 20 predicates, depth 4).
   - Filter and sort only on `x-indexed` fields.
+  - `select` limits the returned fields; `expand: ["/assignee"]` adds the
+    referenced features in an `expanded` map.
   - The answer is `{items, next}`: pass `next` as `cursor` for the next
-    page.
+    page (at most 500 per page).
 - **Full-text search:** `GET /v1/search?q=..&type=..` over `x-searchable`
   fields.
 - **Files:**
@@ -614,6 +694,21 @@ These are available to the UI, scripts, and `feature.query` nodes.
     parent's children, or a query (snapshot, then deltas);
   - ephemeral values: `POST /v1/ephemeral/<type>/<id>`.
 - **Idempotency:** the `Idempotency-Key` header on any POST.
+- **Optimistic concurrency:** updates, deletes, and moves need the current
+  version (`If-Match`); a stale one answers `409 version_conflict`.
+- **Permission checks:** `POST /v1/permissions {"checks": [{"id", "op"}]}`
+  answers up to 100 `update`/`delete`/`action:<name>`/`create:<type>`
+  questions (what the UI's `can()` uses).
+- **Authentication:** password sign-in (`POST /v1/auth/password`, cookie
+  session with CSRF header, or `"cli": true` for a bearer token), OIDC,
+  TOTP MFA, and API keys (`organon token create`; service accounts own
+  their keys). Admins create users with `POST /v1/auth/users` and OIDC
+  invite links with `POST /v1/auth/users/<id>/oidc-invite`.
+- **Teams and organizations:** `team` features with `members` (and
+  `organization`) can own features and hold grants; members inherit them.
+- **Clients:** `organon codegen ts` generates a typed TypeScript client
+  from the views (private fields don't exist on it); `@organon/react`
+  offers `useFeature`, `useQuery`, `useChildren`, `useAction`, `useSession`.
 - **Errors** are RFC 9457 problems with a `code`:
   - `validation_failed`, `unauthenticated`, `forbidden`, `not_found`;
   - `version_conflict`, `invalid_transition`, `rate_limited`;
@@ -642,6 +737,13 @@ props are errors.**
 
 - `requireLogin: false` lets anonymous visitors see the pages whose
   `visible` allows them.
+- `linkHome: "<page>"` is the page a share link opens, with `params.id` =
+  the shared feature. Give that page `"visible": "principal.kind == 'link'"`
+  and staff pages and nav entries `"principal.kind != 'link'"`. Link
+  holders never see the sign-in screen.
+- A "Share" button: an `action` step with `"action": "share"`, then
+  `set` a state variable to `result.output.url` and `open` a dialog that
+  shows it (see the tracker's `ui/pages/task.json`).
 - Sign-in by password, OIDC, and MFA is built in.
 
 ### Page: `ui/pages/<name>.json`
@@ -843,7 +945,8 @@ fixtures.
 
 - **Steps:** `action`+`on`+`input`, `create`+`parent`+`data`+`ref`,
   `update`+`data`, `delete`, `read`, `query`, and `page` (UI visibility).
-  A step without `as` is anonymous.
+  A step without `as` is anonymous; `"as": "link:<ref>"` is a share link
+  to that feature with all its type's shareable actions.
 - **`expect`:** `ok`, `error` (a code), `feature` (a subset of fields),
   `output`, `count`, `effects`, `visible`.
 - Outbound HTTP that no fixture matches fails the step.
@@ -851,7 +954,8 @@ fixtures.
   - at least one allowed and one denied case per policy decision and per
     action;
   - each flow's main path and its `reject` paths;
-  - a `page` step for every page restricted with `visible`.
+  - a `page` step for every page restricted with `visible`;
+  - for shareable types: what a link can read and do, and what it cannot.
 
 ---
 
@@ -877,14 +981,58 @@ plus `migrations/<id>.json`:
   - type changes (breaking or not);
   - policy and flow changes, and newly privileged flows;
   - newly public fields, index builds, and migrations;
-  - UI changes, and pages newly visible without login.
+  - UI changes, and pages newly visible without login;
+  - secrets whose allowed hosts changed.
 - `organon apply myapp --plan <hash>` activates it without a restart.
 - Alternatively, ship a new manifest directory and restart `organond`.
 - **Show the plan to the user before applying.**
 
 ---
 
-## 18. Common mistakes and fixes
+## 18. Running and operating
+
+**The admin console** at `/admin` (admins only) offers:
+- data browsing and editing with generated forms;
+- the visual flow editor and the UI builder (they save files only under
+  `organon dev`; elsewhere they are read-only);
+- flow runs with retries of dead-lettered runs, deploys and migration
+  progress, and the audit log.
+
+**Server settings** come from YAML (`--config`) or environment variables:
+
+| Variable | Use |
+| --- | --- |
+| `ORGANON_ENV` | Which `env/<env>.json` to use (default `dev`). |
+| `ORGANON_MANIFEST` | The manifest directory (`/app` in the image). |
+| `ORGANON_SECRET_<NAME>` | The value of `${secret:<name>}` (upper case; `-` and `.` become `_`). |
+| `ORGANON_PUBLIC_URL`, `ORGANON_SECURE_COOKIES=true` | Required behind HTTPS (OIDC redirects, cookies). |
+| `ORGANON_CURSOR_KEY` | Signs cursors and blob URLs; set a long random value in production. |
+| `ORGANON_BOOTSTRAP_ADMIN_EMAIL`, `_PASSWORD` | The first admin, created on first start. |
+| `ORGANON_DISABLE_ADMIN_CONSOLE=true` | `/admin` is not served. |
+| `ORGANON_DISABLE_ADMIN_ACCOUNTS=true` | Users with the `admin` role cannot sign in and none are created. Deploy by restarting with a new manifest; new users then need OIDC `signup: true`. |
+| `ORGANON_ALLOW_BREAKING=true` | Deploy a breaking manifest directory at startup. |
+| `ORGANON_LLM_PROVIDER` | Force one LLM provider (`fake`, `anthropic`, or a configured one). |
+| `ORGANON_EMAIL_DRIVER=smtp`, `ORGANON_EMAIL_ADDR`, `_FROM`, `_USERNAME`, `_PASSWORD` (a `${secret:<name>}`), `_TLS` | Send email over SMTP; otherwise emails are only logged. |
+
+**Storage.** SQLite (one replica per database file) with blobs on disk and
+background jobs in the same database. In the Docker image all state is in
+`/data`; back up the database, the blob directory, and the data key.
+
+**Limits** (defaults): request body 1 MiB (uploads use signed URLs);
+document 256 KiB; nesting depth 8 and 1,000 list items; 100 operations
+per transaction; 20 predicates and 500 rows per query page; 600 requests
+per minute per principal and 60 per IP for anonymous callers; 10 login
+attempts per account per 15 minutes; 200 live subscriptions per
+connection.
+
+**Observability.** Health probes on port 9090 (`/livez`, `/readyz`,
+`/startupz`); JSON logs that never contain field values; OTLP traces and
+metrics with `observability.otlpEndpoint`; `organon runs list` for flow
+runs; `organon export`/`import` for a logical NDJSON copy of the data.
+
+---
+
+## 19. Common mistakes and fixes
 
 | Symptom (validate or test) | Fix |
 | --- | --- |
@@ -902,10 +1050,19 @@ plus `migrations/<id>.json`:
 | A translation error about `{{ }}` | The translation must keep the same `{{ }}` expressions. |
 | Python node wants to write | Return data; add a `feature.update` node. |
 | Model ID in a manifest | Use an alias: `'default'` or `'fast'`. |
+| `secrets may only be used in headers and url` | Move the secret into a header value or the URL query string. |
+| `secret x has no allowed hosts` | Add `"secrets": {"x": {"hosts": ["api.example.com"]}}` to `app.json`. |
+| `secret x may not be sent to <host>` (at run time) | Call the declared host, or add the host to the secret's list. |
+| `secret_missing` | Set `ORGANON_SECRET_<NAME>` on the server. |
+| `document.render`: `does not accept application/pdf` | Add `"application/pdf"` to the field's `x-contentTypes`. |
+| `no document template ...` | Create `templates/documents/<name>.json`, or fix the name in the node. |
+| `x-sequence fields ... do not list them in required` | Remove the field from `required`; it is filled in on commit. |
+| Expected a sequence number in a test that depends on the year | Manifest tests use the real clock; keep `{year}` out of formats you assert on, or match only the `{n}` part. |
+| Webhook answers `401` | Check `trigger.verify` matches the provider and the secret value. |
 
 ---
 
-## 19. Finishing checklist
+## 20. Finishing checklist
 
 - [ ] Every type has `"type": "object"`, `"additionalProperties": false`,
       `required`, and `x-indexed` on every filtered or sorted field.
@@ -914,7 +1071,8 @@ plus `migrations/<id>.json`:
 - [ ] Every type has a policy; every action and transition has a rule
       under `actions`.
 - [ ] Flows run as the caller unless they truly need `system`; no secrets
-      in files (`${secret:...}`); models by alias.
+      in files (`${secret:...}`), and each secret used for outbound
+      requests lists its hosts; models by alias.
 - [ ] The UI: `ui/app.json`, a page for each main task, `can(...)` on
       buttons, and `params` for every route parameter. With `languages`,
       translations are filled in (`organon ui i18n`).
@@ -928,7 +1086,7 @@ plus `migrations/<id>.json`:
 
 ---
 
-## 20. Reference app
+## 21. Reference app
 
 `examples/tracker` (in the image: `/usr/share/organon/examples/tracker`)
 uses nearly every feature:
@@ -937,6 +1095,8 @@ uses nearly every feature:
 | --- | --- |
 | `types/task.json` | refs, decimal, time, state machine with a guard, computed, private, blob with thumbnails, stream |
 | `types/project.json` | aggregates, unique name, owner-only and ephemeral fields |
+| `types/task.json` `number` | gapless sequence numbering (`T-0001`) |
+| `flows/task-report.json` + `templates/documents/task-report.json` + `templates/email/report(.el).txt` | PDF document, saved on a field, emailed as an attachment in the user's language |
 | `policies/task.json` | roles through grants, owner, assignee, per-action rules |
 | `flows/complete-task.json` | action flow with input, output, email |
 | `flows/reject-spam.json` | beforeWrite with `reject` |
@@ -947,5 +1107,6 @@ uses nearly every feature:
 | `flows/triage-task.json` + `nodes/triage.py` | Python node calling an LLM |
 | `tests/task-permissions.test.json`, `tests/ui-pages.test.json` | permission matrix, effects, page visibility |
 | `ui/pages/project.json` | sources, board, chart, tabs, dialog with a create form, action button |
-| `ui/pages/task.json` | update form, transitions, menu, file preview, comments list |
+| `ui/pages/task.json` | update form, transitions, menu, file preview, comments list, Share button and dialog |
+| `types/task.json` `x-shareable`, `ui/pages/shared-task.json`, `ui/app.json` `linkHome` | share links for people without accounts |
 | `ui/i18n/en.json`, `ui/i18n/el.json`, `ui/styles.css` | translations, theme |

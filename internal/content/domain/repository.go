@@ -46,7 +46,16 @@ type Batch struct {
 	Causation flowapi.CausationChain
 	// Audit rows are written in the commit transaction (spec 14.3).
 	Audit []kernel.AuditRecord
+	// Finalize, when set, is called by the repository inside its commit
+	// transaction before anything is written; it returns the batch to
+	// commit. next draws the next number of a sequence series, inside the
+	// same transaction, so a failed commit uses no number (x-sequence,
+	// ADR 0021).
+	Finalize func(next NextFunc) (Batch, error)
 }
+
+// NextFunc returns the next number (1, 2, ...) of a sequence series.
+type NextFunc func(series string) (int64, error)
 
 // AuditStore keeps the audit log next to the features (spec 14.3).
 type AuditStore interface {

@@ -275,7 +275,16 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 	for i, st := range t.Steps {
 		label := fmt.Sprintf("step %d", i+1)
 		p := accessapi.Anonymous()
-		if st.As != "" {
+		if ref, isLink := strings.CutPrefix(st.As, "link:"); isLink {
+			// A share link to the referenced feature with all its type's
+			// shareable actions (ADR 0020), made through the share action.
+			lp, err := testLink(ctx, rt, resolve(ref))
+			if err != nil {
+				fail("%s: %v", label, err)
+				continue
+			}
+			p = lp
+		} else if st.As != "" {
 			id, err := kernel.ParseID(resolve(st.As))
 			if err != nil {
 				fail("%s: unknown principal %q", label, st.As)
@@ -398,10 +407,36 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 	return res
 }
 
-func sameJSON(a, b any) bool {
-	x, _ := json.Marshal(a)
-	y, _ := json.Marshal(b)
-	return bytes.Equal(x, y)
+// sameJSON compares got with want as JSON; objects in want match when
+// their members match (a subset), so tests need not spell out generated
+// values such as file IDs and URLs.
+func sameJSON(got, want any) bool {
+	var g, w any
+	x, _ := json.Marshal(got)
+	y, _ := json.Marshal(want)
+	if json.Unmarshal(x, &g) != nil || json.Unmarshal(y, &w) != nil {
+		return bytes.Equal(x, y)
+	}
+	return subsetJSON(g, w)
+}
+
+func subsetJSON(got, want any) bool {
+	wm, ok := want.(map[string]any)
+	if !ok {
+		x, _ := json.Marshal(got)
+		y, _ := json.Marshal(want)
+		return bytes.Equal(x, y)
+	}
+	gm, ok := got.(map[string]any)
+	if !ok {
+		return false
+	}
+	for k, wv := range wm {
+		if !subsetJSON(gm[k], wv) {
+			return false
+		}
+	}
+	return true
 }
 
 func updateAs(ctx context.Context, rt *Runtime, p accessapi.Principal, id string, data map[string]any) error {
@@ -455,4 +490,25 @@ func checkPage(rt *Runtime, p accessapi.Principal, st TestStep, label string, fa
 	if visible != *st.Expect.Visible {
 		fail("%s: page %s visible = %v, want %v", label, st.Page, visible, *st.Expect.Visible)
 	}
+}
+
+// testLink creates a share link to feature id and returns its principal.
+func testLink(ctx context.Context, rt *Runtime, id string) (accessapi.Principal, error) {
+	fid, err := kernel.ParseID(id)
+	if err != nil {
+		return accessapi.Principal{}, fmt.Errorf("unknown feature %q", id)
+	}
+	_, ct, err := rt.Content.Load(ctx, fid)
+	if err != nil {
+		return accessapi.Principal{}, err
+	}
+	if ct.Shareable == nil {
+		return accessapi.Principal{}, fmt.Errorf("%s is not x-shareable", ct.Name)
+	}
+	res, err := rt.Auth.Share(ctx, accessapi.System(), fid, ct.Shareable, map[string]any{"expiresInDays": int64(ct.Shareable.MaxDays)})
+	if err != nil {
+		return accessapi.Principal{}, err
+	}
+	p, _, err := rt.Auth.AuthenticateLink(ctx, res.Token)
+	return p, err
 }

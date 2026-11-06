@@ -1,0 +1,25 @@
+{
+  "page": "sharedTask",
+  "title": "{{ data.task.title }}",
+  "route": "/shared/:id",
+  "params": { "id": { "type": "string", "format": "uuid" } },
+  "visible": "principal.kind == 'link'",
+  "data": {
+    "task": { "feature": "params.id", "type": "task" },
+    "comments": { "children": "params.id", "type": "comment" }
+  },
+  "body": { "component": "stack", "gap": "lg", "children": [
+    { "component": "row", "justify": "between", "children": [
+      { "component": "heading", "text": "{{ data.task.title }}", "level": 1 },
+      { "component": "transitions", "source": "task" }
+    ] },
+    { "component": "detail", "source": "task", "fields": ["/number", "/status", "/dueAt", "/label", "/attachment"] },
+    { "component": "card", "title": "Comments", "children": [
+      { "component": "list", "source": "comments", "empty": "No comments yet.",
+        "item": { "component": "stack", "gap": "none", "children": [
+          { "component": "markdown", "text": "{{ item.body }}" },
+          { "component": "field", "path": "/createdAt", "display": "datetime" }
+        ] } }
+    ] }
+  ] }
+}

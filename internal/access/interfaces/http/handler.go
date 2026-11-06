@@ -17,7 +17,9 @@ import (
 const (
 	SessionCookie = "organon_session"
 	CSRFCookie    = "organon_csrf"
-	CSRFHeader    = "X-CSRF-Token"
+	// LinkCookie holds a share-link token after /s/<token> (ADR 0020).
+	LinkCookie = "organon_link"
+	CSRFHeader = "X-CSRF-Token"
 )
 
 // Handler serves authentication endpoints.
@@ -62,6 +64,15 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 				}
 			}
 		}
+		if link, ok := strings.CutPrefix(authz, "Link "); ok {
+			lp, _, err := h.auth.AuthenticateLink(ctx, link)
+			if err != nil {
+				httpserver.WriteError(w, r, err)
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(accessapi.WithPrincipal(ctx, lp)))
+			return
+		}
 		if authz != "" {
 			token, ok := strings.CutPrefix(authz, "Bearer ")
 			if !ok {
@@ -90,6 +101,18 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 				return
 			}
 			p = sp
+		} else if c, err := r.Cookie(LinkCookie); err == nil && c.Value != "" {
+			lp, _, err := h.auth.AuthenticateLink(ctx, c.Value)
+			if err != nil {
+				h.clearCookies(w)
+				httpserver.WriteError(w, r, err)
+				return
+			}
+			if !safeMethod(r.Method) && r.Header.Get(CSRFHeader) != application.LinkCSRF(c.Value) {
+				httpserver.WriteError(w, r, kernel.NewError(kernel.CodeForbidden, "missing or invalid CSRF token"))
+				return
+			}
+			p = lp
 		}
 		next.ServeHTTP(w, r.WithContext(accessapi.WithPrincipal(ctx, p)))
 	})
@@ -102,6 +125,7 @@ func safeMethod(m string) bool {
 // Register adds the routes under /v1/auth.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/password", h.login)
+	mux.HandleFunc("GET /s/{token}", h.openLink)
 	mux.HandleFunc("POST /v1/auth/logout", h.logout)
 	mux.HandleFunc("GET /v1/auth/session", h.session)
 	mux.HandleFunc("POST /v1/auth/users", h.createUser)
@@ -122,12 +146,17 @@ type principalDTO struct {
 	Roles  []string `json:"roles"`
 	Groups []string `json:"groups"`
 	Locale string   `json:"locale,omitempty"`
+	// Object is the shared feature of a link principal.
+	Object string `json:"object,omitempty"`
 }
 
 func toDTO(p accessapi.Principal) principalDTO {
 	d := principalDTO{Kind: string(p.Kind), Roles: append([]string{}, p.Roles...), Groups: []string{}, Locale: p.Locale}
 	if !p.ID.IsZero() {
 		d.ID = p.ID.String()
+	}
+	if p.Link != nil {
+		d.Object = p.Link.Object.String()
 	}
 	for _, g := range p.Groups {
 		d.Groups = append(d.Groups, g.String())
@@ -179,8 +208,8 @@ func (h *Handler) setSession(w http.ResponseWriter, res application.LoginResult)
 }
 
 func (h *Handler) clearCookies(w http.ResponseWriter) {
-	for _, n := range []string{SessionCookie, CSRFCookie} {
-		http.SetCookie(w, &http.Cookie{Name: n, Value: "", Path: "/", MaxAge: -1, HttpOnly: n == SessionCookie, Secure: h.secure})
+	for _, n := range []string{SessionCookie, CSRFCookie, LinkCookie} {
+		http.SetCookie(w, &http.Cookie{Name: n, Value: "", Path: "/", MaxAge: -1, HttpOnly: n != CSRFCookie, Secure: h.secure})
 	}
 }
 
@@ -193,6 +222,27 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	h.clearCookies(w)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// openLink turns a share-link URL into cookies and opens the app; the
+// token leaves the address bar (and later Referer headers) at once.
+func (h *Handler) openLink(w http.ResponseWriter, r *http.Request) {
+	tok := r.PathValue("token")
+	_, expires, err := h.auth.AuthenticateLink(r.Context(), tok)
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Cache-Control", "no-store")
+	if err != nil {
+		h.clearCookies(w)
+		http.Redirect(w, r, "/?link=invalid", http.StatusSeeOther)
+		return
+	}
+	// A staff session in the same browser would win over the link.
+	http.SetCookie(w, &http.Cookie{Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: h.secure})
+	http.SetCookie(w, &http.Cookie{Name: LinkCookie, Value: tok, Path: "/", Expires: expires, HttpOnly: true,
+		Secure: h.secure, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: CSRFCookie, Value: application.LinkCSRF(tok), Path: "/", Expires: expires,
+		Secure: h.secure, SameSite: http.SameSiteLaxMode})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *Handler) session(w http.ResponseWriter, r *http.Request) {

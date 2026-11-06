@@ -90,6 +90,9 @@ type Runtime interface {
 	// Secret returns a secret written in the node's inputs, if host may
 	// receive it (ADR 0019).
 	Secret(name, host string) (string, error)
+	// Document renders a document template to PDF and stores it as a blob
+	// for field of typeName, owned by the run's principal (ADR 0022).
+	Document(ctx context.Context, template string, vars map[string]any, typeName, field string) (kernel.Blob, error)
 	// Subflow runs another flow inline and returns its result.
 	Subflow(ctx context.Context, name string, input map[string]any) (any, error)
 	// Render renders a manifest template.

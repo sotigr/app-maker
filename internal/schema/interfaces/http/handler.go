@@ -38,7 +38,7 @@ func audience(p accessapi.Principal) schemaapi.Audience {
 		return schemaapi.AudSystem
 	case p.HasRole("admin"):
 		return schemaapi.AudAdmin
-	case !p.IsAnonymous():
+	case !p.IsAnonymous() && !p.IsLink():
 		return schemaapi.AudOwner
 	}
 	return schemaapi.AudPublic

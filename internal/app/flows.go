@@ -98,6 +98,10 @@ func envSecrets(ref string) (string, bool) {
 func templateSources(files []struct{ Path, Data string }) map[string]string {
 	out := map[string]string{}
 	for _, f := range files {
+		// Document templates and binary files are not text templates.
+		if strings.HasPrefix(f.Path, "templates/documents/") || strings.HasPrefix(f.Path, "templates/assets/") {
+			continue
+		}
 		name := strings.TrimPrefix(f.Path, "templates/")
 		name = strings.TrimSuffix(name, path.Ext(name))
 		out[name] = f.Data

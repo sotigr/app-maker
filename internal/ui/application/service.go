@@ -144,7 +144,7 @@ func audience(p accessapi.Principal) schemaapi.Audience {
 		return schemaapi.AudSystem
 	case p.HasRole("admin"):
 		return schemaapi.AudAdmin
-	case !p.IsAnonymous():
+	case !p.IsAnonymous() && !p.IsLink():
 		return schemaapi.AudOwner
 	}
 	return schemaapi.AudPublic
@@ -291,6 +291,9 @@ func (s *Service) meta(ct *schemaapi.CompiledType, aud schemaapi.Audience, label
 		Ownable: ct.HasTrait(schemaapi.TraitOwnable), Actions: map[string]json.RawMessage{}}
 	if m.Ownable {
 		m.Actions["transfer"] = nil
+	}
+	if ct.Shareable != nil {
+		m.Actions["share"] = domain.ShareInput
 	}
 	if s.d.FlowActions != nil {
 		for name, in := range s.d.FlowActions(ct) {

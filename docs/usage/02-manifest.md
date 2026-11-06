@@ -12,7 +12,8 @@ myapp/
   flows/*.json             # behaviour graphs                     → 5. Flows
   nodes/*.py               # Python code-node sources             → 6. Code nodes
   nodes/requirements.lock  # optional Python dependencies (with hashes)
-  templates/email/*.txt    # email templates for email.send
+  templates/email/*.txt    # email templates for email.send (<name>.<lang>.txt per language)
+  templates/documents/*.json  # PDF document templates for document.render → 5. Flows
   migrations/*.json        # data migrations                      → 8. Testing and deploying
   seed/dev.json            # data loaded by organon dev / organon seed
   tests/*.test.json        # manifest tests                       → 8. Testing and deploying

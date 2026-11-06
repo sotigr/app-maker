@@ -99,3 +99,6 @@
 | PDF | Pure-Go layout from JSON templates, embedded Noto fonts; no browser |
 | Sequences | Gapless, assigned inside the commit transaction |
 | Outbound secrets (ADR 0019) | Substituted by the engine in http.request headers/query and ctx.http auth; per-secret host allowlist in app.json; inbound verifiers organon/stripe/hmac-sha256 |
+| Share links (ADR 0020) | x-shareable types get a `share` action; link principals (kind link) read the subtree, run listed actions (and that action's writes in the subtree), public view only; `/s/<token>` sets an HttpOnly cookie; `ui/app.json linkHome`; manifest tests `as: "link:<ref>"` |
+| Documents (ADR 0022) | `templates/documents/*.json` blocks → `kernel.Document` → `platform/pdf` (fpdf + embedded Noto Sans, rsc.io/qr); `document.render` stores a PDF blob for a Blob field; `email.send` attachments + lang; SMTP sender (`email.*`, `ORGANON_EMAIL_*`) |
+| Sequences (ADR 0021) | `x-sequence` {format, series expr, on create or action:<name>} on indexed, non-required string fields; numbers drawn in the repository transaction through `Batch.Finalize`; deleting leaves a hole (cancel instead) |

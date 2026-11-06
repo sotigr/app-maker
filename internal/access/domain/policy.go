@@ -68,6 +68,10 @@ var Defaults = []PolicyDoc{
 		Update: "isOwner(feature)", Delete: "isOwner(feature)"},
 	// The built-in transfer action of Ownable types (spec 10.3).
 	{Type: string(schemaapi.TraitOwnable), Actions: map[string]string{"transfer": "isOwner(feature)"}},
+	// Share links (ADR 0020) are created by the share action; their
+	// creator and admins of the shared feature list and revoke them.
+	{Type: string(schemaapi.TypeShareLink), Read: "principal.id == feature.createdBy || hasRole(feature, 'admin')",
+		Delete: "principal.id == feature.createdBy || hasRole(feature, 'admin')"},
 	{Type: string(schemaapi.TypeGrant), Read: "principal.id == feature.subject || hasRole(feature, 'admin')",
 		Create: "hasRole(parent, 'admin')", Delete: "hasRole(feature, 'admin')"},
 }

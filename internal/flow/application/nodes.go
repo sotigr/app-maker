@@ -191,11 +191,17 @@ func Builtins() []domain.NodeType {
 		// Effects (spec 14.5): staged as jobs, delivered after commit.
 		&builtin{name: "email.send", kind: domain.KindEffect, desc: "Sends an email from a manifest template after commit.",
 			inputs: []domain.Param{param("to", rt.String, true, "recipient"), param("template", rt.String, true, "templates/email/<name>"),
-				param("subject", rt.String, false, "subject (default from template)"), mapParam("vars", "template variables")},
+				param("subject", rt.String, false, "subject (default from template)"), mapParam("vars", "template variables"),
+				param("attachments", rt.ListOf(rt.Any), false, "files: blob values, or {blob, name}"),
+				param("lang", rt.String, false, "language: uses templates/email/<name>.<lang>.txt when it exists")},
 			out: rt.MapOf(map[string]*rt.Type{"queued": rt.Bool}),
 			exec: func(_ context.Context, in map[string]any, r domain.Runtime) (any, error) {
+				atts, err := attachments(in["attachments"])
+				if err != nil {
+					return nil, err
+				}
 				args, _ := json.Marshal(map[string]any{"to": in["to"], "template": in["template"], "subject": in["subject"],
-					"vars": toWire(in["vars"]), "delivery": r.RunID().String() + ":" + r.NodeID()})
+					"vars": toWire(in["vars"]), "delivery": r.RunID().String() + ":" + r.NodeID(), "attachments": atts, "lang": in["lang"]})
 				r.Effect(kernel.JobRequest{Kind: JobDeliverEmail, Queue: kernel.QueueEffects, Args: args, MaxAttempts: 25})
 				return map[string]any{"queued": true}, nil
 			}},
@@ -228,6 +234,19 @@ func Builtins() []domain.NodeType {
 				return map[string]any{"queued": true}, nil
 			}},
 		// External.
+		&builtin{name: "document.render", kind: domain.KindExternal,
+			desc: "Renders templates/documents/<template>.json to a PDF and stores it for a Blob field; set the output on that field with feature.update.",
+			inputs: []domain.Param{param("template", rt.String, true, "templates/documents/<name>"), mapParam("vars", "template vars"),
+				param("type", rt.String, true, "type of the field the PDF is for"), param("field", rt.String, true, "Blob field, e.g. '/invoicePdf'")},
+			out: rt.MapOf(map[string]*rt.Type{"id": rt.String, "size": rt.Int, "contentType": rt.String}),
+			exec: func(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
+				vars, _ := in["vars"].(map[string]any)
+				b, err := r.Document(ctx, str(in["template"]), vars, str(in["type"]), str(in["field"]))
+				if err != nil {
+					return nil, err
+				}
+				return map[string]any{"id": b.ID, "size": b.Size, "contentType": b.ContentType}, nil
+			}},
 		&builtin{name: "http.request", kind: domain.KindExternal, desc: "Calls an HTTP API through the egress policy (GET, HEAD, or idempotent calls).",
 			inputs: []domain.Param{param("url", rt.String, true, "URL"), param("method", rt.String, false, "GET by default"),
 				mapParam("headers", "request headers"), param("body", rt.Any, false, "JSON body")},
@@ -555,4 +574,43 @@ func httpRequest(ctx context.Context, in map[string]any, r domain.Runtime) (any,
 		headers[k] = res.Header.Get(k)
 	}
 	return map[string]any{"status": int64(res.StatusCode), "body": parsed, "headers": headers}, nil
+}
+
+// attachment is an email attachment in deliver_email arguments.
+type attachment struct {
+	Blob string `json:"blob"`
+	Name string `json:"name,omitempty"`
+}
+
+// attachments reads email.send attachments: blob values ({id, ...}) or
+// {blob, name}.
+func attachments(v any) ([]attachment, error) {
+	if v == nil {
+		return nil, nil
+	}
+	list, _ := v.([]any)
+	var out []attachment
+	for _, it := range list {
+		a := attachment{}
+		switch x := it.(type) {
+		case map[string]any:
+			if b, ok := x["blob"]; ok {
+				a.Name = str(x["name"])
+				x, _ = b.(map[string]any)
+				if x == nil {
+					if kb, ok := b.(kernel.Blob); ok {
+						x = map[string]any{"id": kb.ID}
+					}
+				}
+			}
+			a.Blob = str(x["id"])
+		case kernel.Blob:
+			a.Blob = x.ID
+		}
+		if a.Blob == "" {
+			return nil, kernel.NewError(kernel.CodeValidationFailed, "an attachment is a file value or {blob, name}")
+		}
+		out = append(out, a)
+	}
+	return out, nil
 }

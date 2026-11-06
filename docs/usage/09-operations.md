@@ -37,6 +37,7 @@ admin:
   disableAccounts: false                 # true: admins cannot sign in; no bootstrap admin
 limits: { requestsPerMinute: 600, anonymousPerMinute: 60 }
 blobs: { driver: fs, dir: /var/lib/organon/blobs }
+email: { driver: smtp, addr: "smtp.example.com:587", from: "shop@example.com", username: "shop", password: "${secret:smtp}", tls: false }   # default driver: log
 runner: { isolation: process, maxWorkers: 4, cacheDir: /var/cache/organon-runner }
 llm:
   providers:
@@ -55,7 +56,10 @@ Environment variables: `ORGANON_ROLES`, `ORGANON_TOPOLOGY`, `ORGANON_DEV`, `ORGA
 `ORGANON_LLM_PROVIDER`, `ORGANON_RUNNER_ISOLATION`, `ORGANON_RUNNER_LISTEN`,
 `ORGANON_RUNNER_ADDR`, `ORGANON_BLOBS_DRIVER`, `ORGANON_BLOBS_DIR`, `ORGANON_OTLP_ENDPOINT`,
 `ORGANON_TRUST_PROXY_HEADERS`, `ORGANON_CREATE_DATA_KEY`, `ORGANON_ALLOW_BREAKING`,
-`ORGANON_DISABLE_ADMIN_CONSOLE`, `ORGANON_DISABLE_ADMIN_ACCOUNTS`, and
+`ORGANON_DISABLE_ADMIN_CONSOLE`, `ORGANON_DISABLE_ADMIN_ACCOUNTS`,
+`ORGANON_EMAIL_DRIVER` (`log` or `smtp`), `ORGANON_EMAIL_ADDR`, `ORGANON_EMAIL_FROM`,
+`ORGANON_EMAIL_USERNAME`, `ORGANON_EMAIL_PASSWORD` (a `${secret:<name>}` reference),
+`ORGANON_EMAIL_TLS` (implicit TLS, port 465; otherwise STARTTLS when offered), and
 `ORGANON_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
 configuration stops startup with an error naming the key.
 

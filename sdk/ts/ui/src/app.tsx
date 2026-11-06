@@ -274,6 +274,9 @@ function Login({ client, bundle, t, onLogin, onLanguage }: { client: OrganonClie
           <label className="o-form-field"><span className="o-field-label">{t("Authentication code")}</span>
             <input className="o-input" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.trim())} autoFocus /></label>
         )}
+        {!err && new URLSearchParams(location.search).get("link") === "invalid" && (
+          <div className="o-form-error">{t("This link is invalid or has expired.")}</div>
+        )}
         {err && <div className="o-form-error">{err}</div>}
         <button className="o-button o-button-primary" type="submit">{step.kind === "password" ? t("Sign in") : t("Verify")}</button>
         {step.kind === "password" && providers.map((p) => (
@@ -303,7 +306,8 @@ function Shell({ bundle, principal, onLanguage, children }: { bundle: Bundle; pr
   return (
     <div className="o-app">
       <header className="o-header">
-        <a className="o-brand" href="/" onClick={(e) => { e.preventDefault(); rt.navigate(app.home); }}>
+        <a className="o-brand" href="/" onClick={(e) => { e.preventDefault(); principal?.kind === "link" && app.linkHome ? rt.navigate(app.linkHome, { id: principal.object })
+          : rt.navigate(app.home); }}>
           {app.logo && <img src={`/assets/app/${app.logo.replace(/^assets\//, "")}`} alt="" />}
           <span>{app.title ? rt.t(app.title) : ""}</span>
         </a>
@@ -397,8 +401,13 @@ export function OrganonApp({ client: given }: OrganonAppProps) {
     return <Login client={client} bundle={bundle} t={translator(bundle.i18n)} onLogin={load} onLanguage={changeLanguage} />;
   }
   const [pathname, search = ""] = path.split("?");
-  const found = pathname === "/" && !bundle.pages.some((p) => p.route === "/")
-    ? (() => { const home = bundle.pages.find((p) => p.name === bundle.app.home); return home ? { dto: home, params: {} } : null; })()
+  // Share-link holders start on the link page with the shared feature
+  // (ADR 0020); everyone else on home, unless a page has the route /.
+  const isLink = principal?.kind === "link" && !!bundle.app.linkHome;
+  const start = isLink ? bundle.app.linkHome! : bundle.app.home;
+  const startParams: Record<string, unknown> = isLink ? { id: principal!.object } : {};
+  const found = pathname === "/" && (isLink || !bundle.pages.some((p) => p.route === "/"))
+    ? (() => { const home = bundle.pages.find((p) => p.name === start); return home ? { dto: home, params: startParams } : null; })()
     : resolve(bundle, pathname, search);
   return (
     <RuntimeProvider client={client} bundle={bundle} principal={principal} onLogout={load}>

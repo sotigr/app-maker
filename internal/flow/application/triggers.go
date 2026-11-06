@@ -295,6 +295,13 @@ func (e *Engine) InvokeAction(ctx context.Context, p accessapi.Principal, typeNa
 		}
 		return ActionResult{Output: res.Output}, nil
 	}
+	if action == "share" && ct.Shareable != nil && e.d.Share != nil {
+		out, err := e.d.Share(ctx, p, id, ct.Shareable, input)
+		if err != nil {
+			return ActionResult{}, err
+		}
+		return ActionResult{Output: out}, nil
+	}
 	version, _ := storage["version"].(int64)
 	commit := func(data map[string]any) (ActionResult, error) {
 		cr, err := e.d.Content.Commit(ctx, commitReq(p, action, id, ct.Name, kernel.Version(version), data))

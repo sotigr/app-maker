@@ -130,10 +130,12 @@ func NewFeature(id kernel.ID, ct *schemaapi.CompiledType, parent *ParentInfo, ow
 }
 
 // checkChildAllowed enforces x-allowedChildren (spec 3.1). The root
-// feature accepts any non-root type, and grants may sit under any feature:
-// a grant is a child of the object it grants a role on (spec 8.6).
+// feature accepts any non-root type, and grants and share links may sit
+// under any feature: they are children of the object they apply to (spec
+// 8.6, ADR 0020).
 func checkChildAllowed(parent, child *schemaapi.CompiledType) error {
-	if parent.Base() == schemaapi.TypeRoot || child.Base() == schemaapi.TypeGrant || parent.AllowsChild(child) {
+	if parent.Base() == schemaapi.TypeRoot || child.Base() == schemaapi.TypeGrant || child.Base() == schemaapi.TypeShareLink ||
+		parent.AllowsChild(child) {
 		return nil
 	}
 	return kernel.NewError(kernel.CodeConstraint, "%s is not an allowed child of %s", child.Base(), parent.Base())
@@ -244,6 +246,32 @@ func (f *Feature) Apply(p Patch, at time.Time, actor kernel.ID) ([]string, error
 	f.touched = true
 	f.record(EventUpdated, changed, before, at, actor)
 	return changed, nil
+}
+
+// AssignSequence sets an x-sequence field inside the commit (ADR 0021). The
+// value joins the pending change's last event, so subscribers, audit,
+// and flows see the number with the change that drew it.
+func (f *Feature) AssignSequence(path string, v kernel.Value, at time.Time, actor kernel.ID) {
+	if len(f.pending) == 0 {
+		_, _ = f.Apply(Patch{path: v}, at, actor)
+		return
+	}
+	f.fields[path] = v
+	e := &f.pending[len(f.pending)-1]
+	if e.Before == nil {
+		e.Before = map[string]kernel.Value{}
+	}
+	if _, ok := e.Before[path]; !ok && e.Kind != EventCreated {
+		e.Before[path] = kernel.Null{}
+	}
+	if e.After == nil {
+		e.After = map[string]kernel.Value{}
+	}
+	e.After[path] = v
+	if !slices.Contains(e.Changed, path) {
+		e.Changed = append(e.Changed, path)
+		sort.Strings(e.Changed)
+	}
 }
 
 // syncOwner keeps ownerID in step with the Ownable trait's /owner field.

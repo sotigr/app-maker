@@ -1,10 +1,10 @@
-// Package infrastructure holds email sender adapters. SMTP and provider
-// adapters arrive with the hardening phase; development uses the log and
-// recording senders.
+// Package infrastructure holds email sender adapters: SMTP, and the log
+// and recording senders used in development and tests.
 package infrastructure
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -16,7 +16,11 @@ type LogSender struct{ Log *slog.Logger }
 
 // Send implements the EmailSender port.
 func (s LogSender) Send(ctx context.Context, m domain.EmailMessage) error {
-	s.Log.InfoContext(ctx, "email", "to", m.To, "subject", m.Subject, "delivery", m.Delivery, "body", m.Body)
+	var files []string
+	for _, a := range m.Attachments {
+		files = append(files, fmt.Sprintf("%s (%s, %d bytes)", a.Name, a.ContentType, len(a.Data)))
+	}
+	s.Log.InfoContext(ctx, "email", "to", m.To, "subject", m.Subject, "delivery", m.Delivery, "body", m.Body, "attachments", files)
 	return nil
 }
 

@@ -19,6 +19,7 @@
   "Sign out",
   "Someone else changed this; try again.",
   "That change is not allowed in the current state.",
+  "This link is invalid or has expired.",
   "This page does not exist.",
   "This part of the page failed: {{ message }}",
   "Two-factor authentication is required. Add this key to your authenticator app:",

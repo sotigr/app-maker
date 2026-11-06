@@ -61,6 +61,7 @@ func Run(t *testing.T, f Factory) {
 		{"ConcurrentWriters", testConcurrentWriters},
 		{"Unsupported", testUnsupported},
 		{"AuditLog", testAuditLog},
+		{"Sequences", testSequences},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { tc.fn(t, f(t)) })
@@ -638,5 +639,63 @@ func testAuditLog(t *testing.T, h Harness) {
 	}
 	if left, _ := store.Audit(ctx, kernel.AuditFilter{Limit: 10}); len(left) != 1 || left[0].Action != "login" {
 		t.Fatalf("after purge: %+v", left)
+	}
+}
+
+// ADR 0021: Finalize draws sequence numbers inside the commit: concurrent
+// creates get 1..N with no gap or duplicate, series count separately, and
+// a batch that fails (here: a version conflict) uses no number.
+func testSequences(t *testing.T, h Harness) {
+	ctx := context.Background()
+	r := root(t, h)
+	numbered := func(series string, extra ...domain.Mutation) (int64, error) {
+		s := snap(ids.NewID(), TypeA, &r, 1, nil)
+		var got int64
+		_, err := h.Repo.Apply(ctx, domain.Batch{Finalize: func(next domain.NextFunc) (domain.Batch, error) {
+			n, err := next(series)
+			if err != nil {
+				return domain.Batch{}, err
+			}
+			got = n
+			s.Fields["/title"] = kernel.String(fmt.Sprint(n))
+			return domain.Batch{Mutations: append([]domain.Mutation{{Kind: domain.MutCreate, Feature: s}}, extra...)}, nil
+		}})
+		return got, err
+	}
+	const writers = 40
+	var mu sync.Mutex
+	seen := map[int64]int{}
+	var wg sync.WaitGroup
+	for i := 0; i < writers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			n, err := numbered("INV")
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			mu.Lock()
+			seen[n]++
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	for n := int64(1); n <= writers; n++ {
+		if seen[n] != 1 {
+			t.Fatalf("number %d drawn %d times (%v)", n, seen[n], seen)
+		}
+	}
+	if n, err := numbered("CN"); err != nil || n != 1 {
+		t.Fatalf("a second series starts at 1: %d %v", n, err)
+	}
+	a := create(t, h, TypeA, &r, nil)
+	stale := update(a, nil)
+	stale.Expected, stale.Feature.Version = 7, 8
+	if _, err := numbered("INV", stale); !errors.Is(err, kernel.ErrVersionConflict) {
+		t.Fatalf("want a conflict, got %v", err)
+	}
+	if n, err := numbered("INV"); err != nil || n != writers+1 {
+		t.Fatalf("a failed commit must not use a number: got %d %v", n, err)
 	}
 }

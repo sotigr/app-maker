@@ -345,3 +345,61 @@ func TestValueTypeCoerceAndWire(t *testing.T) {
 		t.Fatalf("nullable ref: %v %v", v, err)
 	}
 }
+
+// ADR 0020: x-shareable is checked when a type compiles; its actions are
+// checked against the app's flows by app.Compile.
+func TestShareableKeyword(t *testing.T) {
+	cases := []struct{ name, x, ptr, msg string }{
+		{"not an object", `true`, "/x-shareable", "object"},
+		{"share is reserved", `{"actions":["share"]}`, "/x-shareable/actions/0", "other than share"},
+		{"maxDays range", `{"actions":[],"maxDays":400}`, "/x-shareable/maxDays", "1 to 365"},
+		{"unknown member", `{"actions":[],"days":3}`, "/x-shareable/days", "unknown member"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			probs := compileDoc(t, `{"$id":"urn:app:feature:x/v1","type":"object","x-shareable":`+c.x+`,"properties":{}}`)
+			if !hasProblem(probs, c.ptr, c.msg) {
+				t.Errorf("want problem at %s containing %q, got:\n%v", c.ptr, c.msg, probs)
+			}
+		})
+	}
+}
+
+// ADR 0021: x-sequence rules.
+func TestSequenceKeyword(t *testing.T) {
+	cases := []struct{ name, props, ptr, msg string }{
+		{"not a string field", `"n":{"type":"integer","x-indexed":true,"x-sequence":{"format":"{n}"}}`, "/properties/n/x-sequence", "strings"},
+		{"required", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"{n}"}}`, "/properties/n/x-sequence", "required"},
+		{"not indexed", `"n":{"type":"string","x-sequence":{"format":"{n}"}}`, "/properties/n/x-sequence", "x-indexed"},
+		{"format without n", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"INV-{year}"}}`, "/properties/n/x-sequence/format", "{n}"},
+		{"unknown placeholder", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"{n}-{week}"}}`, "/properties/n/x-sequence/format", "{n}"},
+		{"stray brace", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"{n}}"}}`, "/properties/n/x-sequence/format", "{n}"},
+		{"series must be a string", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"{n}","series":"1 + 1"}}`, "/properties/n/x-sequence/series", "string"},
+		{"bad on", `"n":{"type":"string","x-indexed":true,"x-sequence":{"format":"{n}","on":"update"}}`, "/properties/n/x-sequence/on", "action:"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req := ""
+			if c.name == "required" {
+				req = `,"required":["n"]`
+			}
+			probs := compileDoc(t, `{"$id":"urn:app:feature:x/v1","type":"object","properties":{`+c.props+`}`+req+`}`)
+			if !hasProblem(probs, c.ptr, c.msg) {
+				t.Errorf("want problem at %s containing %q, got:\n%v", c.ptr, c.msg, probs)
+			}
+		})
+	}
+}
+
+func TestFormatSequence(t *testing.T) {
+	at := time.Date(2026, 3, 9, 23, 0, 0, 0, time.UTC)
+	for format, want := range map[string]string{
+		"INV-{year}-{n:06}":             "INV-2026-000042",
+		"{series}/{yy}{month}{day}-{n}": "A/260309-42",
+		"{n:2}":                         "42",
+	} {
+		if got := api.FormatSequence(format, 42, "A", at); got != want {
+			t.Errorf("%s: %s, want %s", format, got, want)
+		}
+	}
+}

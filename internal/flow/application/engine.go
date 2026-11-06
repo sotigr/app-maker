@@ -82,6 +82,12 @@ type Deps struct {
 	// SecretHosts are the hosts each secret may be sent to (app.json
 	// secrets, ADR 0019).
 	SecretHosts map[string][]string
+	// Document renders a document template and stores the PDF as a blob
+	// (ADR 0022); nil disables document.render.
+	Document func(ctx context.Context, p accessapi.Principal, template string, vars map[string]any, typeName, field string) (kernel.Blob, error)
+	// Share serves the built-in share action of x-shareable types (ADR
+	// 0020); nil disables it.
+	Share func(ctx context.Context, p accessapi.Principal, id kernel.ID, def *schemaapi.ShareDef, input map[string]any) (any, error)
 	// Nodes is the node catalog, published to the visual editor.
 	Nodes *domain.NodeRegistry
 	// LLM serves llm.complete (spec 11.7); nil disables the node at run time.
@@ -819,6 +825,14 @@ func (n *nodeRuntime) Secret(name, host string) (string, error) {
 		}
 	}
 	return "", kernel.NewError("secret_missing", "secret %s is not configured", name)
+}
+
+// Document implements domain.Runtime.
+func (n *nodeRuntime) Document(ctx context.Context, template string, vars map[string]any, typeName, field string) (kernel.Blob, error) {
+	if n.run.e.d.Document == nil {
+		return kernel.Blob{}, errors.New("documents are not configured")
+	}
+	return n.run.e.d.Document(ctx, n.run.principal, template, vars, typeName, field)
 }
 
 func (n *nodeRuntime) Render(name string, vars map[string]any) (string, error) {

@@ -41,6 +41,9 @@ Steps (one operation each, run as `as`):
 | query | `query` (query document) |
 | page | `page` (UI page name); expect `visible` |
 
+`as` names a principal from `given`, or `"link:<ref>"` for a share link to
+that feature (with all of its type's shareable actions).
+
 `expect`: `ok`, `error` (code), `feature` (subset of fields after the
 step), `output` (action result subset), `count` (query results),
 `effects` (`[{node, count}]`), `visible` (page steps). Unmatched outbound HTTP requests fail the

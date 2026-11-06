@@ -78,6 +78,10 @@ CREATE TABLE IF NOT EXISTS content_audit (
   record TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS content_audit_at ON content_audit (at);
+CREATE TABLE IF NOT EXISTS content_sequences (
+  series TEXT PRIMARY KEY,
+  last   INTEGER NOT NULL
+);
 CREATE INDEX IF NOT EXISTS content_audit_actor ON content_audit (actor, id);
 CREATE INDEX IF NOT EXISTS content_audit_target ON content_audit (target, id);
 `
@@ -395,6 +399,18 @@ func (r *Repository) Apply(ctx context.Context, b domain.Batch) (domain.CommitRe
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return domain.CommitResult{}, err
+	}
+	if b.Finalize != nil {
+		// Sequence numbers are drawn in this transaction (ADR 0021).
+		if b, err = b.Finalize(func(series string) (int64, error) {
+			var n int64
+			err := tx.QueryRowContext(ctx, `INSERT INTO content_sequences (series, last) VALUES (?, 1)
+				ON CONFLICT (series) DO UPDATE SET last = last + 1 RETURNING last`, series).Scan(&n)
+			return n, err
+		}); err != nil {
+			_ = tx.Rollback()
+			return domain.CommitResult{}, err
+		}
 	}
 	res, err := r.apply(ctx, tx, b)
 	if err == nil {

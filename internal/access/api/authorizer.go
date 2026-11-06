@@ -72,6 +72,9 @@ type CheckRequest struct {
 	Parent  *FeatureRef    // the parent for create; the new parent for move
 	Patch   map[string]any // the merge patch for update, expression form
 	Input   map[string]any // action input
+	// InAction names the action a write belongs to (a transition or an
+	// action flow's writes); empty for direct writes.
+	InAction string
 }
 
 // Decision is the Authorizer's answer.

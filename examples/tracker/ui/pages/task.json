@@ -3,6 +3,8 @@
   "title": "{{ data.task.title }}",
   "route": "/tasks/:id",
   "params": { "id": { "type": "string", "format": "uuid" } },
+  "visible": "principal.kind != 'link'",
+  "state": { "link": { "type": "string" } },
   "data": {
     "task": { "feature": "params.id", "type": "task" },
     "project": { "feature": "data.task.parentId", "type": "project" },
@@ -18,6 +20,13 @@
           { "label": "Triage", "visible": "can(data.task, 'action:triage')",
             "steps": [ { "do": "action", "type": "task", "id": "params.id", "action": "triage" },
                        { "do": "toast", "text": "Labelled {{ result.output.label }}" } ] },
+          { "label": "PDF report", "visible": "can(data.task, 'action:report')",
+            "steps": [ { "do": "action", "type": "task", "id": "params.id", "action": "report" },
+                       { "do": "toast", "text": "Report attached and emailed", "tone": "success" } ] },
+          { "label": "Share", "visible": "can(data.task, 'action:share')",
+            "steps": [ { "do": "action", "type": "task", "id": "params.id", "action": "share", "input": { "expiresInDays": "7" } },
+                       { "do": "set", "state": "link", "value": "result.output.url" },
+                       { "do": "open", "dialog": "share" } ] },
           { "label": "Delete", "visible": "can(data.task, 'delete')",
             "steps": [ { "do": "delete", "type": "task", "id": "params.id", "confirm": "Delete {{ data.task.title }}?" },
                        { "do": "navigate", "page": "project", "params": { "id": "data.task.parentId" } } ] }
@@ -25,7 +34,7 @@
       ] }
     ] },
     { "component": "columns", "children": [
-      { "component": "detail", "source": "task", "fields": ["/status", "/assignee", "/dueAt", "/estimate", "/label", "/isLate", "/attachment"] },
+      { "component": "detail", "source": "task", "fields": ["/number", "/status", "/assignee", "/dueAt", "/estimate", "/label", "/isLate", "/attachment"] },
       { "component": "card", "title": "Edit", "visible": "can(data.task, 'update')", "children": [
         { "component": "form", "mode": "update", "type": "task", "id": "params.id", "submit": "Save",
           "fields": [ { "path": "/title" }, { "path": "/assignee", "widget": "ref", "labelField": "displayName" }, { "path": "/dueAt" },
@@ -38,6 +47,10 @@
       { "component": "link", "text": "Download ({{ formatNumber(ceil(data.task.attachment.size / 1024), 0) }} KB)",
         "url": "{{ data.task.attachment.url }}",
         "download": "{{ data.task.title }}{{ data.task.attachment.contentType == 'text/plain' ? '.txt' : data.task.attachment.contentType == 'audio/mpeg' ? '.mp3' : '.' + split(data.task.attachment.contentType, '/')[1] }}" }
+    ] },
+    { "component": "dialog", "name": "share", "title": "Share this task", "children": [
+      { "component": "text", "text": "Anyone with this link can see the task and its comments, and start it, for 7 days.", "tone": "muted" },
+      { "component": "link", "text": "{{ state.link }}", "url": "{{ state.link }}" }
     ] },
     { "component": "card", "title": "Comments", "children": [
       { "component": "list", "source": "comments", "empty": "No comments yet.",

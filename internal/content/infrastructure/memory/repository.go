@@ -31,6 +31,8 @@ type Repository struct {
 	children map[kernel.ID]map[kernel.ID]struct{}
 	jobs     kernel.JobEnqueuer
 	audit    []kernel.AuditRecord // ordered by ID (time)
+	// sequences holds the last number of each x-sequence series.
+	sequences map[string]int64
 }
 
 var (
@@ -41,7 +43,8 @@ var (
 // New returns an empty repository. jobs receives each committed batch's
 // jobs after commit; it may be nil.
 func New(jobs kernel.JobEnqueuer) *Repository {
-	return &Repository{features: map[kernel.ID]*record{}, children: map[kernel.ID]map[kernel.ID]struct{}{}, jobs: jobs}
+	return &Repository{features: map[kernel.ID]*record{}, children: map[kernel.ID]map[kernel.ID]struct{}{}, jobs: jobs,
+		sequences: map[string]int64{}}
 }
 
 // Capabilities implements domain.FeatureRepository.
@@ -271,9 +274,30 @@ func (r *Repository) Apply(ctx context.Context, b domain.Batch) (domain.CommitRe
 		return domain.CommitResult{}, &kernel.UnsupportedError{Capability: "MaxBatchSize"}
 	}
 	r.mu.Lock()
+	var drawn map[string]int64
+	var err error
+	if b.Finalize != nil {
+		// Sequence numbers count from the committed state and are kept
+		// only if the batch commits (ADR 0021).
+		drawn = map[string]int64{}
+		b, err = b.Finalize(func(series string) (int64, error) {
+			if _, ok := drawn[series]; !ok {
+				drawn[series] = r.sequences[series]
+			}
+			drawn[series]++
+			return drawn[series], nil
+		})
+		if err != nil {
+			r.mu.Unlock()
+			return domain.CommitResult{}, err
+		}
+	}
 	result, err := r.apply(b)
 	if err == nil {
 		r.appendAudit(b.Audit)
+		for s, n := range drawn {
+			r.sequences[s] = n
+		}
 	}
 	r.mu.Unlock()
 	if err != nil {

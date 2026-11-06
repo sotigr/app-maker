@@ -112,6 +112,19 @@ type Config struct {
 	Audit struct {
 		RetentionDays int `yaml:"retentionDays"` // default 90 (spec 14.3)
 	} `yaml:"audit"`
+	// Email sends email.send messages (ADR 0022): log (default) writes
+	// them to the log; smtp sends them.
+	Email struct {
+		Driver   string `yaml:"driver"`   // log | smtp
+		Addr     string `yaml:"addr"`     // host:port
+		From     string `yaml:"from"`     // sender address
+		Username string `yaml:"username"` // empty: no authentication
+		// Password is a ${secret:<name>} reference.
+		Password string `yaml:"password"`
+		// TLS uses implicit TLS (port 465); otherwise STARTTLS is used when
+		// the server offers it.
+		TLS bool `yaml:"tls"`
+	} `yaml:"email"`
 	Blobs struct {
 		Driver string `yaml:"driver"` // fs (s3 later)
 		// Dir holds fs blobs; empty uses a directory in the temp directory.
@@ -265,6 +278,14 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("ORGANON_RUNNER_ISOLATION", &c.Runner.Isolation)
 	str("ORGANON_BLOBS_DRIVER", &c.Blobs.Driver)
 	str("ORGANON_BLOBS_DIR", &c.Blobs.Dir)
+	str("ORGANON_EMAIL_DRIVER", &c.Email.Driver)
+	str("ORGANON_EMAIL_ADDR", &c.Email.Addr)
+	str("ORGANON_EMAIL_FROM", &c.Email.From)
+	str("ORGANON_EMAIL_USERNAME", &c.Email.Username)
+	str("ORGANON_EMAIL_PASSWORD", &c.Email.Password)
+	if err := boolean("ORGANON_EMAIL_TLS", &c.Email.TLS); err != nil {
+		return err
+	}
 	str("ORGANON_RUNNER_LISTEN", &c.Runner.Listen)
 	str("ORGANON_RUNNER_ADDR", &c.Runner.Addr)
 	return nil
@@ -313,6 +334,18 @@ func (c Config) Validate() error {
 		if p.APIKey != "" && !strings.HasPrefix(p.APIKey, "${secret:") {
 			errs = append(errs, fmt.Errorf("llm.providers.%s.apiKey: must be a ${secret:<name>} reference", name))
 		}
+	}
+	switch c.Email.Driver {
+	case "", "log":
+	case "smtp":
+		if c.Email.Addr == "" || c.Email.From == "" {
+			errs = append(errs, fmt.Errorf("email: smtp needs addr and from"))
+		}
+		if c.Email.Password != "" && !strings.HasPrefix(c.Email.Password, "${secret:") {
+			errs = append(errs, fmt.Errorf("email.password: must be a ${secret:<name>} reference"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("email.driver: must be log or smtp"))
 	}
 	if c.Topology != TopologySingle && c.Topology != TopologyReplicated {
 		errs = append(errs, fmt.Errorf("topology: must be single or replicated"))

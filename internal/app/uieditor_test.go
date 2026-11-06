@@ -82,7 +82,7 @@ func TestUIEditorSaves(t *testing.T) {
 	}
 
 	code, src := do(admin, "GET", "/v1/ui/source", nil)
-	if code != 200 || src["dev"] != true || len(src["pages"].([]any)) != 4 || src["app"] == nil || src["styles"] == nil {
+	if code != 200 || src["dev"] != true || len(src["pages"].([]any)) != 5 || src["app"] == nil || src["styles"] == nil {
 		t.Fatalf("source: %d %v", code, src)
 	}
 	if _, ok := src["types"].(map[string]any)["task"]; !ok {

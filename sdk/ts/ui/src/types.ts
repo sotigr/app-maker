@@ -7,6 +7,8 @@ export interface Principal {
   roles: string[];
   /** The user's saved UI language. */
   locale?: string;
+  /** The shared feature, for share-link holders (kind "link"). */
+  object?: string;
 }
 
 export interface NavItem {
@@ -19,6 +21,8 @@ export interface AppDoc {
   title?: string;
   logo?: string;
   home: string;
+  /** The page share-link holders open, with params.id = the shared feature. */
+  linkHome?: string;
   nav?: NavItem[];
   requireLogin?: boolean;
   notFound?: string;

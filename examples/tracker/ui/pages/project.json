@@ -2,6 +2,7 @@
   "page": "project",
   "title": "{{ data.project.title }}",
   "route": "/projects/:id",
+  "visible": "principal.kind != 'link'",
   "params": { "id": { "type": "string", "format": "uuid" } },
   "state": { "tab": { "type": "integer", "default": 0 } },
   "data": {

@@ -84,6 +84,14 @@ type work struct {
 	extra   []*work // cascaded deletes and setNull updates
 	ref     *accessapi.FeatureRef
 	tx      *txState
+	// seqs are x-sequence fields to number in the commit (ADR 0021).
+	seqs []pendingSeq
+}
+
+// pendingSeq is a sequence number drawn when the batch commits.
+type pendingSeq struct {
+	def    schemaapi.SequenceDef
+	series string
 }
 
 // Execute runs operations through the write pipeline and commits them in
@@ -341,6 +349,7 @@ func (s *Service) authorize(ctx context.Context, wc WriteContext, req accessapi.
 	if wc.Fixture {
 		return nil
 	}
+	req.InAction = wc.Action
 	d, err := s.d.Authorizer.Check(ctx, wc.Principal, req)
 	if err != nil {
 		return err
@@ -437,6 +446,9 @@ func (s *Service) prepareCreate(ctx context.Context, wc WriteContext, w *work, c
 		return err
 	}
 	w.feature = f
+	if err := s.pendingSequences(ct, w, "", pinfo.ID); err != nil {
+		return err
+	}
 	w.unique = uniqueKey(ct, fields)
 	if err := s.beforeWrite(ctx, wc, w); err != nil {
 		return err
@@ -525,6 +537,11 @@ func (s *Service) prepareUpdate(ctx context.Context, wc WriteContext, w *work, n
 	}
 	if err := s.validateStorage(ct, w.aud, w.feature.Fields()); err != nil {
 		return err
+	}
+	if wc.Action != "" {
+		if err := s.pendingSequences(ct, w, wc.Action, parent); err != nil {
+			return err
+		}
 	}
 	w.unique = uniqueKey(ct, w.feature.Fields())
 	return s.beforeWrite(ctx, wc, w)
@@ -640,13 +657,59 @@ func (s *Service) applyOnDelete(ctx context.Context, wc WriteContext, repo domai
 
 // commit builds the batch, plans jobs, applies it, and projects results.
 func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.FeatureRepository, works []*work, refs map[string]kernel.ID) (TxResult, error) {
-	var b domain.Batch
-	b.Causation = wc.Causation
 	var all []*work
+	var seqs []*work
 	for _, w := range works {
 		all = append(all, w)
 		all = append(all, w.extra...)
+		if len(w.seqs) > 0 {
+			seqs = append(seqs, w)
+		}
 	}
+	var b domain.Batch
+	var err error
+	if len(seqs) == 0 {
+		if b, err = s.batch(ctx, wc, all); err != nil {
+			return TxResult{}, err
+		}
+	} else {
+		// Numbers are drawn inside the repository's transaction, and the
+		// batch (events, audit, jobs) is built after, so it carries them.
+		now := s.d.Clock.Now()
+		b.Finalize = func(next domain.NextFunc) (domain.Batch, error) {
+			for _, w := range seqs {
+				for _, p := range w.seqs {
+					n, err := next(p.series)
+					if err != nil {
+						return domain.Batch{}, err
+					}
+					v := schemaapi.FormatSequence(p.def.Format, n, p.series, now)
+					w.feature.AssignSequence(p.def.Path, kernel.String(v), now, wc.Principal.ID)
+				}
+			}
+			return s.batch(ctx, wc, all)
+		}
+	}
+	res := TxResult{Refs: map[string]string{}, Versions: map[string]kernel.Version{}}
+	if len(b.Mutations) > 0 || b.Finalize != nil {
+		if !repo.Capabilities().Transactions && (len(b.Mutations) > 1 || b.Finalize != nil) {
+			return TxResult{}, &kernel.UnsupportedError{Capability: "Transactions"}
+		}
+		cr, err := repo.Apply(ctx, b)
+		if err != nil {
+			return TxResult{}, err
+		}
+		for id, v := range cr.Versions {
+			res.Versions[id.String()] = v
+		}
+	}
+	return s.finishCommit(res, works, refs), nil
+}
+
+// batch builds the repository batch of the prepared works.
+func (s *Service) batch(ctx context.Context, wc WriteContext, all []*work) (domain.Batch, error) {
+	var b domain.Batch
+	b.Causation = wc.Causation
 	for _, w := range all {
 		f := w.feature
 		if !f.Changed() {
@@ -669,31 +732,23 @@ func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.Featu
 	if len(events) > 0 {
 		jobs, err := publishJobs(events)
 		if err != nil {
-			return TxResult{}, err
+			return domain.Batch{}, err
 		}
 		b.Jobs = append(b.Jobs, jobs...)
 		for _, h := range s.d.Hooks {
 			hj, err := h.Jobs(ctx, events, wc.Causation)
 			if err != nil {
-				return TxResult{}, err
+				return domain.Batch{}, err
 			}
 			b.Jobs = append(b.Jobs, hj...)
 		}
 	}
 	b.Jobs = append(b.Jobs, wc.ExtraJobs...)
-	res := TxResult{Refs: map[string]string{}, Versions: map[string]kernel.Version{}}
-	if len(b.Mutations) > 0 {
-		if !repo.Capabilities().Transactions && len(b.Mutations) > 1 {
-			return TxResult{}, &kernel.UnsupportedError{Capability: "Transactions"}
-		}
-		cr, err := repo.Apply(ctx, b)
-		if err != nil {
-			return TxResult{}, err
-		}
-		for id, v := range cr.Versions {
-			res.Versions[id.String()] = v
-		}
-	}
+	return b, nil
+}
+
+// finishCommit adds refs and the committed features to the result.
+func (s *Service) finishCommit(res TxResult, works []*work, refs map[string]kernel.ID) TxResult {
 	for r, id := range refs {
 		res.Refs[r] = id.String()
 	}
@@ -704,7 +759,7 @@ func (s *Service) commit(ctx context.Context, wc WriteContext, repo domain.Featu
 		snap := w.feature.Snapshot()
 		res.Features = append(res.Features, s.link(w.ct, domain.Project(w.ct, snap, w.aud, nil)))
 	}
-	return res, nil
+	return res
 }
 
 // input is a request body converted to typed values. Fields that failed
@@ -1077,6 +1132,42 @@ func checkShape(path string, v any, depth int) error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+// pendingSequences records the x-sequence fields of ct to number when w
+// commits: on create (action "") or when their action runs, once.
+func (s *Service) pendingSequences(ct *schemaapi.CompiledType, w *work, action string, parent kernel.ID) error {
+	for _, d := range ct.Sequences {
+		if d.On != action {
+			continue
+		}
+		if v, ok := w.feature.Field(d.Path); ok && v != nil {
+			if _, isNull := v.(kernel.Null); !isNull {
+				continue // numbered already
+			}
+		}
+		series := d.SeriesConst
+		if d.Series != nil {
+			snap := domain.Snapshot{ID: w.id, Fields: w.feature.Fields(), Version: w.feature.Version()}
+			if !parent.IsZero() {
+				snap.ParentID = &parent
+			}
+			doc := domain.ExprDocument(snap)
+			vars := map[string]any{"feature": doc, rt.FnNow: s.d.Clock.Now}
+			for _, f := range ct.TopFields() {
+				vars[f.Path[1:]] = doc[f.Path[1:]]
+			}
+			out, err := d.Series.Eval(vars)
+			str, _ := out.(string)
+			if err != nil || str == "" {
+				return kernel.NewValidationError(kernel.FieldError{Path: d.Path, Code: "sequence",
+					Message: "the sequence series must be a non-empty string"})
+			}
+			series = str
+		}
+		w.seqs = append(w.seqs, pendingSeq{def: d, series: series})
 	}
 	return nil
 }

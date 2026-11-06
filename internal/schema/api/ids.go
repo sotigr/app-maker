@@ -94,6 +94,7 @@ const (
 	TypeGrant          TypeID = "urn:sys:feature:grant"
 	TypeBlob           TypeID = "urn:sys:feature:blob"
 	TypeMigration      TypeID = "urn:sys:feature:migration"
+	TypeShareLink      TypeID = "urn:sys:feature:shareLink"
 
 	TraitPrincipal   TypeID = "urn:sys:trait:principal"
 	TraitOwnable     TypeID = "urn:sys:trait:ownable"

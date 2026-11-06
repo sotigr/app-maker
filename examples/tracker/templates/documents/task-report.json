@@ -1,0 +1,42 @@
+{
+  "vars": {
+    "type": "object",
+    "properties": {
+      "task":     { "type": "object" },
+      "project":  { "type": "object" },
+      "comments": { "type": "array", "items": { "type": "object" } }
+    }
+  },
+  "page": { "size": "A4", "margin": 18 },
+  "locale": "el",
+  "timezone": "Europe/Athens",
+  "header": [
+    { "text": "**{{ vars.project.title }}**", "align": "right", "size": 9 }
+  ],
+  "footer": [
+    { "text": "{{ vars.task.number }} · {{ page }} / {{ pages }}", "align": "center", "size": 8 }
+  ],
+  "body": [
+    { "heading": "{{ vars.task.number }} {{ vars.task.title }}", "level": 1 },
+    { "fields": [
+        { "label": "Status", "value": "{{ vars.task.status }}" },
+        { "label": "Due", "value": "{{ formatDate(vars.task.dueAt, 'date') }}" },
+        { "label": "Estimate (h)", "value": "{{ formatNumber(vars.task.estimate, 1) }}" },
+        { "label": "Label", "value": "{{ vars.task.label }}" }
+      ], "columns": 2 },
+    { "text": "Printed {{ formatDate(now(), 'datetime') }}", "size": 8 },
+    { "spacer": 4 },
+    { "heading": "Comments", "level": 2, "when": "len(vars.comments) > 0" },
+    { "table": {
+        "rows": "vars.comments",
+        "columns": [
+          { "label": "#", "value": "{{ index + 1 }}", "width": 0.4, "align": "right" },
+          { "label": "Comment", "value": "{{ row.body }}", "width": 5 },
+          { "label": "Date", "value": "{{ formatDate(row.createdAt, 'date') }}", "width": 1.4 }
+        ],
+        "footer": [ [ "", "Comments: {{ len(vars.comments) }}", "" ] ]
+      }, "when": "len(vars.comments) > 0" },
+    { "text": "No comments yet.", "when": "len(vars.comments) == 0" },
+    { "qr": "{{ vars.task.number }} {{ vars.task.title }}", "size": 24, "align": "right" }
+  ]
+}

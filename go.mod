@@ -8,6 +8,7 @@ require (
 	github.com/cockroachdb/apd/v3 v3.2.3
 	github.com/coder/websocket v1.8.15
 	github.com/expr-lang/expr v1.17.8
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/google/uuid v1.6.0
 	github.com/riverqueue/river v0.50.0
 	github.com/riverqueue/river/riverdriver/riversqlite v0.50.0
@@ -27,6 +28,7 @@ require (
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.61.1
+	rsc.io/qr v0.2.0
 )
 
 require (

@@ -41,6 +41,9 @@ type AuthConfig struct {
 	// NoAdmins refuses principals with the admin role and skips the
 	// bootstrap admin (ADR 0017).
 	NoAdmins bool
+	// PublicURL prefixes share-link URLs (ADR 0020); empty gives
+	// relative URLs.
+	PublicURL string
 }
 
 // ErrAdminsDisabled is returned for admin principals when admin accounts
@@ -215,6 +218,10 @@ func (s *AuthService) Resolve(ctx context.Context, id kernel.ID) (accessapi.Prin
 		return accessapi.Principal{}, err
 	}
 	base := f.Type.Base()
+	if base == schemaapi.TypeShareLink {
+		// Flows caused by a link holder's action run as that holder.
+		return linkPrincipal(id, f.Data)
+	}
 	if base != schemaapi.TypeUser && base != schemaapi.TypeServiceAccount {
 		return accessapi.Principal{}, kernel.ErrForbidden
 	}

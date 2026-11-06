@@ -8,6 +8,8 @@
     "start":    "hasRole(feature, 'editor')",
     "complete": "principal.id == feature.assignee",
     "reopen":   "hasRole(feature, 'admin')",
-    "triage":   "hasRole(feature, 'editor')"
+    "triage":   "hasRole(feature, 'editor')",
+    "share":    "hasRole(feature, 'editor')",
+    "report":   "hasRole(feature, 'editor')"
   }
 }

@@ -27,6 +27,7 @@ type typeBuilder struct {
 	wire      map[string]map[string]any
 	aggregate map[string]map[string]any
 	machines  map[string]map[string]any
+	sequences map[string]map[string]any
 }
 
 func newTypeBuilder(c *Compiler, file string, id api.TypeID, name string, doc map[string]any, probs *Problems) *typeBuilder {
@@ -44,6 +45,7 @@ func newTypeBuilder(c *Compiler, file string, id api.TypeID, name string, doc ma
 		wire:      map[string]map[string]any{},
 		aggregate: map[string]map[string]any{},
 		machines:  map[string]map[string]any{},
+		sequences: map[string]map[string]any{},
 	}
 }
 
@@ -111,6 +113,9 @@ func (b *typeBuilder) buildFields() {
 	ct.Root = root
 	sort.Slice(ct.Fields, func(i, j int) bool { return ct.Fields[i].Path < ct.Fields[j].Path })
 
+	if v, ok := b.doc["x-shareable"]; ok {
+		ct.Shareable = b.shareable(v)
+	}
 	if u, ok := b.doc["x-uniqueName"]; ok {
 		s, _ := u.(string)
 		path := "/" + strings.TrimPrefix(s, "/")
@@ -371,6 +376,23 @@ func (b *typeBuilder) topField(ptr, name string, node map[string]any, vt *api.Va
 			b.errf(ptr+"/x-computed", "x-computed must be an expression string")
 		}
 		f.Computed = s
+		f.ReadOnly = true
+		f.Write = api.WriteRule{Kind: api.WriteSystem}
+	}
+	if v, ok := node["x-sequence"]; ok {
+		m, isObj := v.(map[string]any)
+		switch {
+		case !isObj:
+			b.errf(ptr+"/x-sequence", "x-sequence is an object {\"format\": ..., \"series\"?: ..., \"on\"?: ...}")
+		case vt.Kind != kernel.KindString || vt.Enum != nil:
+			b.errf(ptr+"/x-sequence", "x-sequence fields are strings")
+		case f.Computed != "":
+			b.errf(ptr+"/x-sequence", "a field cannot be both x-computed and x-sequence")
+		case required:
+			b.errf(ptr+"/x-sequence", "x-sequence fields are assigned on commit; do not list them in required")
+		default:
+			b.sequences[f.Path] = m
+		}
 		f.ReadOnly = true
 		f.Write = api.WriteRule{Kind: api.WriteSystem}
 	}
@@ -635,4 +657,48 @@ func parseDuration(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid duration %q", s)
 	}
 	return d, nil
+}
+
+// shareable reads x-shareable: {"actions": [...], "maxDays": n} (ADR 0020).
+// Action names are checked against the app's flows when it compiles.
+func (b *typeBuilder) shareable(v any) *api.ShareDef {
+	m, ok := v.(map[string]any)
+	if !ok {
+		b.errf("/x-shareable", "x-shareable is an object {\"actions\": [...], \"maxDays\": n}")
+		return nil
+	}
+	d := &api.ShareDef{MaxDays: 30}
+	for k, val := range m {
+		switch k {
+		case "actions":
+			list, isList := val.([]any)
+			if !isList {
+				b.errf("/x-shareable/actions", "actions is a list of action names")
+			}
+			for i, a := range list {
+				name, _ := a.(string)
+				if name == "" || name == "share" {
+					b.errf(fmt.Sprintf("/x-shareable/actions/%d", i), "an action name other than share")
+					continue
+				}
+				d.Actions = append(d.Actions, name)
+			}
+		case "maxDays":
+			n, isNum := val.(float64)
+			if !isNum {
+				if jn, isJN := val.(json.Number); isJN {
+					n, _ = jn.Float64()
+					isNum = true
+				}
+			}
+			if !isNum || n != float64(int(n)) || n < 1 || n > 365 {
+				b.errf("/x-shareable/maxDays", "maxDays is an integer from 1 to 365")
+			} else {
+				d.MaxDays = int(n)
+			}
+		default:
+			b.errf("/x-shareable/"+escape(k), "unknown member %q", k)
+		}
+	}
+	return d
 }

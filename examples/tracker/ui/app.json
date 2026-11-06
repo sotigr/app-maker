@@ -1,10 +1,11 @@
 {
   "title": "Tracker",
   "home": "projects",
+  "linkHome": "sharedTask",
   "requireLogin": true,
   "languages": ["en", "el"],
   "nav": [
-    { "label": "Projects", "page": "projects" },
+    { "label": "Projects", "page": "projects", "visible": "principal.kind != 'link'" },
     { "label": "My tasks", "page": "myTasks", "visible": "principal.kind == 'user'" }
   ],
   "notFound": "This page does not exist."

@@ -33,7 +33,7 @@ func deps(t *testing.T) domain.Deps {
 			if ct.Name == "task" && name == "complete" {
 				return json.RawMessage(`{"type":"object","properties":{"note":{"type":"string"}}}`), true
 			}
-			return nil, (ct.Name == "project" && name == "summarize") || (ct.Name == "task" && name == "triage")
+			return nil, (ct.Name == "project" && name == "summarize") || (ct.Name == "task" && (name == "triage" || name == "report"))
 		}}
 }
 
@@ -166,6 +166,10 @@ func TestFileRules(t *testing.T) {
 		{"nav target", map[string]string{"ui/app.json": `{"home":"home","nav":[{"label":"x","page":"zz"}]}`}, "ui/app.json", "/nav/0/page", "unknown page", false},
 		{"nav visible sees only the principal", map[string]string{"ui/app.json": `{"home":"home","nav":[{"label":"x","page":"home","visible":"can(principal, 'update')"}]}`},
 			"ui/app.json", "/nav/0/visible", "unknown", false},
+		{"linkHome names a page", map[string]string{"ui/app.json": `{"home":"home","linkHome":"zz"}`}, "ui/app.json", "/linkHome", "must name a page", false},
+		{"linkHome needs only id", map[string]string{"ui/app.json": `{"home":"home","linkHome":"q"}`,
+			"ui/pages/q.json": `{"page":"q","route":"/q/:other","params":{"other":{"type":"string"}},"body":{"component":"divider"}}`},
+			"ui/app.json", "/linkHome", "only need the route parameter id", false},
 		{"logo must be an asset", map[string]string{"ui/app.json": `{"home":"home","logo":"logo.png"}`}, "ui/app.json", "/logo", "ui/assets", false},
 		{"reserved route", map[string]string{"ui/pages/x.json": `{"page":"x","route":"/v1/x","body":{"component":"divider"}}`},
 			"ui/pages/x.json", "/route", "reserved", false},

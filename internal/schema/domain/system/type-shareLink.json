@@ -1,0 +1,16 @@
+{
+  "$id": "urn:sys:feature:shareLink",
+  "title": "Share link",
+  "type": "object",
+  "x-traits": ["urn:sys:trait:timestamped"],
+  "properties": {
+    "object":    { "type": "string", "x-kind": "ref", "x-immutable": true, "x-indexed": true },
+    "actions":   { "type": "array", "items": { "type": "string", "maxLength": 64 }, "maxItems": 20, "x-immutable": true },
+    "expiresAt": { "type": "string", "format": "date-time", "x-immutable": true, "x-indexed": true },
+    "createdBy": { "type": "string", "x-kind": "ref", "x-ref": "urn:sys:trait:principal", "x-immutable": true,
+                   "x-indexed": true, "x-onDelete": "dangle" },
+    "note":      { "type": "string", "maxLength": 200 },
+    "tokenHash": { "type": "string", "x-visibility": "system", "x-write": "system" }
+  },
+  "required": ["object", "expiresAt", "tokenHash"]
+}

@@ -21,6 +21,9 @@ updated.
 Additional small dependencies are allowed when they replace security-sensitive hand-written
 code: `golang.org/x/crypto/argon2` (password hashing, section 8.2).
 
+Addition (2026-11-06, ADR 0022): `github.com/go-pdf/fpdf` (PDF documents with UTF-8 TrueType
+subsetting) and `rsc.io/qr` (QR codes), both pure Go; Noto Sans is embedded under the SIL OFL.
+
 ## Consequences
 
 Versions are recorded in `go.mod`; notable quirks go to `notes/gotchas.md`.

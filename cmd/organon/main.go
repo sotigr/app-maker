@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	_ "time/tzdata" // document templates name time zones (ADR 0022)
 
 	"github.com/spf13/cobra"
 )

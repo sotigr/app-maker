@@ -1,0 +1,3 @@
+Subject: Task report {{.number}}
+
+The report of "{{.title}}" ({{.number}}) is attached.

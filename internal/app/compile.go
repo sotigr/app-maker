@@ -5,10 +5,13 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+
 	contentdomain "organon/internal/content/domain"
 	llmdomain "organon/internal/runtime/domain/llm"
-	"strings"
+	schemaapi "organon/internal/schema/api"
 
 	accessdomain "organon/internal/access/domain"
 	flowapp "organon/internal/flow/application"
@@ -57,13 +60,15 @@ func (e *ValidationError) Error() string {
 
 // Compiled is a validated, compiled manifest.
 type Compiled struct {
-	Manifest *manifestdomain.Manifest
-	Types    *schemadomain.Registry
-	Policies *accessdomain.PolicySet
-	Roles    *accessdomain.Roles
-	Flows    *flowdomain.FlowSet
-	Nodes    *flowdomain.NodeRegistry
-	LLM      llmdomain.Config
+	// Documents are the templates/documents templates (ADR 0022).
+	Documents *flowdomain.DocumentSet
+	Manifest  *manifestdomain.Manifest
+	Types     *schemadomain.Registry
+	Policies  *accessdomain.PolicySet
+	Roles     *accessdomain.Roles
+	Flows     *flowdomain.FlowSet
+	Nodes     *flowdomain.NodeRegistry
+	LLM       llmdomain.Config
 	// Migrations are the compiled data migrations (spec 12.5).
 	Migrations []*contentdomain.Migration
 	// UI is the compiled ui/ directory (ADR 0016); UI.App is nil when the
@@ -150,6 +155,10 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	for _, p := range fp {
 		probs = append(probs, Problem{File: p.File, Pointer: p.Pointer, Message: p.Message})
 	}
+	probs = append(probs, shareProblems(m, reg, flows)...)
+	docs, dp := compileDocuments(m)
+	probs = append(probs, dp...)
+	probs = append(probs, documentRefs(flows, docs)...)
 	msrc := make([]contentdomain.MigrationSource, len(m.Migrations))
 	for i, f := range m.Migrations {
 		msrc[i] = contentdomain.MigrationSource{File: f.Path, Data: f.Data}
@@ -186,5 +195,54 @@ func Compile(m *manifestdomain.Manifest) (*Compiled, error) {
 	if len(probs) > 0 {
 		return nil, &ValidationError{Problems: append(probs, warnings...)}
 	}
-	return &Compiled{UI: ui, Migrations: migrations, Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
+	return &Compiled{Documents: docs, UI: ui, Migrations: migrations, Manifest: m, Types: reg, Policies: policies, Roles: roles, Flows: flows, Nodes: nodes, LLM: llmCfg, Warnings: warnings}, nil
+}
+
+// shareProblems checks that the actions named by x-shareable (ADR 0020)
+// and x-sequence "on" (ADR 0021) exist: a state-machine transition or a
+// flow action.
+func shareProblems(m *manifestdomain.Manifest, reg schemaapi.TypeRegistry, flows *flowdomain.FlowSet) []Problem {
+	files := map[schemaapi.TypeID]string{}
+	for _, f := range m.Types {
+		var head struct {
+			ID string `json:"$id"`
+		}
+		if json.Unmarshal(f.Data, &head) == nil {
+			files[schemaapi.TypeID(head.ID).Base()] = f.Path
+		}
+	}
+	var out []Problem
+	if flows == nil {
+		return nil // flow errors are reported already
+	}
+	exists := func(ct *schemaapi.CompiledType, a string) bool {
+		if _, ok := flows.Action(ct, a); ok {
+			return true
+		}
+		for _, sm := range ct.StateMachines {
+			for _, t := range sm.Transitions {
+				if t.Action == a {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	for _, ct := range reg.All() {
+		if ct.Shareable != nil {
+			for i, a := range ct.Shareable.Actions {
+				if !exists(ct, a) {
+					out = append(out, Problem{File: files[ct.Base()], Pointer: fmt.Sprintf("/x-shareable/actions/%d", i),
+						Message: fmt.Sprintf("%s has no action %q (a state-machine transition or a flow action)", ct.Name, a)})
+				}
+			}
+		}
+		for _, sq := range ct.Sequences {
+			if sq.On != "" && !exists(ct, sq.On) {
+				out = append(out, Problem{File: files[ct.Base()], Pointer: "/properties/" + sq.Path[1:] + "/x-sequence/on",
+					Message: fmt.Sprintf("%s has no action %q (a state-machine transition or a flow action)", ct.Name, sq.On)})
+			}
+		}
+	}
+	return out
 }

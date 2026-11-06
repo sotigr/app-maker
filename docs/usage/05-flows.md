@@ -98,6 +98,64 @@ Inbound webhooks choose how they are signed with `trigger.verify`:
 "trigger": { "webhook": "payments", "secret": "${secret:stripe-webhook}", "verify": { "scheme": "stripe" } }
 ```
 
+## Documents
+
+`templates/documents/<name>.json` describes a PDF; `document.render` fills
+it with `vars` and stores the file for a Blob field (respecting its
+`x-maxBytes` and `x-contentTypes`). Set it on the feature, and attach it to
+emails:
+
+```json
+"pdf":    { "node": "document.render",
+            "in": { "template": "'invoice'", "type": "'invoice'", "field": "'/pdf'",
+                    "vars": { "invoice": "feature", "lines": "nodes.lines.out" } } },
+"save":   { "node": "feature.update", "in": { "id": "feature.id", "set": { "/pdf": "nodes.pdf.out" } } },
+"mail":   { "node": "email.send", "in": { "to": "nodes.customer.out.email", "template": "'invoice'",
+            "lang": "nodes.customer.out.locale ?? 'el'",
+            "attachments": "[ { 'blob': nodes.pdf.out, 'name': feature.number + '.pdf' } ]" } }
+```
+
+```json
+{
+  "vars": { "type": "object", "properties": {
+    "invoice": { "type": "object" }, "lines": { "type": "array", "items": { "type": "object" } } } },
+  "page": { "size": "A4", "margin": 18 },
+  "locale": "el",
+  "timezone": "Europe/Athens",
+  "header": [ { "image": "'templates/documents/logo.png'", "width": 40 } ],
+  "footer": [ { "text": "{{ vars.invoice.number }} · {{ page }}/{{ pages }}", "align": "center", "size": 8 } ],
+  "body": [
+    { "heading": "Τιμολόγιο {{ vars.invoice.number }}", "level": 1 },
+    { "fields": [ { "label": "Ημερομηνία", "value": "{{ formatDate(vars.invoice.issuedAt, 'date') }}" },
+                  { "label": "ΑΦΜ", "value": "{{ vars.invoice.vat }}" } ], "columns": 2 },
+    { "table": { "rows": "vars.lines",
+        "columns": [ { "label": "Περιγραφή", "value": "{{ row.description }}", "width": 4 },
+                     { "label": "Ποσό", "value": "{{ formatNumber(row.amount, 2) }} €", "align": "right" } ],
+        "footer": [ [ "Σύνολο", "{{ formatNumber(vars.invoice.total, 2) }} €" ] ] } },
+    { "qr": "{{ vars.invoice.qrUrl }}", "size": 25, "align": "right", "when": "vars.invoice.qrUrl != nil" }
+  ]
+}
+```
+
+| Block | Members |
+| --- | --- |
+| `heading` | text; `level` 1-3 |
+| `text` | text (`**bold**` spans); `align` left/center/right; `size` (points) |
+| `fields` | `[{label, value}]`; `columns` 1-4 |
+| `table` | `rows` (an expression giving a list), `columns` `[{label, value, width, align}]` (cells see `row` and `index`), `footer` rows of texts (bold); the header repeats on each page |
+| `image` | an expression: a file value or a `templates/...` path (PNG, JPEG, GIF); `width` (mm), `align` |
+| `qr` | text to encode (e.g. the myDATA URL); `size` (mm), `align` |
+| `spacer` | height in mm |
+| `pageBreak` | `true` |
+
+- Every block may have `when`. Texts are literal with `{{ expr }}`;
+  headers and footers also see `page` and `pages`.
+- `formatNumber(n, digits)` and `formatDate(t, 'date' | 'datetime' |
+  'time' | '<Go layout>')` follow `locale` and `timezone`; numbers and
+  dates written without them are formatted the same way.
+- `vars` with `properties` is closed: a misspelt name is a validation
+  error. Text uses the built-in Noto Sans (Latin, Greek, Cyrillic).
+
 ## Variables available to nodes
 
 `feature` (the trigger feature, storage view), `input`, `event`,
@@ -119,10 +177,11 @@ and `nodes.<name>.error`; inside `forEach`: `item`, `index`, `outer`.
 | `feature.update` | DataWrite | id*, set, version | Stages a merge patch; `set` maps JSON Pointers to values. |
 | `feature.delete` | DataWrite | id*, version | Stages a soft delete. |
 | `feature.move` | DataWrite | id*, parent*, version | Stages a move. |
-| `email.send` | Effect | to*, template*, subject, vars | Sends `templates/email/<template>.txt` after commit (first line `Subject: ...` sets the subject). |
+| `email.send` | Effect | to*, template*, subject, vars, attachments, lang | Sends `templates/email/<template>.txt` after commit (first line `Subject: ...` sets the subject); `lang` picks `<template>.<lang>.txt` when it exists; `attachments` are file values or `{blob, name}` (10 MiB in all). |
 | `webhook.call` | Effect | url*, payload, secret | POSTs signed JSON after commit. |
 | `emit` | Effect | event*, feature*, data | Raises a custom dotted event after commit; flows triggered by it run next. |
 | `http.request` | External | url*, method, headers, body | Calls an HTTP API through the egress policy (private networks blocked). Output `{status, body, headers}`. |
+| `document.render` | External | template*, vars, type*, field* | Renders `templates/documents/<template>.json` to PDF and stores it for that Blob field; output is the file value to set with `feature.update` ([Documents](#documents)). |
 | `llm.complete` | External | prompt, model, system, messages, maxTokens, temperature, streamTo | Calls a model ([guide 6](06-code-and-llm.md)). |
 | `python` | Code | from `inputSchema` | Runs `nodes/<file>.py` ([guide 6](06-code-and-llm.md)). |
 | `if` | Control | cond* | Output is the condition; branch with `when: "nodes.<if>.out"`. |
