@@ -354,5 +354,13 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   manifest-test fixtures `text`, `headers`, `request{contentType, bodyContains, header}`. Tests: e2e TestHTTPRequestBodies,
   TestPythonHTTPRawBodyAndAuthList; app TestGap50HTTPFixtures; flow domain validation cases. #51 (unsigned webhooks) open.
   Known flake: e2e TestRequestLimits can count 601 under full -race load (bucket refill); passes alone.
+- Bugfix (2026-11-07): live deltas carried Blob values without the signed url, so a file set while a page was open
+  (e.g. a rendered PDF) did not preview until reload. Gateway `deliver` now calls `StreamReader.LinkBlobs` (content
+  `linkBlob`, shared with reads). Test: e2e TestStreamingBlobURLs (upload and document.render, feature and children
+  subscriptions).
+- UI (2026-11-07): `preview` prop `display: inline|modal` (default inline); file links of viewable types (image,
+  PDF, video, audio) open a modal viewer (`FileModal`/`FileView` in sdk/ts/ui components/data.tsx; Escape/backdrop
+  close; modified clicks keep new-tab); text "Open in new tab"; tracker shared-task uses modal. Checked in headless
+  Brave over CDP (inline PDF, modal opens on click without navigating, Escape closes).
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

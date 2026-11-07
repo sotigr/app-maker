@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"strings"
@@ -280,4 +281,44 @@ func TestStreamingQueryOnRef(t *testing.T) {
 			t.Fatalf("live snapshot: %v", m)
 		}
 	})
+}
+
+// Spec 9.6, 14.4: a file set while a page is open streams with its signed
+// URL (and thumbnails), as reads do, so previews show without a reload.
+func TestStreamingBlobURLs(t *testing.T) {
+	w := setup(t, "memory")
+	v := w.viewer.ws(t)
+	v.send(map[string]any{"t": "subscribe", "sid": "one", "target": "feature", "id": w.task})
+	v.next("snapshot", is("snapshot", "one"))
+	e := w.editor.ws(t)
+	e.send(map[string]any{"t": "subscribe", "sid": "kids", "target": "children", "parent": w.project, "type": "task"})
+	e.next("children snapshot", is("snapshot", "kids"))
+
+	img := pngBytes(t, 200, 100)
+	blob := w.uploadBlob(t, w.editor, w.task, "image/png", img)
+	mustOK(t, w.editor.do("PATCH", "/v1/features/task/"+w.task, map[string]any{"attachment": blob}, "If-Match", w.taskVersion(t, w.task)), 200)
+
+	for _, d := range []map[string]any{
+		v.next("feature delta", is("delta", "one")),
+		e.next("children delta", is("delta", "kids")),
+	} {
+		att, _ := d["set"].(map[string]any)["/attachment"].(map[string]any)
+		url, _ := att["url"].(string)
+		if att["id"] != blob["id"] || url == "" || att["thumbnails"] == nil {
+			t.Fatalf("delta without a signed url: %v", d)
+		}
+		if status, _, body := w.s.raw("GET", url, "", nil); status != 200 || !bytes.Equal(body, img) {
+			t.Fatalf("streamed url: %d (%d bytes)", status, len(body))
+		}
+	}
+	// The same for a file a flow renders (document.render + feature.update).
+	mustOK(t, w.editor.do("POST", "/v1/actions/task/"+w.task+"/report", map[string]any{}), 200)
+	d := v.next("report delta", func(m map[string]any) bool {
+		att, _ := m["set"].(map[string]any)["/attachment"].(map[string]any)
+		return m["t"] == "delta" && m["sid"] == "one" && att != nil && att["contentType"] == "application/pdf"
+	})
+	att := d["set"].(map[string]any)["/attachment"].(map[string]any)
+	if status, _, body := w.s.raw("GET", att["url"].(string), "", nil); status != 200 || !bytes.HasPrefix(body, []byte("%PDF-")) {
+		t.Fatalf("streamed PDF url: %d %v", status, att)
+	}
 }

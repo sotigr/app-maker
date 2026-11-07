@@ -156,6 +156,19 @@ func (x *StreamPorts) Get(ctx context.Context, p accessapi.Principal, id kernel.
 	return x.s.GetFeature(ctx, p, "", id)
 }
 
+// LinkBlobs implements contentapi.StreamReader: live deltas carry signed
+// blob URLs like reads, so a file set while a page is open shows at once.
+func (x *StreamPorts) LinkBlobs(ct *schemaapi.CompiledType, set map[string]any) {
+	for _, f := range ct.TopFields() {
+		if f.Blob == nil {
+			continue
+		}
+		if v, ok := set[f.Path]; ok {
+			set[f.Path] = x.s.linkBlob(f, v)
+		}
+	}
+}
+
 // Children implements contentapi.StreamReader (every page up to limit).
 func (x *StreamPorts) Children(ctx context.Context, p accessapi.Principal, parent kernel.ID, typeName string, limit int) ([]contentapi.FeatureView, error) {
 	var out []contentapi.FeatureView

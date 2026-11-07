@@ -89,6 +89,10 @@ h1.o-heading { font-size: 1.6rem; } h2.o-heading { font-size: 1.3rem; } h3.o-hea
 .o-dialog { background: var(--o-surface); border-radius: var(--o-radius); padding: 20px; width: min(520px, 100%); max-height: 90vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgb(0 0 0 / 0.25); }
 .o-dialog-head { display: flex; justify-content: space-between; align-items: center; }
 .o-dialog-head h3 { margin: 0; }
+.o-file-modal { width: min(1100px, 100%); max-height: 95vh; }
+.o-file-modal .o-preview { margin: 0 auto; max-height: 75vh; }
+.o-file-modal img.o-preview { object-fit: contain; }
+.o-file-modal-actions { display: flex; gap: 8px; align-items: center; }
 
 .o-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--o-line); background: var(--o-surface); color: var(--o-text); font: inherit; cursor: pointer; }
 .o-button:hover:not(:disabled) { border-color: var(--o-muted); }

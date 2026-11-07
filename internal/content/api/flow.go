@@ -6,6 +6,7 @@ import (
 	accessapi "organon/internal/access/api"
 	flowapi "organon/internal/flow/api"
 	"organon/internal/kernel"
+	schemaapi "organon/internal/schema/api"
 )
 
 // WriteOp is one staged write of a flow (spec 10.6), committed through the
@@ -73,4 +74,7 @@ type StreamReader interface {
 	Get(ctx context.Context, p accessapi.Principal, id kernel.ID) (FeatureView, error)
 	Children(ctx context.Context, p accessapi.Principal, parent kernel.ID, typeName string, limit int) ([]FeatureView, error)
 	Query(ctx context.Context, p accessapi.Principal, doc []byte) ([]FeatureView, error)
+	// LinkBlobs adds the signed url (and thumbnails) to the Blob values of
+	// a live delta's set, keyed by top-level path ("/pdf"), as reads do.
+	LinkBlobs(ct *schemaapi.CompiledType, set map[string]any)
 }

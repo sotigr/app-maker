@@ -57,27 +57,35 @@ func (s *Service) link(ct *schemaapi.CompiledType, v contentapi.FeatureView) con
 		if f.Blob == nil {
 			continue
 		}
-		m, ok := v.Data[f.Path[1:]].(map[string]any)
-		if !ok {
-			continue
+		if x, ok := v.Data[f.Path[1:]]; ok {
+			v.Data[f.Path[1:]] = s.linkBlob(f, x)
 		}
-		id, _ := m["id"].(string)
-		if id == "" {
-			continue
-		}
-		linked := make(map[string]any, len(m)+2)
-		for k, x := range m {
-			linked[k] = x
-		}
-		ct, _ := m["contentType"].(string)
-		url, thumbs := s.d.Blobs.Link(id, ct, f.Blob.Thumbnails)
-		linked["url"] = url
-		if len(thumbs) > 0 {
-			linked["thumbnails"] = thumbs
-		}
-		v.Data[f.Path[1:]] = linked
 	}
 	return v
+}
+
+// linkBlob returns a Blob field's value with a fresh signed url and
+// thumbnail urls; other values are returned unchanged.
+func (s *Service) linkBlob(f *schemaapi.FieldDef, v any) any {
+	m, ok := v.(map[string]any)
+	if !ok || s.d.Blobs == nil {
+		return v
+	}
+	id, _ := m["id"].(string)
+	if id == "" {
+		return v
+	}
+	linked := make(map[string]any, len(m)+2)
+	for k, x := range m {
+		linked[k] = x
+	}
+	ct, _ := m["contentType"].(string)
+	url, thumbs := s.d.Blobs.Link(id, ct, f.Blob.Thumbnails)
+	linked["url"] = url
+	if len(thumbs) > 0 {
+		linked["thumbnails"] = thumbs
+	}
+	return linked
 }
 
 // AuthorizeBlobField checks that p may set field of an existing feature

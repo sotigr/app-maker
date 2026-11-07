@@ -13,7 +13,10 @@
       { "component": "heading", "text": "{{ data.task.title }}", "level": 1 },
       { "component": "transitions", "source": "task" }
     ] },
-    { "component": "detail", "source": "task", "fields": ["/number", "/status", "/dueAt", "/label", "/attachment"] },
+    { "component": "detail", "source": "task", "fields": ["/number", "/status", "/dueAt", "/label"] },
+    { "component": "card", "title": "Attachment", "visible": "data.task.attachment != nil", "children": [
+      { "component": "preview", "source": "task", "path": "/attachment", "display": "modal" }
+    ] },
     { "component": "card", "title": "Comments", "children": [
       { "component": "list", "source": "comments", "empty": "No comments yet.",
         "item": { "component": "stack", "gap": "none", "children": [

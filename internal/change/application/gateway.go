@@ -599,6 +599,7 @@ func (c *Conn) deliver(ctx context.Context, s *Sub, ev changeapi.Event) {
 		return // nothing this subscriber may see changed (spec 9.6)
 	}
 	sort.Strings(unset)
+	c.g.reader.LinkBlobs(ct, set)
 	m := Message{"t": "delta", "sid": s.t.SID, "cursor": ev.Seq, "id": id.String(), "version": ev.Version, "set": set, "unset": orEmpty(unset)}
 	if entering {
 		m["enter"] = true

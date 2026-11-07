@@ -878,7 +878,7 @@ props are errors.**
 | --- | --- |
 | Layout | `stack`, `row`, `columns`, `card`, `tabs` (with `state` for an integer state var), `dialog` (`name`, opened by an `open` step), `divider` |
 | Text | `heading`, `text` (`tone`), `markdown` (no raw HTML), `badge`, `image` (`assets/<path>` or a URL), `link` (`page`+`params`, or `url`; `download` saves a file) |
-| Data | `table` (columns by `field` or `value`, `display`, per-column `page`; `rowPage`/`rowParams`), `list` (`item` template), `field`, `detail`, `stat` (`format: number\|percent\|date`), `empty`, `preview` (images, PDF, video, audio from a blob field), `transitions` (state-machine buttons the user may run now) |
+| Data | `table` (columns by `field` or `value`, `display`, per-column `page`; `rowPage`/`rowParams`), `list` (`item` template), `field`, `detail`, `stat` (`format: number\|percent\|date`), `empty`, `preview` (images, PDF, video, audio from a blob field; `display: inline` (default) or `modal` for a thumbnail/link that opens a viewer), `transitions` (state-machine buttons the user may run now) |
 | Forms | `form` (`mode: create\|update\|action`; generated from the user's create or update view, or the action flow's `input`; `fields: [{path, label, widget, help, labelField}]`; `on.submit` steps see `result` and `form.values`), `button` (`variant`, `on.click`), `menu` (`items: [{label, visible, steps}]`) |
 | Charts | `board` (kanban by a state-machine field; dragging runs the transition), `chart` (`kind: bar\|line\|pie`; `source` + `groupBy` [+ `value`, `op: count\|sum\|avg`] or explicit `series`) |
 
@@ -921,6 +921,9 @@ Inside `table`, `list`, and `board` rows, `item` and `index` are in scope.
 - Variables: `params`, `data.<source>`, `state.<var>`, `principal`
   (`id`, `kind`, `roles`); `item` and `index` in rows; `result` and
   `error` in steps.
+- File links (`field`, `detail`, table cells) open images, PDFs, video, and
+  audio in a viewer over the page, with "Open in new tab"; other files
+  download.
 - Decimals are strings in the browser, so arithmetic on them is rejected;
   `round(d, 2)`, `floor`, `ceil`, and `abs` work on them exactly.
 
@@ -1198,6 +1201,6 @@ uses nearly every feature:
 | `flows/triage-task.json` + `nodes/triage.py` | Python node calling an LLM |
 | `tests/task-permissions.test.json`, `tests/ui-pages.test.json` | permission matrix, effects, page visibility |
 | `ui/pages/project.json` | sources, board, chart, tabs, dialog with a create form, action button |
-| `ui/pages/task.json` | update form, transitions, menu, file preview, comments list, Share button and dialog |
-| `types/task.json` `x-shareable`, `ui/pages/shared-task.json`, `ui/app.json` `linkHome` | share links for people without accounts |
+| `ui/pages/task.json` | update form, transitions, menu, inline file preview, comments list, Share button and dialog |
+| `types/task.json` `x-shareable`, `ui/pages/shared-task.json`, `ui/app.json` `linkHome` | share links for people without accounts; `preview` with `display: modal` |
 | `ui/i18n/en.json`, `ui/i18n/el.json`, `ui/styles.css` | translations, theme |

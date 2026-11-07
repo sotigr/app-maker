@@ -131,7 +131,8 @@ var components = []Component{
 		{Name: "display", Kind: KindEnum, Enum: dispEnum}}},
 	{Name: "preview", Family: "data", Source: "feature", Doc: "A file field shown in the page: images, PDFs, video, and audio; other files as a download link. Inside rows the source defaults to item.", Props: []Prop{
 		pSource, {Name: "path", Kind: KindPath, Required: true, Doc: "A file field (x-kind blob)"},
-		{Name: "height", Kind: KindInt, Doc: "Height in pixels of PDF and video previews (default 480)"}}},
+		{Name: "height", Kind: KindInt, Doc: "Height in pixels of PDF and video previews (default 480)"},
+		{Name: "display", Kind: KindEnum, Enum: []string{"inline", "modal"}, Doc: "inline (default) draws the file in the page; modal shows a thumbnail or file link that opens it in a viewer over the page"}}},
 	{Name: "detail", Family: "data", Source: "feature", Doc: "Label/value pairs of a feature.", Props: []Prop{
 		pSource, {Name: "fields", Kind: KindPaths, Doc: "Default: every readable field"}}},
 	{Name: "stat", Family: "data", Doc: "A big number with a label.", Props: []Prop{

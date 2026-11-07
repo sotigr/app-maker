@@ -1,6 +1,6 @@
 // Data display components: table, list, field, preview, detail, stat,
 // empty, transitions. Values render by their field kind from the bundle metadata.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Node, register, WithScope, type ComponentProps } from "../render";
 import { enumLabel, formatDate, formatNumber, makeEval, typeMeta, useEval, useFuncs, usePage, useRuntime, withClass } from "../runtime";
 import { describe } from "../steps";
@@ -69,17 +69,81 @@ function blobLabel(b: BlobValueDoc, file: string): string {
   return `${b.contentType ?? file}${b.size ? ` · ${Math.ceil(b.size / 1024)} KB` : ""}`;
 }
 
-/** BlobValue is a file link, with the smallest thumbnail when there is one. */
+/** viewable reports whether the browser can show the file in the page. */
+function viewable(contentType = ""): boolean {
+  return (contentType.startsWith("image/") && contentType !== "image/svg+xml") || contentType === "application/pdf" ||
+    contentType.startsWith("video/") || contentType.startsWith("audio/");
+}
+
+/**
+ * BlobValue is a file link, with the smallest thumbnail when there is one.
+ * Files the browser can show (images, PDF, video, audio) open in a modal
+ * viewer; a modified click (new tab) and other files follow the link.
+ */
 function BlobValue({ value: b }: { value: BlobValueDoc }) {
   const rt = useRuntime();
   const [broken, setBroken] = useState(false);
+  const [open, setOpen] = useState(false);
   if (!b.url) return <span className="o-muted">{rt.t("file")}</span>;
   // Reads list thumbnails only for types that get them, in size order.
   const thumb = !broken && b.thumbnails ? Object.values(b.thumbnails)[0] : undefined;
+  const onClick = (e: React.MouseEvent) => {
+    if (!viewable(b.contentType) || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    e.stopPropagation(); // rows with rowPage navigate on click
+    setOpen(true);
+  };
   return (
-    <a className="o-blob" href={b.url} target="_blank" rel="noopener noreferrer">
-      {thumb ? <img src={thumb} alt="" onError={() => setBroken(true)} /> : blobLabel(b, rt.t("file"))}
-    </a>
+    <>
+      <a className="o-blob" href={b.url} target="_blank" rel="noopener noreferrer" onClick={onClick}>
+        {thumb ? <img src={thumb} alt="" onError={() => setBroken(true)} /> : blobLabel(b, rt.t("file"))}
+      </a>
+      {open && <FileModal value={b} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/**
+ * FileView draws a file the browser can show; onFail is called when an
+ * image or media URL fails (e.g. an expired signature).
+ */
+function FileView({ url, contentType, className, height, onFail }: {
+  url: string; contentType: string; className: string; height: number | string; onFail?: () => void;
+}) {
+  const rt = useRuntime();
+  const ct = contentType;
+  if (ct.startsWith("image/") && ct !== "image/svg+xml") return <img className={className} src={url} alt="" onError={onFail} />;
+  if (ct === "application/pdf") return <iframe className={className} src={url} title={rt.t("PDF preview")} style={{ height }} />;
+  if (ct.startsWith("video/")) return <video className={className} src={url} controls preload="metadata" style={{ maxHeight: height }} onError={onFail} />;
+  if (ct.startsWith("audio/")) return <audio className={className} src={url} controls preload="metadata" onError={onFail} />;
+  return null;
+}
+
+/** FileModal shows a file over the page; Escape or the backdrop closes it. */
+function FileModal({ value: b, onClose }: { value: BlobValueDoc; onClose: () => void }) {
+  const rt = useRuntime();
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [onClose]);
+  if (!b.url) return null;
+  return (
+    // Clicks stay in the viewer: React passes them to the row or card
+    // around the link, which may navigate or start a drag.
+    <div className="o-dialog-backdrop" onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) onClose(); }}
+      onPointerDown={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" className="o-dialog o-file-modal">
+        <div className="o-dialog-head">
+          <span className="o-muted">{blobLabel(b, rt.t("file"))}</span>
+          <span className="o-file-modal-actions">
+            <a className="o-button o-button-link" href={b.url} target="_blank" rel="noopener noreferrer">{rt.t("Open in new tab")}</a>
+            <button className="o-button o-button-link" aria-label={rt.t("Close")} onClick={onClose}>×</button>
+          </span>
+        </div>
+        <FileView url={b.url} contentType={b.contentType ?? ""} className="o-preview" height="75vh" />
+      </div>
+    </div>
   );
 }
 
@@ -220,7 +284,6 @@ register("field", ({ node }: ComponentProps) => {
 // and audio from the signed URL (served inline, sandboxed); other types
 // fall back to the file link.
 register("preview", ({ node }: ComponentProps) => {
-  const rt = useRuntime();
   const f = useOne(node);
   const b = get(f, node.path as string) as BlobValueDoc | null | undefined;
   // Live updates re-sign URLs; keep the first one per file so playback
@@ -233,12 +296,9 @@ register("preview", ({ node }: ComponentProps) => {
   const className = withClass("o-preview", node);
   const ct = b.contentType ?? "";
   const height = Number(node.height) || 480;
-  if (shown.broken) return <div className={className}><BlobValue value={b} /></div>;
-  if (ct.startsWith("image/") && ct !== "image/svg+xml") return <img className={className} src={url} alt="" onError={failed} />;
-  if (ct === "application/pdf") return <iframe className={className} src={url} title={rt.t("PDF preview")} style={{ height }} />;
-  if (ct.startsWith("video/")) return <video className={className} src={url} controls preload="metadata" style={{ maxHeight: height }} onError={failed} />;
-  if (ct.startsWith("audio/")) return <audio className={className} src={url} controls preload="metadata" onError={failed} />;
-  return <div className={className}><BlobValue value={b} /></div>;
+  // display "modal": a thumbnail or file link that opens the viewer.
+  if (shown.broken || node.display === "modal" || !viewable(ct)) return <div className={className}><BlobValue value={b} /></div>;
+  return <FileView url={url} contentType={ct} className={className} height={height} onFail={failed} />;
 });
 
 register("detail", ({ node }: ComponentProps) => {
