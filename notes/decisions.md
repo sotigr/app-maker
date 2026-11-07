@@ -111,3 +111,8 @@
 | Staff vs links (#29) | New `x-visibility: member` (signed-in users and service accounts; not anonymous or links) |
 | Unsigned webhooks (#51) | `verify.scheme: token` (URL secret), `allowIPs`, `get` handshake reply |
 | Policy combination (#1) | A type's own policy decides ops it defines; traits only fill undefined ops (ADR 0023) |
+| Decimals of unknown type (#52) | Operators on operands of unknown static type dispatch at run time (decimal when either value is a Decimal); each operand is type-checked alone first because expr masks type errors under patched operators |
+| Rounding (#15) | `round(x, places)` half away from zero; decimals exact and stay decimal; decimal text in → text out (UI); floats keep binary rounding |
+| Text match (#4) | `icontains`/`iprefix` fold case and accents and final sigma (kernel.FoldText, SQLite `organon_fold`); no expression index; golang.org/x/text/unicode/norm allowed as a pure library |
+| `x-write` (#35, #45) | A list is any-of; `role:<name>` checks the role on the feature (on create, the parent); admins and system need no role (ADR 0024) |
+| Manifest test reads | `expect.feature` on a `read` step checks the caller's view (hidden fields absent) |

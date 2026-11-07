@@ -329,7 +329,24 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   before/after/type/parent, deleted/purged runs use them (#32/#34); `DomainEvent.FromParent` + both parents
   recomputed (#5); `Mutation.KeepVersion/Patch/Preserve` + `WriteContext.KeepVersion` for aggregates (#23), Stage
   fills type when a version is given; `typedValue` input conversion (#14); `CompiledNode.DataDeps` skip rule (#17);
-  `client.search()` + search source (#2). Tests: internal/app/gaps_test.go (TestGap01/13/17/22/31/32/33), repotest
-  MaintainedFields, e2e test/e2e/gaps_test.go (TestGap05And23, TestGap14), expression TestGap33DecimalEquality.
+  `client.search()` + search source (#2); reported after R1: decimals of unknown static type (node outputs) dispatch
+  at run time (#52, expression `dynamicPatcher`, operands checked alone because expr masks type errors under patched
+  operators). Tests: internal/app/gaps_test.go (TestGap01/13/17/22/31/32/33), repotest
+  MaintainedFields, e2e test/e2e/gaps_test.go (TestGap05And23, TestGap14), expression TestGap33DecimalEquality,
+  TestGap52DecimalsOfUnknownType, app TestGap52DecimalsFromReads.
+- R2 in progress: #38/#53 `parent` in read/update/delete/action rules (Authorizer.SetParentLoader ← content RefByID,
+  loaded when a deciding rule's source mentions parent, cached per request; TestGap38). #15 `round(x, places)`,
+  decimal `floor/ceil/abs` (kernel.Decimal Round/Floor/Ceil/Abs; expression `numericFunctions` with Validate hooks,
+  decimal text in → text out for UI; expr.ts `decRound`; vectors). #42 document and UI `formatNumber` exact for
+  decimals/decimal text. #4 `icontains`/`iprefix` (kernel.FoldText: lower + strip marks + final sigma; SQLite
+  `organon_fold` registered in platform/sqlitedb; x/text/unicode/norm added to depguard pure libs; repotest cases).
+  #29 `x-visibility: member` (ADR 0024): VisMember/AudMember between public and owner; Authorizer.Audience,
+  query/gateway queryAudience, createAudience give member to signed-in non-owners; search member tier
+  (SearchQuery.Members); UI query fields checked against the member view; golden views regenerated; manifest-test
+  read steps check the caller's view (TestGap29).
+  #35/#45 `x-write` lists and `role:<name>` (WriteRule Kind WriteRole/WriteAnyOf, ParseWriteRules, Unlocks,
+  RolesFor; pipeline checkWritable checks roles via the hasRole binding on the feature or create parent;
+  TestGap35And45). #18 `date()` accepts times (expression dateFunction wraps expr's date; TestGap18), date helpers
+  documented. R2 DONE.
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

@@ -62,7 +62,7 @@ func (p *Planner) Parse(raw []byte) (*queryapi.Document, error) {
 var knownOps = map[queryapi.Op]bool{
 	queryapi.OpEq: true, queryapi.OpNe: true, queryapi.OpLt: true, queryapi.OpLte: true, queryapi.OpGt: true,
 	queryapi.OpGte: true, queryapi.OpIn: true, queryapi.OpNin: true, queryapi.OpPrefix: true,
-	queryapi.OpContains: true, queryapi.OpExists: true,
+	queryapi.OpIContains: true, queryapi.OpIPrefix: true, queryapi.OpContains: true, queryapi.OpExists: true,
 }
 
 func checkNode(n *queryapi.Node, depth int, leaves *int) error {
@@ -295,9 +295,9 @@ func (p *Planner) predicate(n *queryapi.Node, field fieldFn, caps queryapi.RepoC
 		if !f.Kind.IsOrdered() {
 			return nil, false, invalid("%s does not apply to %s field %s", n.Op, f.Kind, n.Field)
 		}
-	case queryapi.OpPrefix:
+	case queryapi.OpPrefix, queryapi.OpIContains, queryapi.OpIPrefix:
 		if f.Kind != kernel.KindString {
-			return nil, false, invalid("prefix applies to string fields")
+			return nil, false, invalid("%s applies to string fields", n.Op)
 		}
 	case queryapi.OpContains:
 		if f.Kind != kernel.KindList || !f.Type.Elem.Kind.IsScalar() {

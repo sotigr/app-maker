@@ -1,0 +1,66 @@
+{
+  "$id": "urn:app:feature:task/v2/views/member.create",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assignee": {
+      "format": "uuid",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "attachment": {
+      "additionalProperties": false,
+      "description": "A file attached to the task (uploaded through POST /v1/uploads)",
+      "properties": {
+        "contentType": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "size",
+        "contentType"
+      ],
+      "type": "object"
+    },
+    "dueAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "estimate": {
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "type": "string"
+    },
+    "label": {
+      "description": "Set by the triage action (Python code node)",
+      "enum": [
+        "bug",
+        "feature",
+        "chore"
+      ]
+    },
+    "progress": {
+      "maximum": 100,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "title": {
+      "maxLength": 200,
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "Task",
+  "type": "object"
+}

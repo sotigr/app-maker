@@ -4,8 +4,10 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 
 	accessapi "organon/internal/access/api"
@@ -27,7 +29,16 @@ type Authorizer struct {
 
 	mu         sync.Mutex
 	principals map[string]rt.Program // compiled principal-only scope conditions
+
+	parents RefLoader // loads a feature's parent for rules that read parent
 }
+
+// RefLoader reads a feature for the Authorizer without authorization.
+type RefLoader func(ctx context.Context, id kernel.ID) (*accessapi.FeatureRef, error)
+
+// SetParentLoader lets update, delete, read, and action rules read
+// `parent` (gap #38): the parent is loaded when a deciding rule uses it.
+func (a *Authorizer) SetParentLoader(l RefLoader) { a.parents = l }
 
 var _ accessapi.Authorizer = (*Authorizer)(nil)
 
@@ -39,14 +50,15 @@ func NewAuthorizer(policies *domain.PolicySet, roles *domain.Roles, index domain
 type cacheKey struct{}
 
 type requestCache struct {
-	mu     sync.Mutex
-	grants map[string][]domain.Grant
+	mu      sync.Mutex
+	grants  map[string][]domain.Grant
+	parents map[kernel.ID]*accessapi.FeatureRef
 }
 
 // WithRequestCache returns a context that memoizes relationship lookups for
 // one request (spec 8.7: decisions are cached per request).
 func WithRequestCache(ctx context.Context) context.Context {
-	return context.WithValue(ctx, cacheKey{}, &requestCache{grants: map[string][]domain.Grant{}})
+	return context.WithValue(ctx, cacheKey{}, &requestCache{grants: map[string][]domain.Grant{}, parents: map[kernel.ID]*accessapi.FeatureRef{}})
 }
 
 // subjects returns the principal and its groups.
@@ -187,13 +199,21 @@ func (a *Authorizer) Check(ctx context.Context, p accessapi.Principal, req acces
 		}
 		return a.Check(ctx, p, accessapi.CheckRequest{Op: accessapi.OpCreate, Type: ct, Parent: req.Parent})
 	}
+	deciding := a.policies.Deciding(ct, req.Op)
+	parent := req.Parent
+	if parent == nil && req.Feature != nil && req.Feature.ParentID != nil && usesParent(deciding, req.Op) {
+		var err error
+		if parent, err = a.parent(ctx, *req.Feature.ParentID); err != nil {
+			return accessapi.Decision{}, err
+		}
+	}
 	vars := a.Bindings(ctx, p)
 	vars["principal"] = p.ExprValue()
 	vars["feature"] = dataOf(req.Feature)
-	vars["parent"] = dataOf(req.Parent)
+	vars["parent"] = dataOf(parent)
 	vars["patch"] = orEmpty(req.Patch)
 	vars["input"] = orEmpty(req.Input)
-	for _, pol := range a.policies.Deciding(ct, req.Op) {
+	for _, pol := range deciding {
 		prog, ok := pol.Progs[req.Op]
 		if !ok {
 			continue
@@ -233,6 +253,45 @@ func linkCheck(p accessapi.Principal, req accessapi.CheckRequest) accessapi.Deci
 		return accessapi.Decision{Allowed: true, Reason: "share link"}
 	}
 	return accessapi.Decision{Reason: "not covered by the share link"}
+}
+
+// usesParent reports whether a rule for op may read `parent`.
+func usesParent(pols []*domain.Policy, op accessapi.Operation) bool {
+	for _, pol := range pols {
+		if prog, ok := pol.Progs[op]; ok && strings.Contains(prog.Source(), "parent") {
+			return true
+		}
+	}
+	return false
+}
+
+// parent loads a feature's parent once per request.
+func (a *Authorizer) parent(ctx context.Context, id kernel.ID) (*accessapi.FeatureRef, error) {
+	if a.parents == nil {
+		return nil, nil
+	}
+	c, _ := ctx.Value(cacheKey{}).(*requestCache)
+	if c != nil {
+		c.mu.Lock()
+		ref, ok := c.parents[id]
+		c.mu.Unlock()
+		if ok {
+			return ref, nil
+		}
+	}
+	ref, err := a.parents(ctx, id)
+	if errors.Is(err, kernel.ErrNotFound) {
+		ref, err = nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if c != nil {
+		c.mu.Lock()
+		c.parents[id] = ref
+		c.mu.Unlock()
+	}
+	return ref, nil
 }
 
 func (a *Authorizer) defines(ct *schemaapi.CompiledType, op accessapi.Operation) bool {
@@ -281,7 +340,16 @@ func (a *Authorizer) Audience(ctx context.Context, p accessapi.Principal, f *acc
 			return schemaapi.AudOwner, nil
 		}
 	}
-	return schemaapi.AudPublic, nil
+	return memberOrPublic(p), nil
+}
+
+// memberOrPublic is the audience of callers without owner or admin access:
+// member when signed in, public for anonymous callers and share links.
+func memberOrPublic(p accessapi.Principal) schemaapi.Audience {
+	if p.IsAnonymous() || p.IsLink() {
+		return schemaapi.AudPublic
+	}
+	return schemaapi.AudMember
 }
 
 // Scope implements accessapi.Authorizer: the read policies of the type,

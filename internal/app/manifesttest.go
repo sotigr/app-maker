@@ -15,6 +15,7 @@ import (
 
 	accessapi "organon/internal/access/api"
 	accessapp "organon/internal/access/application"
+	contentapi "organon/internal/content/api"
 	contentapp "organon/internal/content/application"
 	flowapp "organon/internal/flow/application"
 	"organon/internal/kernel"
@@ -297,6 +298,7 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 		}
 		_ = effects.take()
 		var featureID string
+		var seen map[string]any // what a read step's caller sees
 		var output any
 		count := -1
 		var err error
@@ -333,7 +335,10 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 			featureID = resolve(st.Read)
 			var id kernel.ID
 			if id, err = kernel.ParseID(featureID); err == nil {
-				_, err = rt.Content.GetFeature(ctx, p, "", id)
+				var v contentapi.FeatureView
+				if v, err = rt.Content.GetFeature(ctx, p, "", id); err == nil {
+					seen = v.Data
+				}
 			}
 		case st.Page != "":
 			checkPage(rt, p, st, label, fail)
@@ -373,7 +378,14 @@ func runManifestTest(ctx context.Context, c *Compiled, t ManifestTest) (res Test
 		}
 		if ex.Feature != nil {
 			id, perr := kernel.ParseID(featureID)
-			if perr != nil {
+			if seen != nil {
+				// A read step checks the caller's view: hidden fields are absent.
+				for k, want := range ex.Feature {
+					if !sameJSON(seen[k], want) {
+						fail("%s: feature.%s = %v, want %v", label, k, seen[k], want)
+					}
+				}
+			} else if perr != nil {
 				fail("%s: no feature to check", label)
 			} else if v, gerr := rt.Content.GetFeature(ctx, sys, "", id); gerr != nil {
 				fail("%s: reading the feature: %v", label, gerr)

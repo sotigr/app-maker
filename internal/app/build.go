@@ -192,6 +192,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	// Access (spec 8).
 	index := relindex.New(sys)
 	rt.Authorizer = accessapp.NewAuthorizer(c.Policies, c.Roles, index, exprCompiler(), opt.Clock)
+	rt.Authorizer.SetParentLoader(rt.Content.RefByID)
 	authz.Authorizer = rt.Authorizer
 	hasher := accesscrypto.DefaultArgon2id
 	if opt.FastHashing {

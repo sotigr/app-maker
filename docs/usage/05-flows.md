@@ -165,7 +165,10 @@ emails:
   headers and footers also see `page` and `pages`.
 - `formatNumber(n, digits)` and `formatDate(t, 'date' | 'datetime' |
   'time' | '<Go layout>')` follow `locale` and `timezone`; numbers and
-  dates written without them are formatted the same way.
+  dates written without them are formatted the same way. `formatNumber`
+  rounds decimals and decimal text (`"145.005"`) exactly; other text is
+  shown unchanged. Text values are not formatted by themselves: wrap
+  decimal text in `formatNumber`.
 - `vars` with `properties` is closed: a misspelt name is a validation
   error. Text uses the built-in Noto Sans (Latin, Greek, Cyrillic).
 
@@ -216,11 +219,25 @@ type-checked against the schema by `organon validate`.
 - Operators: `== != < <= > >= && || !`, `+ - * / %`, `in`, `contains`,
   `startsWith`, `endsWith`, `matches`, `??` (default), `a ? b : c`.
 - Built-ins: `len`, `lower`, `upper`, `trim`, `split`, `join`, `int`,
-  `float`, `string`, `now()`, `duration('24h')`, `date(...)`, plus the
+  `float`, `string`, `abs`, `round`, `floor`, `ceil`, `min`, `max`,
+  `now()`, `duration('24h')`, `date(...)`, plus the
   framework functions `changed(path)`, `isOwner(f)`, `hasRole(f, role)`,
   `inGroup(id)`, `uuid()` where the context allows them.
 - Missing optional fields are `nil`; comparisons with `nil` are safe.
-- Decimal fields support `+ - * /` and comparisons exactly.
+- Decimal fields support `+ - * /` and comparisons exactly, also when they
+  come from node outputs (`nodes.lines.out[0].amount * 2`).
+- Times: date-time fields are times everywhere (also when read in a flow);
+  compare them with `< >`, subtract two for a duration
+  (`(feature.endedAt - feature.startedAt).Minutes()`), add one with
+  `t.Add(duration('48h'))` or `t.AddDate(0, int(feature.months), 0)`
+  (`AddDate` takes `int`: wrap integer fields in `int(...)`), format with
+  `t.Format('2006-01-02')`, and read parts with `t.Year()`, `t.Month()`,
+  `t.Day()`. `date(x)` takes a time or text (`date('2026-11-07')`), and
+  `date(timezone('Europe/Athens'), t)` moves a time into a zone.
+- `round(x, places)` rounds half away from zero (`places` default 0,
+  may be negative); `round`, `floor`, `ceil`, and `abs` keep decimals
+  exact and decimal (`round(qty * unitPrice, 2)`). Floats are binary:
+  `round(2.345, 2)` is 2.34, so round money as decimals.
 
 ## The visual editor
 

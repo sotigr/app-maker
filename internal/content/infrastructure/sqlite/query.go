@@ -157,6 +157,14 @@ func (b *builder) compare(c queryapi.Compare) (string, error) {
 		s, _ := sqlValue(c.Value).(string)
 		return fmt.Sprintf("(json_type(f.data, '$.%s') = 'text' AND substr(%s, 1, %d) = %s)",
 			strings.Join(quoteAll(strings.Split(strings.TrimPrefix(c.Path, "/"), "/")), "."), e, len([]rune(s)), b.arg(s)), nil
+	case queryapi.OpIContains, queryapi.OpIPrefix:
+		// organon_fold is kernel.FoldText registered with the driver.
+		s, _ := sqlValue(c.Value).(string)
+		cmp := " > 0"
+		if c.Op == queryapi.OpIPrefix {
+			cmp = " = 1"
+		}
+		return "instr(organon_fold(" + e + "), " + b.arg(kernel.FoldText(s)) + ")" + cmp, nil
 	case queryapi.OpContains:
 		segs := quoteAll(strings.Split(strings.TrimPrefix(c.Path, "/"), "/"))
 		return "EXISTS (SELECT 1 FROM json_each(f.data, " + b.arg("$."+strings.Join(segs, ".")) + ") j WHERE j.value = " +

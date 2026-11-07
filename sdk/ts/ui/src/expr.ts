@@ -275,6 +275,49 @@ function num(v: Value, fn: string): number {
   return v;
 }
 
+const DEC = /^([+-]?)(\d*)(?:\.(\d*))?$/;
+
+// decRound rounds a decimal string exactly, like the server's decimals:
+// "half" away from zero, "floor", or "ceil", to places decimal places.
+export function decRound(s: string, places: number, mode: "half" | "floor" | "ceil", fn: string): string {
+  const m = DEC.exec(s.trim());
+  if (!m || (m[2] === "" && (m[3] ?? "") === "")) throw new ExprError(`${fn}: want a number`);
+  const neg = m[1] === "-";
+  const frac = m[3] ?? "";
+  const abs = BigInt((m[2] || "0") + frac);
+  const scale = frac.length;
+  const p = Math.trunc(places);
+  let q: bigint;
+  if (p >= scale) {
+    q = abs * 10n ** BigInt(p - scale);
+  } else {
+    const div = 10n ** BigInt(scale - p);
+    q = abs / div;
+    const r = abs % div;
+    if (r > 0n && ((mode === "half" && r * 2n >= div) || (mode === "floor" && neg) || (mode === "ceil" && !neg))) q += 1n;
+  }
+  let digits = q.toString();
+  if (p > 0) {
+    digits = digits.padStart(p + 1, "0");
+    digits = digits.slice(0, -p) + "." + digits.slice(-p);
+  } else if (p < 0) {
+    digits = q === 0n ? "0" : digits + "0".repeat(-p);
+  }
+  return (neg && q !== 0n ? "-" : "") + digits;
+}
+
+function roundNum(n: number, places: number): number {
+  const scale = Math.pow(10, Math.trunc(places));
+  const r = Math.round(Math.abs(n) * scale) / scale;
+  return n < 0 ? -r : r;
+}
+
+function places(v: Value | undefined): number {
+  if (v === undefined) return 0;
+  if (typeof v !== "number" || !Number.isInteger(v)) throw new ExprError("round: the number of places must be an integer");
+  return v;
+}
+
 const BUILTINS: Funcs = {
   len: (v) => (typeof v === "string" ? [...v].length : Array.isArray(v) ? v.length : isObj(v) ? Object.keys(v).length : (() => { throw new ExprError("len: want a string, list, or map"); })()),
   lower: (v) => String(v ?? "").toLowerCase(),
@@ -293,10 +336,11 @@ const BUILTINS: Funcs = {
   },
   join: (l, sep) => (Array.isArray(l) ? l.map((x) => (typeof x === "string" ? x : goString(x))).join(String(sep ?? "")) : ""),
   split: (s, sep) => String(s ?? "").split(String(sep)),
-  abs: (v) => Math.abs(num(v, "abs")),
-  round: (v) => { const n = num(v, "round"); return Math.sign(n) * Math.round(Math.abs(n)); },
-  floor: (v) => Math.floor(num(v, "floor")),
-  ceil: (v) => Math.ceil(num(v, "ceil")),
+  // Decimal strings (decimal fields in the browser) are rounded exactly.
+  abs: (v) => (v == null ? null : typeof v === "string" ? decRound(v.replace(/^\s*-/, ""), (DEC.exec(v.trim())?.[3] ?? "").length, "half", "abs") : Math.abs(num(v, "abs"))),
+  round: (v, p) => (v == null ? null : typeof v === "string" ? decRound(v, places(p), "half", "round") : roundNum(num(v, "round"), places(p))),
+  floor: (v) => (v == null ? null : typeof v === "string" ? decRound(v, 0, "floor", "floor") : Math.floor(num(v, "floor"))),
+  ceil: (v) => (v == null ? null : typeof v === "string" ? decRound(v, 0, "ceil", "ceil") : Math.ceil(num(v, "ceil"))),
   min: (...a) => Math.min(...(a.length === 1 && Array.isArray(a[0]) ? a[0] : a).map((x) => num(x, "min"))),
   max: (...a) => Math.max(...(a.length === 1 && Array.isArray(a[0]) ? a[0] : a).map((x) => num(x, "max"))),
   now: () => new Date(),

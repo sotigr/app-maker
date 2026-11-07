@@ -337,13 +337,12 @@ func (b *typeBuilder) topField(ptr, name string, node map[string]any, vt *api.Va
 		s, _ := v.(string)
 		vis, ok := api.ParseVisibility(s)
 		if !ok {
-			b.errf(ptr+"/x-visibility", "x-visibility must be public, owner, private, or system")
+			b.errf(ptr+"/x-visibility", "x-visibility must be public, member, owner, private, or system")
 		}
 		f.Visibility = vis
 	}
 	if v, ok := node["x-write"]; ok {
-		s, _ := v.(string)
-		w, err := api.ParseWriteRule(s)
+		w, err := api.ParseWriteRules(v)
 		if err != nil {
 			b.errf(ptr+"/x-write", "%v", err)
 		}

@@ -45,7 +45,8 @@ Steps (one operation each, run as `as`):
 that feature (with all of its type's shareable actions).
 
 `expect`: `ok`, `error` (code), `feature` (subset of fields after the
-step), `output` (action result subset), `count` (query results),
+step; for `read` steps, of what the caller sees, so `"field": null`
+checks that a field is hidden from them), `output` (action result subset), `count` (query results),
 `effects` (`[{node, count}]`), `visible` (page steps). Unmatched outbound HTTP requests fail the
 step.
 

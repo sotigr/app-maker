@@ -1,0 +1,50 @@
+{
+  "$id": "urn:app:feature:task/v2/views/member.query",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assignee": {
+      "format": "uuid",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "createdAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    },
+    "dueAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "number": {
+      "title": "Number",
+      "type": "string"
+    },
+    "owner": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "status": {
+      "default": "todo",
+      "enum": [
+        "todo",
+        "in_progress",
+        "done"
+      ]
+    },
+    "title": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    }
+  },
+  "title": "Task",
+  "type": "object"
+}

@@ -15,6 +15,7 @@ linters:
             - organon/internal/kernel
             - github.com/google/uuid
             - github.com/cockroachdb/apd/v3
+            - golang.org/x/text/unicode/norm
         platform:
           list-mode: lax
           files: ["**/platform/**", "!$test"]
@@ -76,6 +77,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         schema-application:
           list-mode: strict
           files: ["**/internal/schema/application/**", "!$test"]
@@ -98,6 +100,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         schema-infrastructure:
           list-mode: lax
@@ -330,6 +333,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         content-application:
           list-mode: strict
           files: ["**/internal/content/application/**", "!$test"]
@@ -352,6 +356,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         content-infrastructure:
           list-mode: lax
@@ -584,6 +589,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         access-application:
           list-mode: strict
           files: ["**/internal/access/application/**", "!$test"]
@@ -606,6 +612,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         access-infrastructure:
           list-mode: lax
@@ -838,6 +845,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         query-application:
           list-mode: strict
           files: ["**/internal/query/application/**", "!$test"]
@@ -860,6 +868,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         query-infrastructure:
           list-mode: lax
@@ -1092,6 +1101,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         change-application:
           list-mode: strict
           files: ["**/internal/change/application/**", "!$test"]
@@ -1114,6 +1124,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         change-infrastructure:
           list-mode: lax
@@ -1346,6 +1357,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         flow-application:
           list-mode: strict
           files: ["**/internal/flow/application/**", "!$test"]
@@ -1368,6 +1380,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         flow-infrastructure:
           list-mode: lax
@@ -1600,6 +1613,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         runtime-application:
           list-mode: strict
           files: ["**/internal/runtime/application/**", "!$test"]
@@ -1622,6 +1636,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         runtime-infrastructure:
           list-mode: lax
@@ -1854,6 +1869,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         integration-application:
           list-mode: strict
           files: ["**/internal/integration/application/**", "!$test"]
@@ -1876,6 +1892,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         integration-infrastructure:
           list-mode: lax
@@ -2108,6 +2125,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         manifest-application:
           list-mode: strict
           files: ["**/internal/manifest/application/**", "!$test"]
@@ -2130,6 +2148,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         manifest-infrastructure:
           list-mode: lax
@@ -2362,6 +2381,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
         ui-application:
           list-mode: strict
           files: ["**/internal/ui/application/**", "!$test"]
@@ -2384,6 +2404,7 @@ linters:
             - github.com/santhosh-tekuri/jsonschema/v6
             - github.com/cockroachdb/apd/v3
             - github.com/google/uuid
+            - golang.org/x/text/unicode/norm
             - golang.org/x/sync
         ui-infrastructure:
           list-mode: lax

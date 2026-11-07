@@ -70,6 +70,38 @@ func (d Decimal) Quo(o Decimal) (Decimal, error) {
 	return d.op(o, decimalContext.Quo)
 }
 
+// Round returns d with places decimal places, rounding half away from zero
+// (2.345 → 2.35, -2.345 → -2.35); fewer digits are padded (2.5 → 2.50).
+func (d Decimal) Round(places int32) (Decimal, error) {
+	return d.quantize(-places, apd.RoundHalfUp)
+}
+
+// Floor returns the greatest integer not above d.
+func (d Decimal) Floor() (Decimal, error) { return d.quantize(0, apd.RoundFloor) }
+
+// Ceil returns the least integer not below d.
+func (d Decimal) Ceil() (Decimal, error) { return d.quantize(0, apd.RoundCeiling) }
+
+// Abs returns |d|.
+func (d Decimal) Abs() Decimal {
+	var r Decimal
+	r.d.Abs(&d.d)
+	return r
+}
+
+func (d Decimal) quantize(exp int32, rounding apd.Rounder) (Decimal, error) {
+	ctx := *decimalContext
+	ctx.Rounding = rounding
+	var r Decimal
+	if _, err := ctx.Quantize(&r.d, &d.d, exp); err != nil {
+		return Decimal{}, err
+	}
+	if r.d.IsZero() {
+		r.d.Negative = false // no "-0.00"
+	}
+	return r, nil
+}
+
 // MarshalText implements encoding.TextMarshaler (wire format is a string).
 func (d Decimal) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
 

@@ -27,8 +27,10 @@ type SearchQuery struct {
 	// means owner-tier documents are excluded, AllOwners includes them all.
 	Owners    []kernel.ID
 	AllOwners bool
-	Limit     int
-	Offset    int
+	// Members includes member-tier documents (signed-in callers).
+	Members bool
+	Limit   int
+	Offset  int
 }
 
 // SearchHit is one match.

@@ -80,7 +80,7 @@ func (x *Index) Upsert(_ context.Context, docs []queryapi.SearchDoc) error {
 func (x *Index) Delete(_ context.Context, ids []kernel.ID) error {
 	b := x.idx.NewBatch()
 	for _, id := range ids {
-		for _, t := range []schemaapi.Visibility{schemaapi.VisPublic, schemaapi.VisOwner, schemaapi.VisPrivate} {
+		for _, t := range []schemaapi.Visibility{schemaapi.VisPublic, schemaapi.VisMember, schemaapi.VisOwner, schemaapi.VisPrivate} {
 			b.Delete(docID(id, t))
 		}
 	}
@@ -106,6 +106,11 @@ func (x *Index) Search(_ context.Context, q queryapi.SearchQuery) (queryapi.Sear
 	public := bleve.NewTermQuery(schemaapi.VisPublic.String())
 	public.SetField("tier")
 	tiers := []query.Query{public}
+	if q.Members {
+		member := bleve.NewTermQuery(schemaapi.VisMember.String())
+		member.SetField("tier")
+		tiers = append(tiers, member)
+	}
 	ownerTier := bleve.NewTermQuery(schemaapi.VisOwner.String())
 	ownerTier.SetField("tier")
 	switch {

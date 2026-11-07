@@ -1,6 +1,8 @@
 package expression
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,6 +162,124 @@ func TestGap33DecimalEquality(t *testing.T) {
 		out, err := p.Eval(map[string]any{"a": tc.a, "b": tc.b})
 		if err != nil || out != tc.want {
 			t.Errorf("%s with a=%v b=%v: %v %v, want %v", tc.src, tc.a, tc.b, out, err, tc.want)
+		}
+	}
+}
+
+// Gap #52: decimals inside values of unknown type (node outputs, read
+// features) use decimal semantics at run time; other values keep expr's.
+func TestGap52DecimalsOfUnknownType(t *testing.T) {
+	c := NewCompiler()
+	env := rt.Env{Vars: map[string]*rt.Type{"n": nil, "d": rt.Decimal}}
+	d := kernel.MustDecimal
+	n := map[string]any{"a": d("2.50"), "b": d("4"), "s": "x", "i": 3, "nil": nil}
+	for _, tc := range []struct {
+		src  string
+		want any
+	}{
+		{"n.a + n.b", d("6.50")},
+		{"n.a * n.b - n.a", d("7.500")},
+		{"n.a + d", d("3.50")},
+		{"n.b / 2", d("2")},
+		{"(d + d) * n.a", d("5.00")},
+		{"n.a * (n.b + d)", d("12.50")},
+		{"n.a < n.b", true},
+		{"n.a == d('2.5')", true},
+		{"n.a == '2.5'", true},
+		{"n.a != n.nil", true},
+		{"n.nil == nil", true},
+		{"n.s + 'y'", "xy"},
+		{"n.i + 1", 4},
+		{"n.i > 2", true},
+		{"n.s == 'x'", true},
+	} {
+		src := strings.ReplaceAll(tc.src, "d(", "decimal(")
+		p, err := c.Compile(src, env, nil, false)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		out, err := p.Eval(map[string]any{"n": n, "d": d("1")})
+		if err != nil {
+			t.Errorf("%s: %v", src, err)
+			continue
+		}
+		if w, ok := tc.want.(kernel.Decimal); ok {
+			if g, ok := out.(kernel.Decimal); !ok || g.Cmp(w) != 0 {
+				t.Errorf("%s = %v, want %v", src, out, w)
+			}
+			continue
+		}
+		if fmt.Sprint(out) != fmt.Sprint(tc.want) {
+			t.Errorf("%s = %v, want %v", src, out, tc.want)
+		}
+	}
+}
+
+// Gap #15: round(x, places), floor, ceil, and abs take decimals (exact,
+// half away from zero) and keep the decimal type, so results mix with
+// other decimals; floats keep expr's behaviour.
+func TestGap15DecimalRounding(t *testing.T) {
+	c := NewCompiler()
+	env := rt.Env{Vars: map[string]*rt.Type{"d": rt.Decimal, "f": rt.Float, "n": nil}}
+	vars := map[string]any{"d": kernel.MustDecimal("2.345"), "f": 2.5, "n": map[string]any{"x": kernel.MustDecimal("-1.005")}}
+	for src, want := range map[string]string{
+		"round(d, 2)":             "2.35",
+		"round(d, 2) + d":         "4.695",
+		"round(d * 3, 1)":         "7.0",
+		"floor(d)":                "2",
+		"ceil(d)":                 "3",
+		"abs(n.x)":                "1.005",
+		"round(n.x, 2)":           "-1.01",
+		"round(n.x * 2, 2) + d":   "0.335",
+		"round(f)":                "3",
+		"round(-f)":               "-3",
+		"round(2.345678, 3)":      "2.346",
+		"floor(f) + ceil(f)":      "5",
+		"abs(-2)":                 "2",
+		"round('2.345', 2) + 'x'": "2.35x",
+	} {
+		p, err := c.Compile(src, env, nil, false)
+		if err != nil {
+			t.Errorf("%s: %v", src, err)
+			continue
+		}
+		out, err := p.Eval(vars)
+		if err != nil || fmt.Sprint(out) != want {
+			t.Errorf("%s = %v (%v), want %s", src, out, err, want)
+		}
+	}
+	for _, bad := range []string{"round(d, 1.5)", "floor(d, 2)", "round(true)", "round(d) + 1.5"} {
+		if _, err := c.Compile(bad, env, nil, false); err == nil {
+			t.Errorf("%s compiled, want error", bad)
+		}
+	}
+	p, _ := c.Compile("round(d, 2)", env, rt.Decimal, false)
+	if p == nil {
+		t.Error("round(decimal, 2) is not a decimal")
+	}
+}
+
+// Gap #18: date() takes a time (a date-time field, also one read in a
+// flow) as well as text.
+func TestGap18DateOfTime(t *testing.T) {
+	c := NewCompiler()
+	at := time.Date(2026, 11, 7, 10, 30, 0, 0, time.UTC)
+	env := rt.Env{Vars: map[string]*rt.Type{"t": rt.Time, "n": nil}}
+	for src, want := range map[string]string{
+		"date(t)":                  at.String(),
+		"date(n.at)":               at.String(),
+		"date(n.at).Year()":        "2026",
+		"date('2026-11-07').Day()": "7",
+		"date(timezone('Europe/Athens'), t).Hour()": "12",
+	} {
+		p, err := c.Compile(src, env, nil, false)
+		if err != nil {
+			t.Errorf("%s: %v", src, err)
+			continue
+		}
+		out, err := p.Eval(map[string]any{"t": at, "n": map[string]any{"at": at}})
+		if err != nil || fmt.Sprint(out) != want {
+			t.Errorf("%s = %v (%v), want %s", src, out, err, want)
 		}
 	}
 }

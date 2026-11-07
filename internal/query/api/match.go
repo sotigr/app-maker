@@ -124,6 +124,20 @@ func compare(c Compare, d Doc) bool {
 		s, ok1 := kernel.Native(v).(string)
 		pre, ok2 := kernel.Native(c.Value).(string)
 		return ok1 && ok2 && strings.HasPrefix(s, pre)
+	case OpIContains, OpIPrefix:
+		if !present {
+			return false
+		}
+		s, ok1 := kernel.Native(v).(string)
+		sub, ok2 := kernel.Native(c.Value).(string)
+		if !ok1 || !ok2 {
+			return false
+		}
+		s, sub = kernel.FoldText(s), kernel.FoldText(sub)
+		if c.Op == OpIPrefix {
+			return strings.HasPrefix(s, sub)
+		}
+		return strings.Contains(s, sub)
 	case OpContains:
 		l, ok := v.(kernel.List)
 		if !present || !ok {

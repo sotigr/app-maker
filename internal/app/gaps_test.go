@@ -177,3 +177,90 @@ func TestGap17EdgesDoNotPropagateSkips(t *testing.T) {
 	    "grants": [ { "subject": "ana", "object": "p", "role": "editor" } ] },
 	  "steps": [ { "as": "ana", "action": "rename", "on": "t", "expect": { "ok": true, "feature": { "title": "renamed" } } } ] }]`)
 }
+
+// Gap 52: decimals read inside a flow (node outputs) add, multiply and
+// compare exactly, alone and mixed with the trigger feature's decimals.
+func TestGap52DecimalsFromReads(t *testing.T) {
+	gapTest(t, func(m *manifestdomain.Manifest) {
+		m.Flows = append(m.Flows, manifestdomain.File{Path: "flows/sum.json", Data: []byte(`{
+		  "flow": "sumEstimates", "trigger": { "action": "sumEstimates", "on": "urn:app:feature:project" },
+		  "output": { "type": "object", "properties": { "total": { "type": "string" }, "big": { "type": "boolean" } } },
+		  "nodes": {
+		    "tasks": { "node": "feature.children", "in": { "id": "feature.id", "type": "'task'" } },
+		    "one":   { "node": "feature.get", "in": { "id": "nodes.tasks.out[0].id" } } },
+		  "result": { "total": "string(nodes.tasks.out[0].estimate + nodes.tasks.out[1].estimate * 2 - nodes.one.out.estimate)",
+		              "big": "nodes.tasks.out[0].estimate + nodes.tasks.out[1].estimate > 3" } }`)})
+		replaceFile(t, m.Policies, "policies/project.json", `"summarize":`, `"sumEstimates": "isOwner(feature)", "summarize":`)
+	}, `[{"name": "sum", "given": {
+	    "principals": { "ana": { "kind": "user" } },
+	    "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+	                  { "ref": "t1", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "A", "estimate": "1.50" } },
+	                  { "ref": "t2", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "B", "estimate": "2.25" } } ] },
+	  "steps": [ { "as": "ana", "action": "sumEstimates", "on": "p", "expect": { "ok": true, "output": { "total": "4.50", "big": true } } } ] }]`)
+}
+
+// Gaps 38 and 53: update and delete rules read the feature's parent (it
+// was always empty there, so every update was forbidden).
+func TestGap38ParentInUpdateAndDeleteRules(t *testing.T) {
+	gapTest(t, func(m *manifestdomain.Manifest) {
+		replaceFile(t, m.Policies, "policies/comment.json", `"update": "isOwner(feature)"`, `"update": "isOwner(feature) && parent.status != 'done'"`)
+		replaceFile(t, m.Policies, "policies/comment.json", `"delete": "isOwner(feature) ||`, `"delete": "isOwner(feature) && parent.status == 'todo' ||`)
+	}, `[{"name": "parent", "given": {
+	    "principals": { "ana": { "kind": "user" } },
+	    "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+	                  { "ref": "open", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "A" } },
+	                  { "ref": "done", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "B", "status": "done" } },
+	                  { "ref": "c1", "type": "comment", "parent": "open", "owner": "ana", "data": { "body": "x" } },
+	                  { "ref": "c2", "type": "comment", "parent": "done", "owner": "ana", "data": { "body": "x" } } ] },
+	  "steps": [ { "as": "ana", "update": "c1", "data": { "body": "y" }, "expect": { "ok": true } },
+	             { "as": "ana", "update": "c2", "data": { "body": "y" }, "expect": { "error": "forbidden" } },
+	             { "as": "ana", "delete": "c2", "expect": { "error": "forbidden" } },
+	             { "as": "ana", "delete": "c1", "expect": { "ok": true } } ] }]`)
+}
+
+// Gap 29 (ADR 0024): member fields are read and filtered by signed-in
+// callers who neither own nor administer the feature, never by share links.
+func TestGap29MemberVisibility(t *testing.T) {
+	gapTest(t, func(m *manifestdomain.Manifest) {
+		replaceFile(t, m.Types, "types/task.json", `"properties": {`, `"properties": {
+		"staffNote": { "type": "string", "x-visibility": "member", "x-indexed": true },`)
+	}, `[{"name": "member", "given": {
+	    "principals": { "ana": { "kind": "user" }, "ben": { "kind": "user" } },
+	    "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+	                  { "ref": "t", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "T", "staffNote": "call back" } } ],
+	    "grants": [ { "subject": "ben", "object": "p", "role": "viewer" } ] },
+	  "steps": [ { "as": "ben", "read": "t", "expect": { "feature": { "title": "T", "staffNote": "call back" } } },
+	             { "as": "ana", "read": "t", "expect": { "feature": { "staffNote": "call back" } } },
+	             { "as": "link:t", "read": "t", "expect": { "feature": { "title": "T", "staffNote": null } } },
+	             { "as": "ben", "query": { "type": "task", "where": { "field": "/staffNote", "op": "icontains", "value": "CALL" } }, "expect": { "count": 1 } } ] }]`)
+}
+
+// Gaps 35 and 45: x-write takes a list (any rule allows) and role:<name>
+// (the role app-wide or through a grant on the feature; on create, on the
+// parent). Several actions may own one field.
+func TestGap35And45WriteRules(t *testing.T) {
+	gapTest(t, func(m *manifestdomain.Manifest) {
+		replaceFile(t, m.Types, "types/task.json", `"properties": {`, `"properties": {
+		"approved": { "type": "boolean", "x-write": ["role:editor", "action:approve"] },
+		"stock": { "type": "integer", "x-write": ["action:addStock", "action:takeStock"] },`)
+		m.Flows = append(m.Flows,
+			manifestdomain.File{Path: "flows/add-stock.json", Data: []byte(`{
+			  "flow": "addStock", "trigger": { "action": "addStock", "on": "urn:app:feature:task" },
+			  "nodes": { "set": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/stock": "(feature.stock ?? 0) + 5" } } } } }`)},
+			manifestdomain.File{Path: "flows/take-stock.json", Data: []byte(`{
+			  "flow": "takeStock", "trigger": { "action": "takeStock", "on": "urn:app:feature:task" },
+			  "nodes": { "set": { "node": "feature.update", "in": { "id": "feature.id", "set": { "/stock": "feature.stock - 1" } } } } }`)})
+		replaceFile(t, m.Policies, "policies/task.json", `"triage":`, `"addStock": "true", "takeStock": "true", "triage":`)
+	}, `[{"name": "write rules", "given": {
+	    "principals": { "ana": { "kind": "user" }, "ben": { "kind": "user" }, "eve": { "kind": "user" } },
+	    "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+	                  { "ref": "t", "type": "task", "parent": "p", "owner": "ben", "data": { "title": "T", "assignee": "ben" } } ],
+	    "grants": [ { "subject": "ana", "object": "p", "role": "editor" }, { "subject": "eve", "object": "p", "role": "editor" },
+	                { "subject": "ben", "object": "p", "role": "viewer" } ] },
+	  "steps": [ { "as": "ben", "update": "t", "data": { "approved": true }, "expect": { "error": "validation_failed" } },
+	             { "as": "ana", "update": "t", "data": { "approved": true }, "expect": { "ok": true, "feature": { "approved": true } } },
+	             { "as": "ben", "update": "t", "data": { "stock": 3 }, "expect": { "error": "validation_failed" } },
+	             { "as": "ben", "action": "addStock", "on": "t", "expect": { "ok": true, "feature": { "stock": 5 } } },
+	             { "as": "ben", "action": "takeStock", "on": "t", "expect": { "ok": true, "feature": { "stock": 4 } } },
+	             { "as": "eve", "create": "task", "parent": "p", "data": { "title": "U", "approved": true }, "expect": { "ok": true } }] }]`)
+}

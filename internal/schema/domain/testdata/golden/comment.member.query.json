@@ -1,0 +1,23 @@
+{
+  "$id": "urn:app:feature:comment/v1/views/member.query",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "createdAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    },
+    "owner": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    }
+  },
+  "title": "Comment",
+  "type": "object"
+}

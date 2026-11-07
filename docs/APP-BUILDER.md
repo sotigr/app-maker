@@ -264,8 +264,8 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 | --- | --- |
 | `x-indexed` | Required on **every field you filter or sort on**, in queries, UI query sources, and policies. |
 | `x-searchable` | Includes the field in full-text search (`GET /v1/search`, the UI `search` source). |
-| `x-visibility` | `public` (default), `owner` (owners, admins, system), `private` (system only), `system`. |
-| `x-write` | `any` (default), `owner`, `admin`, `system`, or `action:<name>` (only that action may write it). |
+| `x-visibility` | `public` (default), `member` (any signed-in user or service account, never anonymous visitors or share links: staff-only data on shared records), `owner` (owners, admins, system), `private` (system only), `system`. |
+| `x-write` | `any` (default), `owner`, `admin`, `system`, `action:<name>` (only that action may write it), or `role:<name>` (only callers with that role on the feature, or on the parent for creates; admins always). A list allows any of its rules: `["action:addLine", "action:receive"]` lets several actions own a field; `["role:frontdesk", "action:approve"]`. The policy must allow the write too. |
 | `x-immutable` | Set on create, never changed. |
 | `readOnly` / `writeOnly` | Never accepted from clients / never returned. |
 | `x-ref`, `x-onDelete` | Ref target. On delete of the target: `restrict`, `setNull` (the field must be nullable), or `dangle`. |
@@ -303,7 +303,9 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
 - **Variables:**
   - `principal` is `{id, kind, roles, groups}`; `kind` is one of `user`,
     `team`, `organization`, `service`, `system`, `anonymous`;
-  - `feature`; `parent` (create and move); `patch` (update); `input`
+  - `feature`; `parent` (create: the new parent; move: the target; other
+    operations: the feature's parent, e.g. `"update": "parent.status == 'draft'"`);
+    `patch` (update); `input`
     (actions).
 - **Functions:**
   - `hasRole(f, role)`: the role held app-wide, or through a grant on `f`
@@ -337,7 +339,7 @@ A nullable field is `"type": ["string", "null"]`, or has `null` in its
   3. Staff run `share` (input `expiresInDays` default 7, `actions` subset,
      `note`); the output has `url` (`/s/<token>`), `token`, `expiresAt`.
   4. Whoever opens the URL can read that feature and its subtree (public
-     fields only), and run the listed actions on it, including the
+     fields only; mark staff-only fields `x-visibility: member`), and run the listed actions on it, including the
      action's own writes (its transition, or its flow's updates of the
      feature and creates under it). Nothing else; app policies are not
      consulted for them.
@@ -492,7 +494,20 @@ The language is [expr](https://expr-lang.org), type-checked by `validate`.
 - Framework functions where the context allows them: `changed(path)`,
   `isOwner(f)`, `hasRole(f, role)`, `inGroup(id)`, `uuid()`.
 - Missing optional fields are `nil`, and comparing with `nil` is safe.
-  Decimals support exact `+ - * /` and comparisons.
+  Decimals support exact `+ - * /` and comparisons, also decimals read
+  in a flow (`nodes.x.out.amount + feature.total`).
+- Times: date-time fields are times everywhere (also when read in a flow);
+  compare them with `< >`, subtract two for a duration
+  (`(feature.endedAt - feature.startedAt).Minutes()`), add one with
+  `t.Add(duration('48h'))` or `t.AddDate(0, int(feature.months), 0)`
+  (`AddDate` takes `int`: wrap integer fields in `int(...)`), format with
+  `t.Format('2006-01-02')`, and read parts with `t.Year()`, `t.Month()`,
+  `t.Day()`. `date(x)` takes a time or text (`date('2026-11-07')`), and
+  `date(timezone('Europe/Athens'), t)` moves a time into a zone.
+- `round(x, places)` rounds half away from zero (`places` default 0,
+  may be negative); `round`, `floor`, `ceil`, and `abs` keep decimals
+  exact and decimal (`round(qty * unitPrice, 2)`). Floats are binary:
+  `round(2.345, 2)` is 2.34, so round money as decimals.
 
 **Where expressions appear and what they see:**
 
@@ -659,6 +674,8 @@ allow `application/pdf`); set the result with `feature.update`:
 - Texts are literal with `{{ expr }}`; headers and footers also see `page`
   and `pages`. `formatNumber(n, digits)` and `formatDate(t, 'date' |
   'datetime' | 'time' | '<Go layout>')` follow `locale` and `timezone`.
+  `formatNumber` rounds decimals and decimal text exactly; plain text
+  values are shown as written, so wrap amounts in `formatNumber`.
 - `vars` with `properties` is closed: misspelt names fail validation.
   The built-in font (Noto Sans) covers Latin, Greek, and Cyrillic.
 
@@ -690,7 +707,10 @@ These are available to the UI, scripts, and `feature.query` nodes.
    "scope": {"descendantsOf": "<id>"}, "sort": [{"field": "/dueAt", "dir": "asc"}], "select": ["/title"], "limit": 50}
   ```
 
-  - Operators: `eq ne lt lte gt gte in nin prefix contains exists`,
+  - Operators: `eq ne lt lte gt gte in nin prefix icontains iprefix contains exists`
+    (`icontains`/`iprefix` ignore case and accents on string fields, e.g. a
+    customer search box: `{"field": "/name", "op": "icontains", "value": "state.q"}`;
+    `contains` is for lists),
     combined with `and`, `or`, `not` (at most 20 predicates, depth 4).
   - Filter and sort only on `x-indexed` fields.
   - `select` limits the returned fields; `expand: ["/assignee"]` adds the
@@ -850,7 +870,7 @@ Inside `table`, `list`, and `board` rows, `item` and `index` are in scope.
   | --- | --- |
   | `can(f, op)` | Answered by the server. `op` is `'update'`, `'delete'`, `'action:<name>'`, or `'create:<type>'`. |
   | `formatDate(t, 'date'\|'datetime'\|'time'\|'relative')` | Formats a time. |
-  | `formatNumber(n, digits)` | Formats a number. |
+  | `formatNumber(n, digits)` | Formats a number; decimal fields (strings in the browser) are rounded exactly. |
 
 - **Not available:** `filter`, `map`, pipes, `matches`, `hasRole`,
   `isOwner`, `uuid`. Put that logic in a computed field, an aggregate, or
@@ -858,7 +878,8 @@ Inside `table`, `list`, and `board` rows, `item` and `index` are in scope.
 - Variables: `params`, `data.<source>`, `state.<var>`, `principal`
   (`id`, `kind`, `roles`); `item` and `index` in rows; `result` and
   `error` in steps.
-- Decimals are strings in the browser, so arithmetic on them is rejected.
+- Decimals are strings in the browser, so arithmetic on them is rejected;
+  `round(d, 2)`, `floor`, `ceil`, and `abs` work on them exactly.
 
 **The UI hides; policies protect.** Hide controls with `can(...)`, but
 rely on policies for security.
@@ -965,8 +986,9 @@ fixtures.
   `update`+`data`, `delete`, `read`, `query`, and `page` (UI visibility).
   A step without `as` is anonymous; `"as": "link:<ref>"` is a share link
   to that feature with all its type's shareable actions.
-- **`expect`:** `ok`, `error` (a code), `feature` (a subset of fields),
-  `output`, `count`, `effects`, `visible`.
+- **`expect`:** `ok`, `error` (a code), `feature` (a subset of fields;
+  for `read` steps, of what the caller sees: `"staffNote": null` checks a
+  field is hidden), `output`, `count`, `effects`, `visible`.
 - Outbound HTTP that no fixture matches fails the step.
 - **Required coverage:**
   - at least one allowed and one denied case per policy decision and per

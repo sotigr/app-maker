@@ -1,0 +1,30 @@
+{
+  "$id": "urn:app:feature:project/v1/views/member.create",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "description": {
+      "maxLength": 5000,
+      "type": "string"
+    },
+    "slug": {
+      "maxLength": 80,
+      "pattern": "^[a-z0-9-]+$",
+      "type": "string"
+    },
+    "summary": {
+      "description": "Model-written status summary (summarize action)",
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 200,
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "Project",
+  "type": "object"
+}

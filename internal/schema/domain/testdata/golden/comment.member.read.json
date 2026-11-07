@@ -1,0 +1,31 @@
+{
+  "$id": "urn:app:feature:comment/v1/views/member.read",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "body": {
+      "maxLength": 5000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "createdAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    },
+    "owner": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "updatedAt": {
+      "format": "date-time",
+      "readOnly": true,
+      "type": "string"
+    }
+  },
+  "required": [
+    "body"
+  ],
+  "title": "Comment",
+  "type": "object"
+}

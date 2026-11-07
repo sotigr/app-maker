@@ -65,6 +65,11 @@ func (c *Compiler) Compile(source string, env rt.Env, want *rt.Type, nullable bo
 		expr.MaxNodes(MaxNodes),
 		expr.DisableBuiltin("now"), // replaced by the clock-backed built-in
 	}
+	opts = append(opts, numericFunctions()...)
+	opts = append(opts, dateFunction())
+	opts = append(opts, dynamicFunctions()...)
+	base := append(append([]expr.Option{}, opts...), decimalOptions()...)
+	opts = append(opts, expr.Patch(dynamicPatcher{base: base}))
 	opts = append(opts, decimalOptions()...)
 	p, err := expr.Compile(source, opts...)
 	if err != nil {

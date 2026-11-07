@@ -42,6 +42,11 @@ the action's rule.
 - **Inputs** of action, webhook, and subflow runs are converted to their
   schema's types (integer → int64, date-time → time) however they were
   decoded.
+- **Decimals of unknown static type** (node outputs, read features) use
+  decimal arithmetic and comparison at run time: operators whose operand
+  type is unknown when compiled dispatch on the values (gap #52). Each
+  operand is type-checked alone first, because expr stops reporting type
+  errors inside an operand once its operator is rewritten.
 - **Flow graphs:** only data dependencies (`nodes.<name>` references) pass
   a skip on; `edges` only order.
 

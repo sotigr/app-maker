@@ -179,6 +179,16 @@ func (s *Service) load(ctx context.Context, id kernel.ID) (*domain.Feature, *sch
 	return nil, nil, kernel.ErrNotFound
 }
 
+// RefByID builds the Authorizer's view of a live feature, without
+// authorization (the Authorizer's parent loader).
+func (s *Service) RefByID(ctx context.Context, id kernel.ID) (*accessapi.FeatureRef, error) {
+	f, ct, err := s.load(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return s.Ref(f, ct), nil
+}
+
 // Load reads a feature for internal callers (flows run as their principal
 // and must still go through Read); it performs no authorization.
 func (s *Service) Load(ctx context.Context, id kernel.ID) (*domain.Feature, *schemaapi.CompiledType, error) {

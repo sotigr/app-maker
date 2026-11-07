@@ -685,6 +685,17 @@ func separators(locale string) (dec, group string) {
 // locale's separators.
 func (e *docEval) formatNumber(n any, digits int) string {
 	var s string
+	d, exact := exactDecimal(n)
+	if exact {
+		// Decimals and decimal text round exactly, half away from zero.
+		if digits >= 0 {
+			r, err := d.Round(int32(digits))
+			if err == nil {
+				d = r
+			}
+		}
+		n = d
+	}
 	switch x := n.(type) {
 	case kernel.Decimal:
 		s = x.String()
@@ -701,7 +712,7 @@ func (e *docEval) formatNumber(n any, digits int) string {
 	default:
 		return fmt.Sprint(n)
 	}
-	if digits >= 0 {
+	if digits >= 0 && !exact {
 		f, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return s
@@ -727,6 +738,19 @@ func (e *docEval) formatNumber(n any, digits int) string {
 		out = "-" + out
 	}
 	return out
+}
+
+// exactDecimal returns n as a decimal when it is one or is decimal text;
+// other text is not a number and is shown unchanged.
+func exactDecimal(n any) (kernel.Decimal, bool) {
+	switch x := n.(type) {
+	case kernel.Decimal:
+		return x, true
+	case string:
+		d, err := kernel.ParseDecimal(strings.TrimSpace(x))
+		return d, err == nil
+	}
+	return kernel.Decimal{}, false
 }
 
 func roundHalfAway(f float64, digits int) float64 {

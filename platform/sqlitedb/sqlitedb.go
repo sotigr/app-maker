@@ -6,14 +6,29 @@ package sqlitedb
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	_ "modernc.org/sqlite" // database/sql driver "sqlite", pure Go
+	"modernc.org/sqlite" // database/sql driver "sqlite", pure Go
+
+	"organon/internal/kernel"
 )
+
+// organon_fold(text) is kernel.FoldText, for the icontains and iprefix
+// query operators; it is NULL for values that are not text.
+func init() {
+	sqlite.MustRegisterDeterministicScalarFunction("organon_fold", 1,
+		func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+			if s, ok := args[0].(string); ok {
+				return kernel.FoldText(s), nil
+			}
+			return nil, nil
+		})
+}
 
 // DB is an open database plus its replica lock.
 type DB struct {

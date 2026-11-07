@@ -3,7 +3,7 @@
 // scope (params, data, state, item, ...).
 import { createContext, useContext, useMemo } from "react";
 import type { Feature, OrganonClient } from "@organon/client";
-import { evaluate, template, type Env, type Funcs } from "./expr";
+import { decRound, evaluate, template, type Env, type Funcs } from "./expr";
 import { currentLocale, type Translate } from "./i18n";
 import type { Bundle, Expr, Principal, Row, TypeMeta } from "./types";
 
@@ -108,9 +108,20 @@ export function formatDate(v: unknown, style: unknown = "date"): string {
 }
 
 export function formatNumber(v: unknown, digits: unknown = 0): string {
+  if (v == null) return "";
+  const d = typeof digits === "number" ? Math.max(0, Math.trunc(digits)) : 0;
+  if (typeof v === "string") {
+    // Decimal text (decimal fields) is rounded exactly, like the server;
+    // other text is shown unchanged.
+    let r: string;
+    try { r = decRound(v, d, "half", "formatNumber"); } catch { return v; }
+    const neg = r.startsWith("-");
+    const [whole, frac] = (neg ? r.slice(1) : r).split(".");
+    const sep = new Intl.NumberFormat(currentLocale()).formatToParts(1.5).find((p) => p.type === "decimal")?.value ?? ".";
+    return (neg ? "-" : "") + BigInt(whole).toLocaleString(currentLocale()) + (frac ? sep + frac : "");
+  }
   const n = typeof v === "number" ? v : Number(v);
-  if (v == null || isNaN(n)) return "";
-  const d = typeof digits === "number" ? digits : 0;
+  if (isNaN(n)) return "";
   return n.toLocaleString(currentLocale(), { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 

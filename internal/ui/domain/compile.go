@@ -622,7 +622,7 @@ func (c *compiler) sources(v any, sc *scope) {
 	}
 }
 
-var queryOps = []string{"eq", "ne", "lt", "lte", "gt", "gte", "in", "nin", "prefix", "contains", "exists"}
+var queryOps = []string{"eq", "ne", "lt", "lte", "gt", "gte", "in", "nin", "prefix", "icontains", "iprefix", "contains", "exists"}
 
 func (c *compiler) query(ptr string, v any, sc *scope, ct *schemaapi.CompiledType, collect func(any)) {
 	q, ok := v.(map[string]any)
@@ -707,12 +707,14 @@ func (c *compiler) predicate(ptr string, v any, sc *scope, ct *schemaapi.Compile
 }
 
 // queryField checks that users may filter and sort on path: it must be in
-// the public query view (x-indexed and public).
+// the member query view (x-indexed, and public or member: signed-in users
+// may filter on member fields, anonymous visitors and links only on
+// public ones, which the server checks per caller).
 func (c *compiler) queryField(ptr, p string, ct *schemaapi.CompiledType) {
 	if !c.readPath(ptr, p, ct) {
 		return
 	}
-	if q := ct.View(schemaapi.AudPublic, schemaapi.DirQuery); q != nil && !q.Queryable[top(p)] {
+	if q := ct.View(schemaapi.AudMember, schemaapi.DirQuery); q != nil && !q.Queryable[top(p)] {
 		c.errf(ptr, "field %s of %s is not queryable: add \"x-indexed\": true (owner-only fields cannot be filtered)", p, ct.Name)
 	}
 }

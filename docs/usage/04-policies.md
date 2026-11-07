@@ -25,7 +25,7 @@ a type (or trait). Anything not allowed is denied.
 | --- | --- |
 | `principal` | `{id, kind, roles, groups}` of the caller (`kind`: `user`, `team`, `organization`, `service`, `system`, `anonymous`). |
 | `feature` | The feature acted on (its fields plus `id`, `parentId`, `owner`). For create it is the new data. |
-| `parent` | The parent (create, move). |
+| `parent` | For create, the new feature's parent; for move, the new parent; for read, update, delete, and actions, the feature's current parent (loaded only when the rule uses `parent`; empty at the root). |
 | `patch` | The merge patch of an update. |
 | `input` | Action input. |
 | `hasRole(f, role)` | True when the caller holds `role` (or a role that includes it, per `app.json` `roles`) app-wide, or through a grant on `f` or any ancestor. |
@@ -78,7 +78,7 @@ A type with `x-shareable` gets the action `share` (give it a rule under
 `actions`, like any action). It returns `{url, token, expiresAt, ...}`;
 anyone with the URL can, until it expires or is revoked:
 
-- read the shared feature and everything under it (public fields only);
+- read the shared feature and everything under it (public fields only, never `member` or `owner` fields);
 - run the actions listed in `x-shareable.actions` on the shared feature,
   including that action's own writes (its transition, or its flow's
   updates of the feature and creates under it).

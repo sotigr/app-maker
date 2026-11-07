@@ -10,6 +10,7 @@ PURE_LIBS=(
   github.com/santhosh-tekuri/jsonschema/v6
   github.com/cockroachdb/apd/v3
   github.com/google/uuid
+  golang.org/x/text/unicode/norm
 )
 
 out="$(dirname "$0")/../.golangci.yml"
@@ -47,6 +48,7 @@ linters:
             - ${MOD}/internal/kernel
             - github.com/google/uuid
             - github.com/cockroachdb/apd/v3
+            - golang.org/x/text/unicode/norm
         platform:
           list-mode: lax
           files: ["**/platform/**", "!\$test"]

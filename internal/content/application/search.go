@@ -125,6 +125,7 @@ func (s *Service) indexFeature(ctx context.Context, f *domain.Feature, ct *schem
 	docs := []queryapi.SearchDoc{
 		{ID: f.ID(), Type: ct.Base(), Tier: schemaapi.VisPublic, Owners: owners, Scope: scope, Text: map[string]string{}},
 		{ID: f.ID(), Type: ct.Base(), Tier: schemaapi.VisOwner, Owners: owners, Scope: scope, Text: map[string]string{}},
+		{ID: f.ID(), Type: ct.Base(), Tier: schemaapi.VisMember, Owners: owners, Scope: scope, Text: map[string]string{}},
 	}
 	for _, fd := range ct.TopFields() {
 		if !fd.Searchable || fd.WriteOnly {
@@ -140,6 +141,8 @@ func (s *Service) indexFeature(ctx context.Context, f *domain.Feature, ct *schem
 			docs[0].Text[fd.Path] = text
 		case schemaapi.VisOwner:
 			docs[1].Text[fd.Path] = text
+		case schemaapi.VisMember:
+			docs[2].Text[fd.Path] = text
 		}
 	}
 	return s.d.Search.Upsert(ctx, docs)
@@ -179,9 +182,10 @@ func (s *Service) Search(ctx context.Context, p accessapi.Principal, text, typeN
 	}
 	switch {
 	case p.IsSystem() || p.HasRole("admin"):
-		q.AllOwners = true
-	case !p.ID.IsZero():
+		q.AllOwners, q.Members = true, true
+	case !p.ID.IsZero() && !p.IsLink():
 		q.Owners = append([]kernel.ID{p.ID}, p.Groups...)
+		q.Members = true
 	}
 	res, err := s.d.Search.Search(ctx, q)
 	if err != nil {

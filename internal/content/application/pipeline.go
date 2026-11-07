@@ -445,7 +445,7 @@ func (s *Service) prepareCreate(ctx context.Context, wc WriteContext, w *work, c
 		return err
 	}
 	w.aud = s.createAudience(wc, ct)
-	if err := s.checkWritable(wc, ct, w.aud, schemaapi.DirCreate, in, nil); err != nil {
+	if err := s.checkWritable(ctx, wc, ct, w.aud, schemaapi.DirCreate, in, nil, pref); err != nil {
 		return err
 	}
 	if err := s.validateView(ct, w.aud, schemaapi.DirCreate, in, true); err != nil {
@@ -517,6 +517,8 @@ func (s *Service) createAudience(wc WriteContext, ct *schemaapi.CompiledType) sc
 		return schemaapi.AudAdmin
 	case ct.HasTrait(schemaapi.TraitOwnable):
 		return schemaapi.AudOwner
+	case !wc.Principal.IsAnonymous() && !wc.Principal.IsLink():
+		return schemaapi.AudMember
 	}
 	return schemaapi.AudPublic
 }
@@ -555,7 +557,7 @@ func (s *Service) prepareUpdate(ctx context.Context, wc WriteContext, w *work, n
 	} else if w.aud, err = s.d.Authorizer.Audience(ctx, wc.Principal, ref); err != nil {
 		return err
 	}
-	if err := s.checkWritable(wc, ct, w.aud, schemaapi.DirUpdate, in, w.feature); err != nil {
+	if err := s.checkWritable(ctx, wc, ct, w.aud, schemaapi.DirUpdate, in, w.feature, ref); err != nil {
 		return err
 	}
 	if err := s.validateView(ct, w.aud, schemaapi.DirUpdate, in, false); err != nil {
@@ -943,14 +945,24 @@ func mergeJSON(base, patch map[string]any) map[string]any {
 }
 
 // checkWritable enforces x-write and the caller's write view (spec 4.2).
-func (s *Service) checkWritable(wc WriteContext, ct *schemaapi.CompiledType, aud schemaapi.Audience, dir schemaapi.Direction, in input, f *domain.Feature) error {
+// roleOn is where role:<name> rules look for the role: the feature, or on
+// create its parent (nil at the root: app-wide roles only).
+func (s *Service) checkWritable(ctx context.Context, wc WriteContext, ct *schemaapi.CompiledType, aud schemaapi.Audience, dir schemaapi.Direction, in input, f *domain.Feature, roleOn *accessapi.FeatureRef) error {
 	if wc.Fixture {
 		return nil
 	}
 	view := ct.View(aud, dir)
 	var errs []kernel.FieldError
 	for _, path := range in.keys() {
-		if view.Writable[path] || s.actionMayWrite(wc, ct, path) {
+		if s.actionMayWrite(wc, ct, path) {
+			continue
+		}
+		if view.Writable[path] {
+			fd, _ := ct.Field(path)
+			if fd == nil || s.holdsWriteRole(ctx, wc.Principal, fd.Write.RolesFor(aud), roleOn) {
+				continue
+			}
+			errs = append(errs, kernel.FieldError{Path: path, Code: "not_writable", Message: "field is writable by " + fd.Write.String() + " only"})
 			continue
 		}
 		fd, _ := ct.Field(path)
@@ -969,19 +981,41 @@ func (s *Service) checkWritable(wc WriteContext, ct *schemaapi.CompiledType, aud
 	return nil
 }
 
+// holdsWriteRole reports whether p holds one of roles on roleOn (app-wide
+// or through a grant); no roles means no role is needed.
+func (s *Service) holdsWriteRole(ctx context.Context, p accessapi.Principal, roles []string, roleOn *accessapi.FeatureRef) bool {
+	if len(roles) == 0 {
+		return true
+	}
+	hasRole, _ := s.d.Authorizer.Bindings(ctx, p)[rt.FnHasRole].(func(any, string) bool)
+	if hasRole == nil {
+		return false
+	}
+	data := map[string]any{}
+	if roleOn != nil {
+		data = roleOn.Data
+	}
+	for _, r := range roles {
+		if hasRole(data, r) {
+			return true
+		}
+	}
+	return false
+}
+
 // actionMayWrite reports whether the running action unlocks the field.
 func (s *Service) actionMayWrite(wc WriteContext, ct *schemaapi.CompiledType, path string) bool {
 	if wc.Action == "" {
 		return false
 	}
 	fd, ok := ct.Field(path)
-	if !ok || fd.Write.Kind != schemaapi.WriteAction {
+	if !ok {
 		return false
 	}
-	if fd.Write.Action == wc.Action {
+	if fd.Write.Unlocks(wc.Action) {
 		return true
 	}
-	if sm, ok := ct.StateMachines[path]; ok && fd.Write.Action == "transition" {
+	if sm, ok := ct.StateMachines[path]; ok && fd.Write.Unlocks("transition") {
 		for _, t := range sm.Transitions {
 			if t.Action == wc.Action {
 				return true

@@ -23,6 +23,10 @@ const (
 	OpPrefix   Op = "prefix"
 	OpContains Op = "contains"
 	OpExists   Op = "exists"
+	// OpIContains and OpIPrefix match text ignoring case and accents
+	// (kernel.FoldText).
+	OpIContains Op = "icontains"
+	OpIPrefix   Op = "iprefix"
 )
 
 // IsRange reports whether op needs the RangeFilters capability.

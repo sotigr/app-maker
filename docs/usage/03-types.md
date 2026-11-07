@@ -92,8 +92,8 @@ On fields:
 | --- | --- |
 | `x-indexed` | Index for queries and sorting (scalars and lists of scalars). Unindexed fields can only be filtered on small types. |
 | `x-searchable` | Include in full-text search (strings). |
-| `x-visibility` | `public` (default), `owner` (owners, admins, system), `private` (system only; admins cannot read either), `system`. |
-| `x-write` | Who may write: `any` (default, subject to policy), `owner`, `admin`, `system`, or `action:<name>` (only that action, e.g. state machines use `action:transition`). |
+| `x-visibility` | `public` (default), `member` (signed-in users, teams, and service accounts; not anonymous visitors or share links), `owner` (owners, admins, system), `private` (system only; admins cannot read either), `system`. |
+| `x-write` | Who may write: `any` (default, subject to policy), `owner`, `admin`, `system`, `action:<name>` (only that action, e.g. state machines use `action:transition`), or `role:<name>` (callers holding the role app-wide or through a grant on the feature; on create, on the parent; admins always). A list allows any of its rules: `["action:addLine", "action:receive", "role:manager"]`. Policies still decide whether the write happens at all. |
 | `x-immutable` | Set on create, never changed. |
 | `readOnly` / `writeOnly` | Never accepted from clients / never returned. |
 | `x-ref`, `x-onDelete` | Target of a ref, and what happens when the target is deleted: `restrict`, `setNull` (field must be nullable), or `dangle`. |

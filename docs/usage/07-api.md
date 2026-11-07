@@ -60,7 +60,9 @@ POST /v1/query
 }
 ```
 
-Operators: `eq ne lt lte gt gte in nin prefix contains exists`;
+Operators: `eq ne lt lte gt gte in nin prefix icontains iprefix contains exists`
+(`icontains`/`iprefix`: text containing or starting with the value, ignoring
+case and accents, so `"παπα"` finds "Παπαδόπουλος"; string fields only);
 combine with `and`, `or`, `not` (at most 20 predicates, depth 4). Filter
 and sort on `x-indexed` fields. The answer is `{items, next}`; pass
 `"cursor": next` for the next page (max 500 per page). Only readable
