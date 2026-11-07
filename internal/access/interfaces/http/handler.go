@@ -138,6 +138,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/auth/oidc/{provider}/start", h.oidcStart)
 	mux.HandleFunc("GET /v1/auth/oidc/{provider}/callback", h.oidcCallback)
 	mux.HandleFunc("POST /v1/auth/users/{id}/oidc-invite", h.oidcInvite)
+	h.registerAdmin(mux)
 }
 
 type principalDTO struct {
@@ -260,13 +261,16 @@ func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 		DisplayName string   `json:"displayName"`
 		Password    string   `json:"password"`
 		Roles       []string `json:"roles"`
+		// Invite creates the user without a password, to sign in through
+		// an OIDC invite (ADR 0027).
+		Invite bool `json:"invite"`
 	}
 	if err := httpserver.DecodeJSON(r, &body); err != nil {
 		httpserver.WriteError(w, r, err)
 		return
 	}
 	id, err := h.auth.CreateUser(r.Context(), accessapi.PrincipalFrom(r.Context()), application.NewUser{
-		Email: body.Email, DisplayName: body.DisplayName, Password: body.Password, Roles: body.Roles})
+		Email: body.Email, DisplayName: body.DisplayName, Password: body.Password, Roles: body.Roles, NoPassword: body.Invite})
 	if err != nil {
 		httpserver.WriteError(w, r, err)
 		return

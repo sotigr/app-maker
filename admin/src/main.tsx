@@ -14,6 +14,11 @@ import { Deploys } from "./pages/Deploys";
 import { Audit } from "./pages/Audit";
 import { UiBuilder } from "./pages/UiBuilder";
 import { UiApp, UiPages, UiStyles } from "./pages/UiPages";
+import { Users } from "./pages/people/Users";
+import { UserPage } from "./pages/people/UserPage";
+import { ServiceAccountPage, ServiceAccounts, TeamPage, Teams } from "./pages/people/Teams";
+import { ConfirmProvider, EmptyState, Spinner, ToastProvider } from "./ui/kit";
+import { IdChip } from "./ui/refs";
 
 export type Principal = { id: string; kind: string; roles: string[] };
 
@@ -33,13 +38,27 @@ function App() {
   useEffect(() => {
     Api.session().then((s) => setMe(s.principal), () => setMe(null));
   }, []);
-  if (me === undefined) return <div className="center">Loading…</div>;
+  if (me === undefined) return <div className="center"><Spinner /></div>;
   if (me === null) return <Login onLogin={() => Api.session().then((s) => setMe(s.principal))} />;
-  const parts = hash.replace(/^#\//, "").split("/");
+  // Routes are #/<section>/<...>?<query>; the query keeps filters.
+  const [route, qs] = hash.replace(/^#\//, "").split("?");
+  const query = Object.fromEntries(new URLSearchParams(qs || ""));
+  const parts = route.split("/");
+  const admin = me.roles.includes("admin") || me.kind === "system";
   let page;
   switch (parts[0]) {
     case "types":
-      page = parts[1] ? <FeatureList type={parts[1]} /> : <Types />;
+      // Principals and grants have their own screens.
+      if (admin && parts[1] === "user") page = <Users />;
+      else if (admin && parts[1] === "team") page = <Teams />;
+      else if (admin && parts[1] === "serviceAccount") page = <ServiceAccounts />;
+      else page = parts[1] ? <FeatureList type={parts[1]} /> : <Types />;
+      break;
+    case "people":
+      if (!admin) page = <EmptyState title="Only admins manage people" />;
+      else if (parts[1] === "teams") page = parts[2] ? <TeamPage id={parts[2]} /> : <Teams />;
+      else if (parts[1] === "service-accounts") page = parts[2] ? <ServiceAccountPage id={parts[2]} /> : <ServiceAccounts />;
+      else page = parts[2] ? <UserPage id={parts[2]} me={me.id} /> : <Users />;
       break;
     case "features":
       page = <FeaturePage type={parts[1]} id={parts[2]} />;
@@ -58,12 +77,14 @@ function App() {
       page = <Deploys />;
       break;
     case "audit":
-      page = <Audit />;
+      page = <Audit key={qs} initial={query} />;
+      break;
+    case "":
+      page = <Types />;
       break;
     default:
-      page = <Types />;
+      page = <EmptyState title="This page does not exist"><a href="#/types">Go to Data</a></EmptyState>;
   }
-  const admin = me.roles.includes("admin") || me.kind === "system";
   const nav = (href: string, label: string) => (
     <a className={hash.startsWith(href) ? "active" : ""} href={href}>
       {label}
@@ -75,6 +96,7 @@ function App() {
         <strong>Organon admin</strong>
         <nav>
           {nav("#/types", "Data")}
+          {admin && nav("#/people", "People")}
           {admin && nav("#/flows", "Flows")}
           {admin && nav("#/ui", "UI")}
           {admin && nav("#/runs", "Runs")}
@@ -82,7 +104,7 @@ function App() {
           {admin && nav("#/audit", "Audit")}
         </nav>
         <span className="who">
-          {me.kind} {me.id.slice(0, 8)} {me.roles.length ? `(${me.roles.join(", ")})` : ""}
+          <IdChip id={me.id} /> {me.roles.length ? <span className="muted">{me.roles.join(", ")}</span> : null}
           <button className="link" onClick={() => Api.logout().finally(() => setMe(null))}>
             Log out
           </button>
@@ -95,6 +117,10 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <ConfirmProvider>
+        <App />
+      </ConfirmProvider>
+    </ToastProvider>
   </StrictMode>,
 );

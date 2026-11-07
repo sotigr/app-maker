@@ -90,6 +90,20 @@ export type FlowDefinition = {
 
 export type FlowInfo = { name: string; version: number; trigger: string; on?: string; file: string; definition: FlowDefinition };
 
+// Account administration (ADR 0027).
+export type AdminMeta = {
+  roles: { name: string; includes: string[] }[];
+  oidc: string[];
+  passwordEnabled: boolean;
+  minPasswordLength: number;
+  mfaAll: boolean;
+  mfaRoles: string[];
+  adminsDisabled: boolean;
+};
+export type Credentials = { password: boolean; login?: string; mfa: boolean; oidc: string[]; keys: number };
+export type KeyInfo = { prefix: string; name: string; createdAt: string };
+export type Invite = { invite: string; expiresAt: string; links: Record<string, string> };
+
 export const Api = {
   session: () => api<{ principal: { id: string; kind: string; roles: string[] } }>("GET", "/v1/auth/session"),
   login: (login: string, password: string) =>
@@ -109,6 +123,17 @@ export const Api = {
   enrollTotp: (ticket?: string) => api<{ secret: string; uri: string; ticket?: string }>("POST", "/v1/auth/mfa/totp/enroll", { ticket }),
   confirmTotp: (code: string, ticket?: string) => api("POST", "/v1/auth/mfa/totp/confirm", { code, ticket }),
   logout: () => api("POST", "/v1/auth/logout"),
+  meta: () => api<AdminMeta>("GET", "/v1/admin/meta"),
+  createUser: (u: { email: string; displayName: string; roles: string[]; password?: string; invite?: boolean }) =>
+    api<{ id: string }>("POST", "/v1/auth/users", u),
+  credentials: (id: string) => api<Credentials>("GET", `/v1/auth/users/${id}/credentials`),
+  setPassword: (id: string, password: string) => api("POST", `/v1/auth/users/${id}/password`, { password }),
+  resetMfa: (id: string) => api("DELETE", `/v1/auth/users/${id}/mfa`),
+  signOutEverywhere: (id: string) => api("DELETE", `/v1/auth/users/${id}/sessions`),
+  oidcInvite: (id: string) => api<Invite>("POST", `/v1/auth/users/${id}/oidc-invite`),
+  keys: (principal: string) => api<{ items: KeyInfo[] }>("GET", `/v1/auth/tokens?principal=${principal}`),
+  createKey: (principal: string, name: string) => api<{ key: string }>("POST", "/v1/auth/tokens", { principal, name }),
+  revokeKey: (principal: string, prefix: string) => api("DELETE", `/v1/auth/tokens/${encodeURIComponent(prefix)}?principal=${principal}`),
   types: () => api<{ types: TypeDescription[] }>("GET", "/v1/schema/types"),
   type: (name: string) => api<TypeDescription>("GET", `/v1/schema/types/${name}`),
   query: (doc: unknown) => api<{ items: FeatureView[]; next?: string }>("POST", "/v1/query", doc),
@@ -155,6 +180,53 @@ export type UiProp = { name: string; kind: string; required?: boolean; enum?: st
 export type UiComponent = { name: string; family: string; doc: string; props: UiProp[] | null; events?: string[]; source?: string };
 export type UiStep = { name: string; doc: string; props: UiProp[] | null; api?: boolean };
 export type UiCatalog = { families: string[]; components: UiComponent[]; steps: UiStep[]; common: UiProp[] };
+
+// Friendly texts for error codes the console shows next to a field.
+const codeText: Record<string, string> = {
+  duplicate_login: "A user with this email already exists.",
+  required: "This field is required.",
+  minLength: "Too short.",
+  maxLength: "Too long.",
+  format: "Not in the expected format.",
+  pattern: "Not in the expected format.",
+  type: "Not the expected kind of value.",
+  enum: "Pick one of the listed values.",
+  not_writable: "You cannot change this field.",
+  immutable: "This field can only be set when creating.",
+};
+
+/** fieldErrors maps a validation problem to messages by top-level field name. */
+export function fieldErrors(e: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!(e instanceof ApiError)) return out;
+  for (const x of e.problem.errors || []) {
+    const key = (x.path || "").replace(/^\//, "").split("/")[0];
+    if (!key || out[key]) continue;
+    const generic = !x.message || x.message === "constraint violated";
+    out[key] = generic ? codeText[x.code] || x.code : x.message;
+  }
+  return out;
+}
+
+/** isConflict reports a stale version (409 version_conflict). */
+export function isConflict(e: unknown): boolean {
+  return e instanceof ApiError && (e.problem.code === "version_conflict" || e.problem.status === 409);
+}
+
+/** message is a one-line, human description of an error for toasts. */
+export function message(e: unknown): string {
+  if (e instanceof ApiError) {
+    const p = e.problem;
+    const errs = p.errors || [];
+    if (errs.length === 1) return `${errs[0].path ? errs[0].path.slice(1) + ": " : ""}${fieldErrors(e)[errs[0].path.slice(1).split("/")[0]] || errs[0].message}`;
+    if (p.code === "forbidden") return p.detail && p.detail !== "forbidden" ? p.detail : "You are not allowed to do this.";
+    if (p.code === "not_found") return "Not found (it may have been deleted).";
+    if (p.code === "unauthenticated") return "Your session has ended; sign in again.";
+    if (isConflict(e)) return "Someone else changed this record; reload and try again.";
+    return p.detail || p.code;
+  }
+  return e instanceof Error ? e.message : String(e);
+}
 
 export function describeError(e: unknown): string {
   if (e instanceof ApiError) {

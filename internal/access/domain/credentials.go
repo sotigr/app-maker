@@ -81,6 +81,15 @@ type CredentialStore interface {
 	PutAPIKey(ctx context.Context, k APIKey) error
 	APIKey(ctx context.Context, hash string) (APIKey, error)
 	DeleteAPIKeysOf(ctx context.Context, principal kernel.ID) error
+	// APIKeysOf lists a principal's keys, oldest first (admin console).
+	APIKeysOf(ctx context.Context, principal kernel.ID) ([]APIKey, error)
+	// DeleteAPIKey revokes the principal's key with prefix; ErrNotFound
+	// when there is none.
+	DeleteAPIKey(ctx context.Context, principal kernel.ID, prefix string) error
+	// PasswordOf returns a principal's password credential.
+	PasswordOf(ctx context.Context, principal kernel.ID) (PasswordCredential, error)
+	// IdentitiesOf lists the external identities linked to a principal.
+	IdentitiesOf(ctx context.Context, principal kernel.ID) ([]Identity, error)
 	// PutIdentity links an identity; linking one already linked to another
 	// principal is a ConstraintError.
 	PutIdentity(ctx context.Context, i Identity) error

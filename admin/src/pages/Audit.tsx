@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Api, AuditRecord, describeError } from "../api";
 
 // Audit log (spec 14.3): who changed what, never the values.
-export function Audit() {
+export function Audit({ initial = {} }: { initial?: Record<string, string> }) {
   const [items, setItems] = useState<AuditRecord[]>([]);
   const [next, setNext] = useState<string>();
-  const [filter, setFilter] = useState({ action: "", actor: "", target: "" });
+  const [filter, setFilter] = useState({ action: initial.action || "", actor: initial.actor || "", target: initial.target || "" });
   const [err, setErr] = useState("");
   const load = (before?: string) => {
     const params: Record<string, string> = { limit: "100" };

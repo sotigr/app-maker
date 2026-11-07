@@ -783,8 +783,11 @@ These are available to the UI, scripts, and `feature.query` nodes.
 - **Authentication:** password sign-in (`POST /v1/auth/password`, cookie
   session with CSRF header, or `"cli": true` for a bearer token), OIDC,
   TOTP MFA, and API keys (`organon token create`; service accounts own
-  their keys). Admins create users with `POST /v1/auth/users` and OIDC
-  invite links with `POST /v1/auth/users/<id>/oidc-invite`.
+  their keys). Admins create users with `POST /v1/auth/users` (a password,
+  or `"invite": true`) and OIDC invite links with
+  `POST /v1/auth/users/<id>/oidc-invite`; account operations (set
+  password, reset MFA, sign out everywhere, list and revoke keys) are in
+  the API guide.
 - **Teams and organizations:** `team` features with `members` (and
   `organization`) can own features and hold grants; members inherit them.
 - **Clients:** `organon codegen ts` generates a typed TypeScript client
@@ -1084,7 +1087,12 @@ plus `migrations/<id>.json`:
 ## 18. Running and operating
 
 **The admin console** at `/admin` (admins only) offers:
-- data browsing and editing with generated forms;
+- **People:** add users with a password or an OIDC invite, roles, grants
+  on records (picked by name), password and two-factor resets, sign-out
+  everywhere, suspension, teams and members, service accounts and their
+  API keys (create, list, revoke);
+- data browsing and editing with generated forms, and an Access section
+  on every record;
 - the visual flow editor and the UI builder (they save files only under
   `organon dev`; elsewhere they are read-only);
 - flow runs with retries of dead-lettered runs, deploys and migration

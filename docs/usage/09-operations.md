@@ -91,6 +91,24 @@ directory it has run before yields to later `organon apply` deploys. New app
 images and `organon apply` therefore both work. `organon dev` always runs the
 directory.
 
+## People and access in the console
+
+`/admin` → **People** manages accounts without typing IDs or JSON:
+
+- **Users:** search by name or email, filter by status and role. **Add
+  user** asks for email, name, roles, and how they sign in: a password you
+  set (or generate; shown once) or, with OIDC providers, an invite link to
+  send. A user's page sets app-wide roles, lists their grants (add one by
+  searching for the record and choosing a role), and handles security:
+  set a new password, create an OIDC invite, reset two-factor, sign out
+  everywhere, suspend or reactivate. API keys are created (shown once) and
+  revoked there too, and recent activity links to the audit log.
+- **Teams:** members are picked by name; the team's grants and roles
+  apply to every member.
+- **Service accounts:** roles, grants, and API keys for integrations.
+- Every record's page in **Data** has an **Access** section: who holds
+  which role on it, directly or through a parent, with add and remove.
+
 ## Roles
 
 | Role | Does |

@@ -1,23 +1,28 @@
-import { useState } from "react";
-import { Api } from "./api";
+import { useId, useState } from "react";
+import { Api, fieldErrors, isConflict, message } from "./api";
 
 // UploadTarget says where uploaded blobs will be set (spec 14.4).
 export type UploadTarget = { type: string; feature?: string; parent?: string };
 
 // SchemaForm renders a form from a create or update view (JSON Schema,
 // spec 13.3: forms are generated from the caller's views).
-export function SchemaForm({ schema, initial, onSubmit, submitLabel, upload }: {
+export function SchemaForm({ schema, initial, onSubmit, submitLabel, upload, onConflict }: {
   schema: any;
   initial?: Record<string, any>;
   onSubmit: (data: Record<string, any>) => Promise<void>;
   submitLabel: string;
   upload?: UploadTarget;
+  /** onConflict is called on 409 version_conflict (someone else saved). */
+  onConflict?: () => void;
 }) {
   const props: Record<string, any> = schema?.properties || {};
   const required: string[] = schema?.required || [];
   const [values, setValues] = useState<Record<string, any>>(() => ({ ...(initial || {}) }));
   const [err, setErr] = useState("");
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [badJSON, setBadJSON] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
+  const baseId = useId();
   const names = Object.keys(props).sort();
   if (names.length === 0) return <p className="muted">Nothing writable for you here.</p>;
   const set = (k: string, v: any) => setValues((old) => ({ ...old, [k]: v }));
@@ -26,6 +31,12 @@ export function SchemaForm({ schema, initial, onSubmit, submitLabel, upload }: {
       onSubmit={async (e) => {
         e.preventDefault();
         setErr("");
+        setErrs({});
+        const bad = Object.keys(badJSON).filter((k) => badJSON[k]);
+        if (bad.length) {
+          setErr("Fix the fields marked invalid first.");
+          return;
+        }
         setBusy(true);
         try {
           const out: Record<string, any> = {};
@@ -38,25 +49,37 @@ export function SchemaForm({ schema, initial, onSubmit, submitLabel, upload }: {
           await onSubmit(out);
           if (!initial) setValues({});
         } catch (x: any) {
-          setErr(x?.message ? String(x.message) : String(x));
+          if (isConflict(x) && onConflict) {
+            onConflict();
+            return;
+          }
+          const fe = fieldErrors(x);
+          setErrs(fe);
+          setErr(Object.keys(fe).length ? "Some fields need attention." : message(x));
         } finally {
           setBusy(false);
         }
       }}
     >
       <div className="grid2">
-        {names.map((k) => (
-          <div key={k}>
-            <label>
-              {props[k].title || k}
-              {required.includes(k) ? " *" : ""}
-            </label>
-            <Field schema={props[k]} value={values[k]} onChange={(v) => set(k, v)}
-              upload={upload && { ...upload, field: k }} />
-          </div>
-        ))}
+        {names.map((k) => {
+          const id = `${baseId}-${k}`;
+          const msg = errs[k] || (badJSON[k] ? "Not valid JSON." : "");
+          return (
+            <div key={k} className={`field${msg ? " invalid" : ""}`}>
+              <label htmlFor={id}>
+                {props[k].title || k}
+                {required.includes(k) ? <span className="req" aria-hidden="true"> *</span> : ""}
+              </label>
+              <Field id={id} invalid={!!msg} schema={props[k]} value={values[k]} onChange={(v) => set(k, v)}
+                upload={upload && { ...upload, field: k }} onJSON={(ok) => setBadJSON((b) => ({ ...b, [k]: !ok }))} />
+              {props[k].description && <div className="help">{props[k].description}</div>}
+              {msg && <div className="field-error" id={`${id}-err`}>{msg}</div>}
+            </div>
+          );
+        })}
       </div>
-      <p className="error">{err}</p>
+      {err && <p className="error" role="alert">{err}</p>}
       <button className="primary" disabled={busy} type="submit">
         {submitLabel}
       </button>
@@ -92,12 +115,16 @@ function BlobField({ value, onChange, target }: { value: any; onChange: (v: any)
   );
 }
 
-function Field({ schema, value, onChange, upload }: { schema: any; value: any; onChange: (v: any) => void; upload?: UploadTarget & { field: string } }) {
+function Field({ id, invalid, schema, value, onChange, upload, onJSON }: {
+  id: string; invalid: boolean; schema: any; value: any; onChange: (v: any) => void;
+  upload?: UploadTarget & { field: string }; onJSON: (ok: boolean) => void;
+}) {
+  const a = { id, "aria-invalid": invalid || undefined, "aria-describedby": invalid ? `${id}-err` : undefined };
   if (isBlob(schema)) return <BlobField value={value} onChange={onChange} target={upload} />;
   const t = baseType(schema);
   if (schema.enum) {
     return (
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
+      <select {...a} value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
         <option value="">—</option>
         {schema.enum.filter((x: any) => x !== null).map((x: string) => (
           <option key={x}>{x}</option>
@@ -107,17 +134,18 @@ function Field({ schema, value, onChange, upload }: { schema: any; value: any; o
   }
   switch (t) {
     case "boolean":
-      return <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />;
+      return <input {...a} type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />;
     case "integer":
     case "number":
-      return <input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} />;
+      return <input {...a} type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} />;
     case "string":
       if (schema.format === "date-time") {
         const local = value ? new Date(value).toISOString().slice(0, 16) : "";
-        return <input type="datetime-local" value={local} onChange={(e) => onChange(e.target.value ? new Date(e.target.value + "Z").toISOString() : "")} />;
+        return <input {...a} type="datetime-local" value={local} onChange={(e) => onChange(e.target.value ? new Date(e.target.value + "Z").toISOString() : "")} />;
       }
       return (
         <input
+          {...a}
           value={value ?? ""}
           placeholder={schema.format === "uuid" ? "feature id" : schema.pattern ? schema.pattern : ""}
           onChange={(e) => onChange(e.target.value)}
@@ -126,12 +154,14 @@ function Field({ schema, value, onChange, upload }: { schema: any; value: any; o
     default:
       return (
         <textarea
+          {...a}
           defaultValue={value === undefined ? "" : JSON.stringify(value, null, 2)}
           onBlur={(e) => {
             try {
               onChange(e.target.value.trim() ? JSON.parse(e.target.value) : "");
+              onJSON(true);
             } catch {
-              /* keep the previous value until the JSON parses */
+              onJSON(false); // shown on the field; saving waits until it parses
             }
           }}
         />

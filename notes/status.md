@@ -364,3 +364,12 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   Brave over CDP (inline PDF, modal opens on click without navigating, Escape closes).
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.
+- Admin console usability plan (approved 2026-11-07; 4 phases). Phase 1 DONE (ADR 0027): server account operations
+  (access/application/admin.go, interfaces/http/admin.go; store APIKeysOf/DeleteAPIKey/PasswordOf/IdentitiesOf;
+  `invite` users; AuthConfig.Roles), console kit (admin/src/ui: kit.tsx toasts/dialogs/confirm/field/badges,
+  refs.tsx IdChip/RefPicker/RolePicker/useMeta, grants.tsx GrantList), People section (pages/people: users with
+  add dialog, user page with roles/grants/security/keys/activity, teams with members, service accounts), Access
+  section and dialogs on FeaturePage, SchemaForm inline errors and 409 dialog, router query strings and 404.
+  Tests: e2e TestAdminAccountOperations, storetest "admin lookups"; browser walkthrough (headless Brave over CDP):
+  add user (short-password error, generated password, sign-in works), grant via pickers, create/revoke key, team
+  member, project Access. Next: phase 2 (data browser), 3 (runs/audit/deploys), 4 (editors, a11y, layout).

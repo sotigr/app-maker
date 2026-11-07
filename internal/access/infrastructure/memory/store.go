@@ -4,6 +4,7 @@ package memory
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 
@@ -138,6 +139,64 @@ func (s *Store) DeleteAPIKeysOf(_ context.Context, p kernel.ID) error {
 		}
 	}
 	return nil
+}
+
+// APIKeysOf implements domain.CredentialStore.
+func (s *Store) APIKeysOf(_ context.Context, p kernel.ID) ([]domain.APIKey, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []domain.APIKey
+	for _, k := range s.keys {
+		if k.PrincipalID == p {
+			out = append(out, k)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].CreatedAt.Before(out[j].CreatedAt)
+		}
+		return out[i].Prefix < out[j].Prefix
+	})
+	return out, nil
+}
+
+// DeleteAPIKey implements domain.CredentialStore.
+func (s *Store) DeleteAPIKey(_ context.Context, p kernel.ID, prefix string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for h, k := range s.keys {
+		if k.PrincipalID == p && k.Prefix == prefix {
+			delete(s.keys, h)
+			return nil
+		}
+	}
+	return kernel.ErrNotFound
+}
+
+// PasswordOf implements domain.CredentialStore.
+func (s *Store) PasswordOf(_ context.Context, p kernel.ID) (domain.PasswordCredential, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, c := range s.passwords {
+		if c.PrincipalID == p {
+			return c, nil
+		}
+	}
+	return domain.PasswordCredential{}, kernel.ErrNotFound
+}
+
+// IdentitiesOf implements domain.CredentialStore.
+func (s *Store) IdentitiesOf(_ context.Context, p kernel.ID) ([]domain.Identity, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []domain.Identity
+	for _, i := range s.identities {
+		if i.PrincipalID == p {
+			out = append(out, i)
+		}
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].Provider+out[a].Subject < out[b].Provider+out[b].Subject })
+	return out, nil
 }
 
 // Limiter is a sliding-window login limiter: Max failures per Window per

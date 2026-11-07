@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -44,6 +45,9 @@ type AuthConfig struct {
 	// PublicURL prefixes share-link URLs (ADR 0020); empty gives
 	// relative URLs.
 	PublicURL string
+	// Roles are app.json roles and the roles each includes, shown by the
+	// admin console (ADR 0027).
+	Roles map[string][]string
 }
 
 // ErrAdminsDisabled is returned for admin principals when admin accounts
@@ -253,6 +257,9 @@ type NewUser struct {
 	DisplayName string
 	Password    string
 	Roles       []string
+	// NoPassword creates a user who signs in through an OIDC invite only
+	// (ADR 0027); Password must then be empty.
+	NoPassword bool
 }
 
 // CreateUser creates a user feature and its password credential. Only
@@ -264,17 +271,28 @@ func (s *AuthService) CreateUser(ctx context.Context, actor accessapi.Principal,
 	if s.cfg.NoAdmins && slices.Contains(u.Roles, "admin") {
 		return kernel.NilID, ErrAdminsDisabled
 	}
-	if len(u.Password) < s.cfg.MinPasswordLength {
+	if u.NoPassword && u.Password != "" {
+		return kernel.NilID, kernel.NewValidationError(kernel.FieldError{Path: "/password", Code: "const",
+			Message: "a user invited through OIDC gets no password"})
+	}
+	if !u.NoPassword && len(u.Password) < s.cfg.MinPasswordLength {
 		return kernel.NilID, kernel.NewValidationError(kernel.FieldError{Path: "/password", Code: "minLength",
-			Message: "password is too short"})
+			Message: fmt.Sprintf("use at least %d characters", s.cfg.MinPasswordLength)})
+	}
+	if strings.TrimSpace(u.Email) == "" {
+		return kernel.NilID, kernel.NewValidationError(kernel.FieldError{Path: "/email", Code: "required", Message: "email is required"})
 	}
 	login := normalizeLogin(u.Email)
 	if _, err := s.store.PasswordByLogin(ctx, login); err == nil {
 		return kernel.NilID, &kernel.ConstraintError{Path: "/email", Code: "duplicate_login"}
 	}
-	hash, err := s.hasher.Hash(u.Password)
-	if err != nil {
-		return kernel.NilID, err
+	var hash string
+	if !u.NoPassword {
+		h, err := s.hasher.Hash(u.Password)
+		if err != nil {
+			return kernel.NilID, err
+		}
+		hash = h
 	}
 	data := map[string]any{"email": login, "displayName": u.DisplayName}
 	if len(u.Roles) > 0 {
@@ -288,9 +306,12 @@ func (s *AuthService) CreateUser(ctx context.Context, actor accessapi.Principal,
 	if err != nil {
 		return kernel.NilID, err
 	}
-	if err := s.store.PutPassword(ctx, domain.PasswordCredential{PrincipalID: id, Login: login, Hash: hash}); err != nil {
-		return kernel.NilID, err
+	if !u.NoPassword {
+		if err := s.store.PutPassword(ctx, domain.PasswordCredential{PrincipalID: id, Login: login, Hash: hash}); err != nil {
+			return kernel.NilID, err
+		}
 	}
+	s.audit(ctx, actor.ID, "user_created", "user "+id.String())
 	return id, nil
 }
 

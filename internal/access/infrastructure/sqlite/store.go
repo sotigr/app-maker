@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS access_sessions (
   expires_at   TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS access_sessions_principal ON access_sessions (principal_id);
+CREATE INDEX IF NOT EXISTS access_passwords_principal ON access_passwords (principal_id);
 CREATE TABLE IF NOT EXISTS access_api_keys (
   hash         TEXT PRIMARY KEY,
   prefix       TEXT NOT NULL,
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS access_identities (
   created_at   TEXT NOT NULL,
   PRIMARY KEY (provider, subject)
 );
+CREATE INDEX IF NOT EXISTS access_identities_principal ON access_identities (principal_id);
 CREATE TABLE IF NOT EXISTS access_totp (
   principal_id TEXT PRIMARY KEY,
   secret       BLOB NOT NULL,
@@ -188,6 +190,66 @@ func (s *Store) APIKey(ctx context.Context, h string) (domain.APIKey, error) {
 func (s *Store) DeleteAPIKeysOf(ctx context.Context, p kernel.ID) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM access_api_keys WHERE principal_id = ?`, p.String())
 	return err
+}
+
+// APIKeysOf implements domain.CredentialStore.
+func (s *Store) APIKeysOf(ctx context.Context, p kernel.ID) ([]domain.APIKey, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT hash, prefix, principal_id, name, created_at FROM access_api_keys
+		WHERE principal_id = ? ORDER BY created_at, prefix`, p.String())
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []domain.APIKey
+	for rows.Next() {
+		var k domain.APIKey
+		var pid, created string
+		if err := rows.Scan(&k.Hash, &k.Prefix, &pid, &k.Name, &created); err != nil {
+			return nil, err
+		}
+		k.PrincipalID, k.CreatedAt = p, parseTS(created)
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+// DeleteAPIKey implements domain.CredentialStore.
+func (s *Store) DeleteAPIKey(ctx context.Context, p kernel.ID, prefix string) error {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM access_api_keys WHERE principal_id = ? AND prefix = ?`, p.String(), prefix)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return kernel.ErrNotFound
+	}
+	return nil
+}
+
+// PasswordOf implements domain.CredentialStore.
+func (s *Store) PasswordOf(ctx context.Context, p kernel.ID) (domain.PasswordCredential, error) {
+	c := domain.PasswordCredential{PrincipalID: p}
+	err := s.db.QueryRowContext(ctx, `SELECT login, hash FROM access_passwords WHERE principal_id = ? LIMIT 1`, p.String()).Scan(&c.Login, &c.Hash)
+	return c, notFound(err)
+}
+
+// IdentitiesOf implements domain.CredentialStore.
+func (s *Store) IdentitiesOf(ctx context.Context, p kernel.ID) ([]domain.Identity, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT provider, subject, created_at FROM access_identities WHERE principal_id = ? ORDER BY provider, subject`, p.String())
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []domain.Identity
+	for rows.Next() {
+		i := domain.Identity{PrincipalID: p}
+		var created string
+		if err := rows.Scan(&i.Provider, &i.Subject, &created); err != nil {
+			return nil, err
+		}
+		i.CreatedAt = parseTS(created)
+		out = append(out, i)
+	}
+	return out, rows.Err()
 }
 
 // PutIdentity implements domain.CredentialStore.

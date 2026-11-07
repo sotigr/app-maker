@@ -19,8 +19,26 @@ to `/`; scripts send `Authorization: Link <token>`.
 
 Other: `GET /v1/auth/session` (the principal, with `locale` when the user
 saved a UI language), `POST /v1/auth/logout`, `POST /v1/auth/users`
-(admins create users). Users set their UI language by updating `locale` on
-their own `user` feature.
+(admins create users: `{email, displayName, roles, password}`, or
+`"invite": true` instead of a password for a user who signs in through an
+OIDC invite). Users set their UI language by updating `locale` on their own
+`user` feature.
+
+Account administration (ADR 0027; admins unless noted, all audited, no
+secret is ever returned):
+
+| Request | Does |
+| --- | --- |
+| `GET /v1/admin/meta` | App roles (and what each includes), OIDC providers, password minimum, MFA rules. |
+| `GET /v1/auth/users/<id>/credentials` | `{password, login, mfa, oidc, keys}`: how a principal signs in (also for the principal itself). |
+| `POST /v1/auth/users/<id>/password` `{password}` | Sets a user's password (creating it for invited users) and signs them out everywhere. |
+| `DELETE /v1/auth/users/<id>/mfa` | Resets two-factor authentication (lost device). |
+| `DELETE /v1/auth/users/<id>/sessions` | Signs a principal out everywhere (also for yourself). |
+| `GET /v1/auth/tokens?principal=<id>` | Lists API keys `{prefix, name, createdAt}` (yours, a service account you own, or any as admin). |
+| `DELETE /v1/auth/tokens/<prefix>?principal=<id>` | Revokes one key at once. |
+
+Suspending a principal (`status: suspended`) ends its access at the next
+request, sessions and keys included.
 
 ## Features
 

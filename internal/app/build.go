@@ -240,6 +240,7 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 	authCfg.Audit = rt.Content.AppendAudit
 	authCfg.NoAdmins = cfg.Admin.DisableAccounts
 	authCfg.PublicURL = cfg.HTTP.PublicURL
+	authCfg.Roles = c.Manifest.App.Roles
 	rt.Auth = accessapp.NewAuthService(store, hasher, accessmem.NewLimiter(10, 15*time.Minute, opt.Clock), sys, sys, index, opt.Clock, authCfg)
 	settings := c.Manifest.App.Settings
 	if rt.LLM, err = llmRouter(cfg, c, secrets, opt); err != nil {
