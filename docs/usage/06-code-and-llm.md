@@ -42,10 +42,14 @@ Rules:
   the `inputSchema` properties (type-checked by `organon validate`); the output
   is validated before later nodes see it.
 - `ctx` provides `get_feature(id)`, `query(type, where=, sort=, scope=, limit=)`,
-  `http(method, url, headers=, body=, auth=)` (through the egress policy;
+  `http(method, url, headers=, body=, raw_body=, form=, auth=)` (through
+  the egress policy; one of `body` (JSON), `raw_body` (a `str` sent as is,
+  e.g. XML with a `Content-Type` header), or `form` (URL-encoded dict);
   `auth={"secret": "stripe", "header": "Authorization", "prefix": "Bearer "}`
   names a secret the node lists in `"secrets": ["stripe"]`, which the
-  engine adds so your code never sees it),
+  engine adds so your code never sees it; `auth` may be a list, and
+  `{"secret": ..., "form": "client_secret"}` fills a form field; the
+  response `body` is JSON or text, 4xx answers are returned and 5xx raise),
   `llm(prompt=, model=, system=, schema=, max_tokens=, messages=)`,
   `log(msg, **fields)`, `idempotency_key` (stable across retries of the
   same run and node), and `remaining_ms()`. Host calls fail with

@@ -107,7 +107,14 @@ func TestValidationRules(t *testing.T) {
 		// ADR 0019: secrets only in http.request headers and url, only with hosts.
 		{"secret in an http.request body", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
 			"nodes":{"a":{"node":"http.request","in":{"url":"'https://api.stripe.com/x'","body":{"k":"'${secret:stripe}'"}}}}}`,
-			"/nodes/a/in/body/k", "only be used in headers and url"},
+			"/nodes/a/in/body/k", "only be used in headers, url, and form"},
+		// ADR 0025: raw bodies never carry secrets; one body per request.
+		{"secret in an http.request rawBody", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"http.request","in":{"url":"'https://api.stripe.com/x'","rawBody":"'<k>${secret:stripe}</k>'"}}}}`,
+			"/nodes/a/in/rawBody", "only be used in headers, url, and form"},
+		{"two http.request bodies", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
+			"nodes":{"a":{"node":"http.request","in":{"url":"'https://api.stripe.com/x'","body":{"a":"1"},"form":{"a":"'1'"}}}}}`,
+			"/nodes/a/in/form", "one of body, rawBody, or form"},
 		{"secret in another node", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},
 			"nodes":{"a":{"node":"expr","in":{"expr":"'${secret:stripe}'"}}}}`, "/nodes/a/in/expr", "cannot use secrets"},
 		{"secret without allowed hosts", `{"flow":"f","trigger":{"action":"x","on":"urn:app:feature:task"},

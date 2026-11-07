@@ -264,3 +264,65 @@ func TestGap35And45WriteRules(t *testing.T) {
 	             { "as": "ben", "action": "takeStock", "on": "t", "expect": { "ok": true, "feature": { "stock": 4 } } },
 	             { "as": "eve", "create": "task", "parent": "p", "data": { "title": "U", "approved": true }, "expect": { "ok": true } }] }]`)
 }
+
+// runGap runs manifest tests against the tracker after edit and returns
+// the results, for tests that expect failures.
+func runGap(t *testing.T, edit func(m *manifestdomain.Manifest), test string) []TestResult {
+	t.Helper()
+	m, err := manifestfs.Load("../../examples/tracker", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Tests = []manifestdomain.File{{Path: "tests/gap.test.json", Data: []byte(test)}}
+	edit(m)
+	c, err := Compile(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := RunManifestTests(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res
+}
+
+// Gap 50 (ADR 0025): HTTP fixtures answer with text and headers, and check
+// the request's content type and body; a call no fixture accepts fails.
+func TestGap50HTTPFixtures(t *testing.T) {
+	addFlow := func(m *manifestdomain.Manifest) {
+		m.Flows = append(m.Flows, manifestdomain.File{Path: "flows/send.json", Data: []byte(`{
+		  "flow": "send", "trigger": { "action": "send", "on": "urn:app:feature:task" },
+		  "output": { "type": "object", "properties": { "status": { "type": "integer" }, "body": { "type": "string" }, "ctype": { "type": "string" } } },
+		  "nodes": { "r": { "node": "http.request", "in": { "method": "'POST'", "url": "'https://mydataapidev.aade.gr/SendInvoices'",
+		      "headers": { "Content-Type": "'application/xml; charset=utf-8'" },
+		      "rawBody": "'<InvoicesDoc><invoiceType>2.1</invoiceType><title>' + feature.title + '</title></InvoicesDoc>'" } } },
+		  "result": { "status": "nodes.r.out.status", "body": "nodes.r.out.body", "ctype": "nodes.r.out.headers['Content-Type']" } }`)})
+		replaceFile(t, m.Policies, "policies/task.json", `"triage":`, `"send": "true", "triage":`)
+	}
+	test := func(contains string) string {
+		return `[{"name": "send", "given": {
+		    "principals": { "ana": { "kind": "user" } },
+		    "features": [ { "ref": "p", "type": "project", "owner": "ana", "data": { "title": "P" } },
+		                  { "ref": "t", "type": "task", "parent": "p", "owner": "ana", "data": { "title": "T" } } ] },
+		  "steps": [ { "as": "ana", "action": "send", "on": "t",
+		    "expect": { "ok": true, "output": { "status": 200, "ctype": "application/xml", "body": "<ResponseDoc><invoiceMark>4001</invoiceMark></ResponseDoc>" } } } ],
+		  "http": [ { "method": "POST", "url": "https://mydataapidev.aade.gr/SendInvoices",
+		    "request": { "contentType": "application/xml", "bodyContains": "` + contains + `" },
+		    "status": 200, "headers": { "Content-Type": "application/xml" },
+		    "text": "<ResponseDoc><invoiceMark>4001</invoiceMark></ResponseDoc>" } ] }]`
+	}
+	if res := runGap(t, addFlow, test("<invoiceType>2.1</invoiceType>")); !res[0].Passed {
+		t.Fatalf("matching fixture: %v", res[0].Failures)
+	}
+	res := runGap(t, addFlow, test("<invoiceType>1.1</invoiceType>"))
+	if res[0].Passed || !strings.Contains(strings.Join(res[0].Failures, " "), "body does not contain") {
+		t.Fatalf("a request the fixture does not accept must fail the step: %+v", res[0])
+	}
+	res = runGap(t, func(m *manifestdomain.Manifest) {
+		addFlow(m)
+		replaceFile(t, m.Flows, "flows/send.json", "SendInvoices", "CancelInvoice")
+	}, test("<invoiceType>2.1</invoiceType>"))
+	if res[0].Passed || !strings.Contains(strings.Join(res[0].Failures, " "), "no HTTP fixture") {
+		t.Fatalf("an unmatched call must fail the step: %+v", res[0])
+	}
+}

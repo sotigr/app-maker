@@ -449,7 +449,7 @@ failed run (`when_failed`); it is never silently false.
 | `webhook.call` | Effect | url*, payload, secret | POSTs signed JSON after commit. |
 | `emit` | Effect | event*, feature*, data | Raises a custom event such as `task.reminded`, which can trigger event flows. |
 | `document.render` | External | template*, vars, type*, field* | Renders `templates/documents/<template>.json` to PDF, stored for that Blob field; output is the file value for `feature.update` (§11). |
-| `http.request` | External | url*, method, headers, body | Calls an outside HTTP API (private networks are blocked; JSON body; response ≤ 1 MiB; 5xx and 429 are retryable). Output `{status, body, headers}`. `${secret:x}` allowed in header values and the URL query (§11). |
+| `http.request` | External | url*, method, headers, one of body / rawBody / form | Calls an outside HTTP API (private networks are blocked; `body` is sent as JSON, `rawBody` as text exactly as given (XML), `form` URL-encoded; bodies and responses ≤ 1 MiB; 4xx is output, 5xx and 429 are retryable). Output `{status, body, headers}`; `body` is JSON for JSON responses, text otherwise. `${secret:x}` allowed in header values, the URL query, and `form` values (§11). |
 | `llm.complete` | External | prompt, model, system, messages, maxTokens, temperature, streamTo | §10. |
 | `python` | Code | from `inputSchema` | §9. |
 | `if` | Control | cond* | Branch with `when: "nodes.<if>.out"`. |
@@ -547,11 +547,16 @@ def run(input, ctx):
   - `get_feature(id)`;
   - `query(type, where=, sort=, scope=, limit=)`;
   - `llm(prompt=, model=, system=, schema=, max_tokens=, messages=)`;
-  - `http(method, url, headers=, body=, auth=)`: an outside API through the
-    egress policy, returning `{status, body, headers}`.
+  - `http(method, url, headers=, body=, raw_body=, form=, auth=)`: an
+    outside API through the egress policy, returning `{status, body,
+    headers}` (as `http.request`, §11). Give at most one of `body` (JSON),
+    `raw_body` (a `str` sent as is: XML; set `Content-Type` in `headers`),
+    or `form` (a dict, URL-encoded).
     `auth={"secret": "stripe", "header": "Authorization", "prefix": "Bearer "}`
     names a secret listed in the node's `"secrets"`; the engine adds it, so
-    your code never sees the value;
+    your code never sees the value. `auth` may be a list (several secret
+    headers), and `{"secret": "viva", "form": "client_secret"}` puts a
+    secret into a form field;
   - `log(msg, **fields)`;
   - `idempotency_key`;
   - `remaining_ms()`.
@@ -619,6 +624,31 @@ You are now the assignee of "{{.title}}".
 - `webhook.call` POSTs signed JSON after the commit.
 - `http.request` calls an outside API synchronously.
 
+**Request and response bodies.** Give at most one body (`validate` rejects
+two):
+
+| Input | Sent as | Content-Type unless a header sets one |
+| --- | --- | --- |
+| `body` | JSON (an object, list, or value; a text value becomes a JSON string) | `application/json` |
+| `rawBody` | the text exactly as given, UTF-8 (XML, CSV, SOAP) | `text/plain; charset=utf-8` |
+| `form` | `a=1&b=x+y`, URL-encoded; values are text, numbers, or booleans | `application/x-www-form-urlencoded` |
+
+- A `Content-Type` header set by the flow always wins (e.g.
+  `'application/xml; charset=utf-8'` with `rawBody`). Bodies are limited
+  to 1 MiB.
+- `${secret:name}` works in `form` values (OAuth `client_secret`), with
+  the same host check as headers; never in `body` or `rawBody`. Build XML
+  in a `template` or `python` node and pass it as `rawBody`.
+- The response `body` is parsed JSON when the response is JSON (or has no
+  type), and text otherwise (XML, HTML), decoded by its charset; parse XML
+  in Python with `xml.etree.ElementTree`. `headers` holds the response
+  headers.
+- 4xx answers are output (`status` 400 with the provider's error document
+  in `body`): check `nodes.x.out.status`. 5xx, 429, and network errors
+  fail the node and are retried with `retry`.
+- Run records keep node inputs, including bodies, only with
+  `trace: true`.
+
 **Authenticating to outside APIs.** Write `${secret:name}` inside header
 values or the URL query string of `http.request`. The engine puts the
 value into the request after evaluation, so it never appears in
@@ -628,13 +658,26 @@ expressions or run records. Each secret must list its hosts in `app.json`
 ```json
 "charge": { "node": "http.request",
   "in": { "method": "'POST'", "url": "'https://api.stripe.com/v1/payment_intents'",
-          "headers": { "Authorization": "'Bearer ${secret:stripe}'" }, "body": { "amount": "nodes.total.out" } } }
+          "headers": { "Authorization": "'Bearer ${secret:stripe}'" },
+          "form": { "amount": "nodes.total.out", "currency": "'eur'" } } }
 ```
 
-- In Python, list `"secrets": ["stripe"]` on the node and call
-  `ctx.http("POST", url, body=..., auth={"secret": "stripe", "prefix": "Bearer "})`.
-- Secrets anywhere else (`body`, URL path or host, other nodes) are
-  validation errors. Missing secrets fail the node with `secret_missing`.
+An XML API with two secret headers (AADE myDATA):
+
+```json
+"send": { "node": "http.request", "retry": { "max": 2, "backoff": "exponential" },
+  "in": { "method": "'POST'", "url": "env.mydataUrl + '/SendInvoices'",
+          "headers": { "aade-user-id": "'${secret:mydata-user}'", "ocp-apim-subscription-key": "'${secret:mydata-key}'",
+                       "Content-Type": "'application/xml; charset=utf-8'" },
+          "rawBody": "nodes.xml.out.xml" } }
+```
+
+- In Python, list `"secrets": ["mydata-user", "mydata-key"]` on the node and call
+  `ctx.http("POST", url, raw_body=xml, headers={"Content-Type": "application/xml; charset=utf-8"},
+  auth=[{"secret": "mydata-user", "header": "aade-user-id"}, {"secret": "mydata-key", "header": "ocp-apim-subscription-key"}])`.
+- Secrets anywhere else (`body`, `rawBody`, URL path or host, other
+  nodes) are validation errors. Missing secrets fail the node with
+  `secret_missing`.
 
 **PDF documents** (invoices, job cards, receipts). Describe the layout in
 `templates/documents/<name>.json`; `document.render` fills it and stores
@@ -990,6 +1033,12 @@ fixtures.
   for `read` steps, of what the caller sees: `"staffNote": null` checks a
   field is hidden), `output`, `count`, `effects`, `visible`.
 - Outbound HTTP that no fixture matches fails the step.
+- **HTTP fixtures:** `{method, url, status, body}` answers JSON;
+  `"text": "<ResponseDoc>...</ResponseDoc>"` with
+  `"headers": {"Content-Type": "application/xml"}` answers text.
+  `"request": {"contentType": "application/xml", "bodyContains": "<invoiceType>2.1</invoiceType>", "header": {...}}`
+  makes the fixture answer only requests that match, so a test proves
+  what was sent (a mismatch fails the step and says why).
 - **Required coverage:**
   - at least one allowed and one denied case per policy decision and per
     action;
@@ -1090,7 +1139,9 @@ runs; `organon export`/`import` for a logical NDJSON copy of the data.
 | A translation error about `{{ }}` | The translation must keep the same `{{ }}` expressions. |
 | Python node wants to write | Return data; add a `feature.update` node. |
 | Model ID in a manifest | Use an alias: `'default'` or `'fast'`. |
-| `secrets may only be used in headers and url` | Move the secret into a header value or the URL query string. |
+| `secrets may only be used in headers, url, and form` | Move the secret into a header value, the URL query string, or a `form` value; never in `body` or `rawBody`. |
+| `http.request takes one of body, rawBody, or form` | Keep one body: `rawBody` for XML/text, `form` for form posts, `body` for JSON. |
+| An API rejects the body (it wants XML or a form) | Use `rawBody` with a `Content-Type` header, or `form`; `body` always sends JSON. |
 | `secret x has no allowed hosts` | Add `"secrets": {"x": {"hosts": ["api.example.com"]}}` to `app.json`. |
 | `secret x may not be sent to <host>` (at run time) | Call the declared host, or add the host to the secret's list. |
 | `secret_missing` | Set `ORGANON_SECRET_<NAME>` on the server. |

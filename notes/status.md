@@ -348,5 +348,11 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   RolesFor; pipeline checkWritable checks roles via the hasRole binding on the feature or create parent;
   TestGap35And45). #18 `date()` accepts times (expression dateFunction wraps expr's date; TestGap18), date helpers
   documented. R2 DONE.
+- R5 #50 DONE (ADR 0025, ahead of R3/R4 on request): `http.request` `rawBody`/`form` (requestBody, MaxHTTPBody 1 MiB,
+  responseBody by content type + htmlindex charset; x/text/encoding/htmlindex added to depguard pure libs); validate
+  rejects two bodies and secrets outside headers/url/form; `ctx.http(raw_body=, form=, auth=[...])` (engine codeAuth);
+  manifest-test fixtures `text`, `headers`, `request{contentType, bodyContains, header}`. Tests: e2e TestHTTPRequestBodies,
+  TestPythonHTTPRawBodyAndAuthList; app TestGap50HTTPFixtures; flow domain validation cases. #51 (unsigned webhooks) open.
+  Known flake: e2e TestRequestLimits can count 601 under full -race load (bucket refill); passes alone.
 - Open: no browser-automation tests in CI (checked by hand with headless Brave); preview "as" changes only
   `principal` in expressions (data is read as the admin); assets upload limited by the 1 MiB body limit.

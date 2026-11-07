@@ -87,8 +87,8 @@ itself on the same feature, or a chain deeper than 8, is stopped
 
 ## Secrets and signatures
 
-`http.request` may use `${secret:name}` in header values and the URL query
-string. The engine puts the value into the request after evaluating the
+`http.request` may use `${secret:name}` in header values, the URL query
+string, and `form` values. The engine puts the value into the request after evaluating the
 inputs, only for hosts listed in `app.json` `secrets.<name>.hosts`; run
 records keep the reference.
 
@@ -96,7 +96,40 @@ records keep the reference.
 "charge": { "node": "http.request",
   "in": { "method": "'POST'", "url": "'https://api.stripe.com/v1/payment_intents'",
           "headers": { "Authorization": "'Bearer ${secret:stripe}'" },
-          "body": { "amount": "nodes.total.out" } } }
+          "form": { "amount": "nodes.total.out", "currency": "'eur'" } } }
+```
+
+**Request and response bodies.** Give at most one body (`validate` rejects
+two):
+
+| Input | Sent as | Content-Type unless a header sets one |
+| --- | --- | --- |
+| `body` | JSON (an object, list, or value; a text value becomes a JSON string) | `application/json` |
+| `rawBody` | the text exactly as given, UTF-8 (XML, CSV, SOAP) | `text/plain; charset=utf-8` |
+| `form` | `a=1&b=x+y`, URL-encoded; values are text, numbers, or booleans | `application/x-www-form-urlencoded` |
+
+- A `Content-Type` header set by the flow always wins (e.g.
+  `'application/xml; charset=utf-8'` with `rawBody`). Bodies are limited
+  to 1 MiB.
+- `${secret:name}` works in `form` values (OAuth `client_secret`), with
+  the same host check as headers; never in `body` or `rawBody`. Build XML
+  in a `template` or `python` node and pass it as `rawBody`.
+- The response `body` is parsed JSON when the response is JSON (or has no
+  type), and text otherwise (XML, HTML), decoded by its charset; parse XML
+  in Python with `xml.etree.ElementTree`. `headers` holds the response
+  headers.
+- 4xx answers are output (`status` 400 with the provider's error document
+  in `body`): check `nodes.x.out.status`. 5xx, 429, and network errors
+  fail the node and are retried with `retry`.
+- Run records keep node inputs, including bodies, only with
+  `trace: true`.
+
+```json
+"send": { "node": "http.request", "retry": { "max": 2, "backoff": "exponential" },
+  "in": { "method": "'POST'", "url": "env.mydataUrl + '/SendInvoices'",
+          "headers": { "aade-user-id": "'${secret:mydata-user}'", "ocp-apim-subscription-key": "'${secret:mydata-key}'",
+                       "Content-Type": "'application/xml; charset=utf-8'" },
+          "rawBody": "nodes.xml.out.xml" } }
 ```
 
 Inbound webhooks choose how they are signed with `trigger.verify`:
@@ -196,7 +229,7 @@ and `nodes.<name>.error`; inside `forEach`: `item`, `index`, `outer`.
 | `email.send` | Effect | to*, template*, subject, vars, attachments, lang | Sends `templates/email/<template>.txt` after commit (first line `Subject: ...` sets the subject); `lang` picks `<template>.<lang>.txt` when it exists; `attachments` are file values or `{blob, name}` (10 MiB in all). |
 | `webhook.call` | Effect | url*, payload, secret | POSTs signed JSON after commit. |
 | `emit` | Effect | event*, feature*, data | Raises a custom dotted event after commit; flows triggered by it run next. |
-| `http.request` | External | url*, method, headers, body | Calls an HTTP API through the egress policy (private networks blocked). Output `{status, body, headers}`. |
+| `http.request` | External | url*, method, headers, body / rawBody / form | Calls an HTTP API through the egress policy (private networks blocked). `body` is JSON, `rawBody` text sent as is, `form` URL-encoded (one of them). Output `{status, body, headers}`: JSON responses parsed, others as text; 4xx is output, 5xx/429 retryable. |
 | `document.render` | External | template*, vars, type*, field* | Renders `templates/documents/<template>.json` to PDF and stores it for that Blob field; output is the file value to set with `feature.update` ([Documents](#documents)). |
 | `llm.complete` | External | prompt, model, system, messages, maxTokens, temperature, streamTo | Calls a model ([guide 6](06-code-and-llm.md)). |
 | `python` | Code | from `inputSchema` | Runs `nodes/<file>.py` ([guide 6](06-code-and-llm.md)). |

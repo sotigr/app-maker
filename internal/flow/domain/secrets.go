@@ -14,7 +14,7 @@ var SecretRef = regexp.MustCompile(`\$\{secret:([A-Za-z0-9_.-]+)\}`)
 // http.request substitutes them into header values and the URL after
 // evaluation; webhook.call names its signing secret.
 var secretInputs = map[string][]string{
-	"http.request": {"headers", "url"},
+	"http.request": {"headers", "url", "form"},
 	"webhook.call": {"secret"},
 }
 
@@ -36,7 +36,7 @@ func (c *compiler) secretRefs(ptr, node string, in map[string]any) map[string]bo
 				}
 				switch {
 				case !allowed && node == "http.request":
-					c.errf(p, "secrets may only be used in headers and url of http.request")
+					c.errf(p, "secrets may only be used in headers, url, and form of http.request")
 				case !allowed:
 					c.errf(p, "%s cannot use secrets", node)
 				case node == "http.request" && len(c.d.SecretHosts[m[1]]) == 0:
@@ -51,6 +51,23 @@ func (c *compiler) secretRefs(ptr, node string, in map[string]any) map[string]bo
 		})
 	}
 	return out
+}
+
+// httpBodies reports an http.request that sets more than one of body,
+// rawBody, and form (ADR 0025).
+func (c *compiler) httpBodies(ptr, node string, in map[string]any) {
+	if node != "http.request" {
+		return
+	}
+	var set []string
+	for _, k := range []string{"body", "rawBody", "form"} {
+		if _, ok := in[k]; ok {
+			set = append(set, k)
+		}
+	}
+	if len(set) > 1 {
+		c.errf(ptr+"/"+set[1], "http.request takes one of body, rawBody, or form, not %s", strings.Join(set, " and "))
+	}
 }
 
 // codeSecrets checks the secrets a code node declares for ctx.http.

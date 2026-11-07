@@ -101,8 +101,41 @@ type TestEffect struct {
 type HTTPFixture struct {
 	Method string `json:"method,omitempty"`
 	URL    string `json:"url"`
-	Status int    `json:"status"`
-	Body   any    `json:"body,omitempty"`
+	// Request, when set, must match what was sent; otherwise the fixture
+	// does not answer (and an unanswered call fails the step).
+	Request *HTTPRequestMatch `json:"request,omitempty"`
+	Status  int               `json:"status"`
+	// Headers are the response headers; Content-Type defaults to
+	// application/json for Body and text/plain for Text.
+	Headers map[string]string `json:"headers,omitempty"`
+	Body    any               `json:"body,omitempty"` // a JSON response body
+	Text    *string           `json:"text,omitempty"` // a text response body (XML, HTML, ...)
+}
+
+// HTTPRequestMatch checks a request sent to an HTTP fixture (ADR 0025).
+type HTTPRequestMatch struct {
+	ContentType  string            `json:"contentType,omitempty"`  // media type prefix, e.g. application/xml
+	BodyContains string            `json:"bodyContains,omitempty"` // text the body must contain
+	Header       map[string]string `json:"header,omitempty"`       // header values that must match exactly (secrets show as their values)
+}
+
+// mismatch explains why req does not match m, or returns "".
+func (m *HTTPRequestMatch) mismatch(req *http.Request, body []byte) string {
+	if m == nil {
+		return ""
+	}
+	if m.ContentType != "" && !strings.HasPrefix(strings.ToLower(req.Header.Get("Content-Type")), strings.ToLower(m.ContentType)) {
+		return fmt.Sprintf("Content-Type is %q, want %s", req.Header.Get("Content-Type"), m.ContentType)
+	}
+	if m.BodyContains != "" && !bytes.Contains(body, []byte(m.BodyContains)) {
+		return fmt.Sprintf("body does not contain %q", m.BodyContains)
+	}
+	for k, v := range m.Header {
+		if req.Header.Get(k) != v {
+			return fmt.Sprintf("header %s does not match", k)
+		}
+	}
+	return ""
 }
 
 // TestResult is the outcome of one manifest test.
@@ -142,11 +175,35 @@ var effectKinds = map[string]string{"email.send": flowapp.JobDeliverEmail, "webh
 type fixtureHTTP struct{ fixtures []HTTPFixture }
 
 func (f fixtureHTTP) Do(req *http.Request) (*http.Response, error) {
+	var sent []byte
+	if req.Body != nil {
+		sent, _ = io.ReadAll(req.Body)
+	}
+	var why []string
 	for _, fx := range f.fixtures {
-		if fx.URL == req.URL.String() && (fx.Method == "" || strings.EqualFold(fx.Method, req.Method)) {
-			b, _ := json.Marshal(fx.Body)
-			return &http.Response{StatusCode: fx.Status, Body: io.NopCloser(bytes.NewReader(b)), Header: http.Header{"Content-Type": {"application/json"}}}, nil
+		if fx.URL != req.URL.String() || (fx.Method != "" && !strings.EqualFold(fx.Method, req.Method)) {
+			continue
 		}
+		if m := fx.Request.mismatch(req, sent); m != "" {
+			why = append(why, m)
+			continue
+		}
+		h := http.Header{}
+		var b []byte
+		if fx.Text != nil {
+			b = []byte(*fx.Text)
+			h.Set("Content-Type", "text/plain; charset=utf-8")
+		} else {
+			b, _ = json.Marshal(fx.Body)
+			h.Set("Content-Type", "application/json")
+		}
+		for k, v := range fx.Headers {
+			h.Set(k, v)
+		}
+		return &http.Response{StatusCode: fx.Status, Body: io.NopCloser(bytes.NewReader(b)), Header: h}, nil
+	}
+	if len(why) > 0 {
+		return nil, fmt.Errorf("no HTTP fixture for %s %s: %s", req.Method, req.URL.Redacted(), strings.Join(why, "; "))
 	}
 	return nil, fmt.Errorf("no HTTP fixture for %s %s", req.Method, req.URL)
 }

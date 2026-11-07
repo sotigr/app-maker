@@ -699,21 +699,11 @@ func (n *nodeRuntime) host(ctx context.Context, method string, args json.RawMess
 	case "llm.complete":
 		out, err = n.codeLLM(ctx, a)
 	case "http.request":
-		// auth names a secret declared by the node; the engine adds it to
-		// the request, so code never handles the value (ADR 0019).
-		if auth, ok := a["auth"].(map[string]any); ok {
-			h, _ := a["headers"].(map[string]any)
-			if h == nil {
-				h = map[string]any{}
-			}
-			header := str(auth["header"])
-			if header == "" {
-				header = "Authorization"
-			}
-			h[header] = str(auth["prefix"]) + "${secret:" + str(auth["secret"]) + "}"
-			a["headers"] = h
+		// auth names secrets declared by the node; the engine adds them to
+		// the request, so code never handles the values (ADR 0019, 0025).
+		if err = codeAuth(a); err == nil {
+			out, err = httpRequest(ctx, a, n)
 		}
-		out, err = httpRequest(ctx, a, n)
 		var re *retryable
 		if errors.As(err, &re) {
 			err = kernel.NewError("http_failed", "%v", re.err)
@@ -733,6 +723,55 @@ func (n *nodeRuntime) host(ctx context.Context, method string, args json.RawMess
 		return nil, err
 	}
 	return json.Marshal(toWire(out))
+}
+
+// codeAuth applies ctx.http's auth: one entry or a list of
+// {secret, header (default Authorization), prefix} or {secret, form}
+// entries, each writing ${secret:name} into a header or a form field.
+// Either way only secrets the node declares, sent to their hosts, resolve.
+func codeAuth(a map[string]any) error {
+	var entries []any
+	switch x := a["auth"].(type) {
+	case nil:
+	case map[string]any:
+		entries = []any{x}
+	case []any:
+		entries = x
+	default:
+		return kernel.NewError(kernel.CodeValidationFailed, "auth is {secret, header, prefix} or a list of them")
+	}
+	h, _ := a["headers"].(map[string]any)
+	if h == nil {
+		h = map[string]any{}
+	}
+	form, _ := a["form"].(map[string]any)
+	for _, e := range entries {
+		auth, _ := e.(map[string]any)
+		name := str(auth["secret"])
+		if auth == nil || name == "" {
+			return kernel.NewError(kernel.CodeValidationFailed, "each auth entry names a secret")
+		}
+		ref := str(auth["prefix"]) + "${secret:" + name + "}"
+		if field := str(auth["form"]); field != "" {
+			if form == nil {
+				return kernel.NewError(kernel.CodeValidationFailed, "auth with form needs a form body")
+			}
+			form[field] = ref
+			continue
+		}
+		header := str(auth["header"])
+		if header == "" {
+			header = "Authorization"
+		}
+		h[header] = ref
+	}
+	if len(h) > 0 {
+		a["headers"] = h
+	}
+	if form != nil {
+		a["form"] = form
+	}
+	return nil
 }
 
 // codeLLM serves ctx.llm: provider keys stay in the engine (spec 11.7).

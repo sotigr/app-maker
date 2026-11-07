@@ -58,13 +58,23 @@ class Context:
         out = self._call("llm.complete", args)
         return out if schema is not None else out.get("text")
 
-    def http(self, method, url, headers=None, body=None, auth=None):
-        """Calls an HTTP API through the engine's egress policy. ``auth`` is
-        ``{"secret": name, "header": "Authorization", "prefix": "Bearer "}``
-        for a secret the node declares; the engine adds it, so the value
-        never reaches this process. Returns ``{status, body, headers}``."""
+    def http(self, method, url, headers=None, body=None, auth=None, raw_body=None, form=None):
+        """Calls an HTTP API through the engine's egress policy.
+
+        Give at most one body: ``body`` (sent as JSON), ``raw_body`` (text
+        sent byte for byte, ``text/plain`` unless ``headers`` sets a
+        Content-Type, e.g. XML), or ``form`` (a dict sent URL-encoded).
+        ``auth`` is ``{"secret": name, "header": "Authorization", "prefix":
+        "Bearer "}`` or ``{"secret": name, "form": "client_secret"}``, or a
+        list of them, for secrets the node declares; the engine adds them,
+        so the values never reach this process. Returns ``{status, body,
+        headers}``: ``body`` is parsed JSON for JSON responses and text
+        otherwise; 4xx answers are returned, 5xx and 429 raise."""
+        if raw_body is not None and not isinstance(raw_body, str):
+            raise TypeError("raw_body must be a str")
         args = {"method": method, "url": url}
-        for k, v in (("headers", headers), ("body", body), ("auth", auth)):
+        for k, v in (("headers", headers), ("body", body), ("auth", auth),
+                     ("rawBody", raw_body), ("form", form)):
             if v is not None:
                 args[k] = v
         return self._call("http.request", args)

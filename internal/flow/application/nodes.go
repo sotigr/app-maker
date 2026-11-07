@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 	"text/template"
 	"time"
+
+	"golang.org/x/text/encoding/htmlindex"
 
 	contentapi "organon/internal/content/api"
 	"organon/internal/flow/domain"
@@ -249,7 +252,9 @@ func Builtins() []domain.NodeType {
 			}},
 		&builtin{name: "http.request", kind: domain.KindExternal, desc: "Calls an HTTP API through the egress policy (GET, HEAD, or idempotent calls).",
 			inputs: []domain.Param{param("url", rt.String, true, "URL"), param("method", rt.String, false, "GET by default"),
-				mapParam("headers", "request headers"), param("body", rt.Any, false, "JSON body")},
+				mapParam("headers", "request headers"), param("body", rt.Any, false, "JSON body"),
+				param("rawBody", rt.String, false, "text body sent as is (text/plain unless a Content-Type header is set), e.g. XML"),
+				mapParam("form", "form fields sent as application/x-www-form-urlencoded; values may use ${secret:name}")},
 			out:  rt.MapOf(map[string]*rt.Type{"status": rt.Int, "body": rt.Any, "headers": rt.OpenMap()}),
 			exec: httpRequest},
 		&builtin{name: "llm.complete", kind: domain.KindExternal,
@@ -513,27 +518,102 @@ func secretURL(raw string, r domain.Runtime) (string, error) {
 	return base + "?" + q, nil
 }
 
-// httpRequest serves http.request and code nodes' ctx.http (ADR 0019).
+// MaxHTTPBody bounds an outbound request body of any kind (JSON, raw, or
+// form), like the response body (ADR 0025).
+const MaxHTTPBody = 1 << 20
+
+// requestBody builds the body of an outbound request from exactly one of
+// body (JSON), rawBody (text, sent byte for byte), or form (URL-encoded;
+// values may hold secrets for host). It returns the default content type.
+func requestBody(in map[string]any, host string, r domain.Runtime) ([]byte, string, error) {
+	var set []string
+	for _, k := range []string{"body", "rawBody", "form"} {
+		if v, ok := in[k]; ok && v != nil {
+			set = append(set, k)
+		}
+	}
+	if len(set) > 1 {
+		return nil, "", kernel.NewError(kernel.CodeValidationFailed, "http.request takes one of body, rawBody, or form, not %s", strings.Join(set, " and "))
+	}
+	if len(set) == 0 {
+		return nil, "", nil
+	}
+	var raw []byte
+	ctype := "application/json"
+	switch set[0] {
+	case "body":
+		b, err := json.Marshal(toWire(in["body"]))
+		if err != nil {
+			return nil, "", err
+		}
+		raw = b
+	case "rawBody":
+		s, ok := in["rawBody"].(string)
+		if !ok {
+			return nil, "", kernel.NewError(kernel.CodeValidationFailed, "rawBody must be text")
+		}
+		raw, ctype = []byte(s), "text/plain; charset=utf-8"
+	case "form":
+		fields, ok := in["form"].(map[string]any)
+		if !ok {
+			return nil, "", kernel.NewError(kernel.CodeValidationFailed, "form must be an object of text values")
+		}
+		vals := url.Values{}
+		for k, v := range fields {
+			if v == nil {
+				continue
+			}
+			switch v.(type) {
+			case map[string]any, []any:
+				return nil, "", kernel.NewError(kernel.CodeValidationFailed, "form field %s must be text, a number, or a boolean", k)
+			}
+			text, isStr := v.(string)
+			if !isStr {
+				text = fmt.Sprint(toWire(v)) // numbers, decimals, times, and booleans as JSON writes them
+			}
+			val, err := withSecrets(text, host, r, false)
+			if err != nil {
+				return nil, "", err
+			}
+			vals.Set(k, val)
+		}
+		raw, ctype = []byte(vals.Encode()), "application/x-www-form-urlencoded"
+	}
+	if len(raw) > MaxHTTPBody {
+		return nil, "", kernel.NewError(kernel.CodeValidationFailed, "request body is %d bytes; the limit is %d", len(raw), MaxHTTPBody)
+	}
+	return raw, ctype, nil
+}
+
+// httpRequest serves http.request and code nodes' ctx.http (ADR 0019,
+// ADR 0025).
 func httpRequest(ctx context.Context, in map[string]any, r domain.Runtime) (any, error) {
 	method := strings.ToUpper(str(in["method"]))
 	if method == "" {
 		method = http.MethodGet
 	}
-	var body io.Reader
-	if b, ok := in["body"]; ok && b != nil {
-		raw, err := json.Marshal(toWire(b))
-		if err != nil {
-			return nil, err
-		}
-		body = bytes.NewReader(raw)
-	}
 	target, err := secretURL(str(in["url"]), r)
 	if err != nil {
 		return nil, err
 	}
+	u, err := url.Parse(target)
+	if err != nil {
+		return nil, kernel.NewError(kernel.CodeValidationFailed, "invalid url")
+	}
+	raw, ctype, err := requestBody(in, u.Hostname(), r)
+	if err != nil {
+		return nil, err
+	}
+	var body io.Reader
+	if raw != nil {
+		body = bytes.NewReader(raw)
+	}
 	req, err := http.NewRequestWithContext(ctx, method, target, body)
 	if err != nil {
 		return nil, err
+	}
+	if raw != nil {
+		req.Header.Set("Content-Type", ctype)
 	}
 	if h, ok := in["headers"].(map[string]any); ok {
 		for k, v := range h {
@@ -541,11 +621,8 @@ func httpRequest(ctx context.Context, in map[string]any, r domain.Runtime) (any,
 			if err != nil {
 				return nil, err
 			}
-			req.Header.Set(k, val)
+			req.Header.Set(k, val) // a Content-Type set by the flow wins
 		}
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
 	}
 	res, err := r.HTTP(ctx, req)
 	if err != nil {
@@ -557,23 +634,40 @@ func httpRequest(ctx context.Context, in map[string]any, r domain.Runtime) (any,
 		return nil, &retryable{err}
 	}
 	defer func() { _ = res.Body.Close() }()
-	raw, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	raw, err = io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if err != nil {
 		return nil, &retryable{err}
 	}
 	if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
 		return nil, &retryable{fmt.Errorf("HTTP %d", res.StatusCode)}
 	}
-	var parsed any = string(raw)
-	var js any
-	if json.Unmarshal(raw, &js) == nil {
-		parsed = js
-	}
 	headers := map[string]any{}
 	for k := range res.Header {
 		headers[k] = res.Header.Get(k)
 	}
-	return map[string]any{"status": int64(res.StatusCode), "body": parsed, "headers": headers}, nil
+	return map[string]any{"status": int64(res.StatusCode), "body": responseBody(res.Header.Get("Content-Type"), raw), "headers": headers}, nil
+}
+
+// responseBody decodes a response: JSON when the content type is JSON (or
+// absent, or text/plain, as before), otherwise text decoded by its charset
+// (UTF-8 by default). 4xx answers are returned the same way.
+func responseBody(contentType string, raw []byte) any {
+	media, params, _ := mime.ParseMediaType(contentType)
+	jsonish := media == "" || media == "text/plain" || strings.HasSuffix(media, "/json") || strings.HasSuffix(media, "+json")
+	if jsonish {
+		var js any
+		if json.Unmarshal(raw, &js) == nil {
+			return js
+		}
+	}
+	if cs := strings.ToLower(params["charset"]); cs != "" && cs != "utf-8" && cs != "utf8" {
+		if enc, err := htmlindex.Get(cs); err == nil {
+			if dec, err := enc.NewDecoder().Bytes(raw); err == nil {
+				return string(dec)
+			}
+		}
+	}
+	return strings.ToValidUTF8(string(raw), "\uFFFD")
 }
 
 // attachment is an email attachment in deliver_email arguments.

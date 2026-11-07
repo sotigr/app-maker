@@ -50,6 +50,19 @@ checks that a field is hidden from them), `output` (action result subset), `coun
 `effects` (`[{node, count}]`), `visible` (page steps). Unmatched outbound HTTP requests fail the
 step.
 
+HTTP fixtures answer JSON with `body`, or text with `text` and
+`headers` (e.g. `{"Content-Type": "application/xml"}`). A fixture with
+`request: {contentType, bodyContains, header}` answers only requests
+that match, so a test can prove what was sent; a mismatch fails the step
+with the reason:
+
+```json
+"http": [ { "method": "POST", "url": "https://mydataapidev.aade.gr/SendInvoices",
+            "request": { "contentType": "application/xml", "bodyContains": "<invoiceType>2.1</invoiceType>" },
+            "status": 200, "headers": { "Content-Type": "application/xml" },
+            "text": "<ResponseDoc><response><statusCode>Success</statusCode></response></ResponseDoc>" } ]
+```
+
 ## Plan and apply
 
 ```sh

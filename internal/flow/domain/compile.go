@@ -465,6 +465,7 @@ func (c *compiler) compileGraph(f *Flow, specs map[string]NodeSpec, edges [][2]s
 			c.compileCode(f, cn, ptr)
 		}
 		cn.Secrets = c.secretRefs(ptr+"/in", spec.Node, spec.In)
+		c.httpBodies(ptr+"/in", spec.Node, spec.In)
 		c.codeSecrets(ptr, nt.Kind(), spec.Secrets, cn)
 		nodeFields[name] = rt.MapOf(map[string]*rt.Type{"out": out, "error": rt.OpenMap()})
 		g.Nodes[name] = cn

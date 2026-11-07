@@ -11,6 +11,7 @@ PURE_LIBS=(
   github.com/cockroachdb/apd/v3
   github.com/google/uuid
   golang.org/x/text/unicode/norm
+  golang.org/x/text/encoding/htmlindex
 )
 
 out="$(dirname "$0")/../.golangci.yml"

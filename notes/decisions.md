@@ -116,3 +116,4 @@
 | Text match (#4) | `icontains`/`iprefix` fold case and accents and final sigma (kernel.FoldText, SQLite `organon_fold`); no expression index; golang.org/x/text/unicode/norm allowed as a pure library |
 | `x-write` (#35, #45) | A list is any-of; `role:<name>` checks the role on the feature (on create, the parent); admins and system need no role (ADR 0024) |
 | Manifest test reads | `expect.feature` on a `read` step checks the caller's view (hidden fields absent) |
+| Outbound bodies (#50, ADR 0025) | `http.request` `rawBody` (text as is) and `form` (URL-encoded, secrets allowed in values) next to JSON `body`, one per call; flow Content-Type wins; non-JSON responses as charset-decoded text; `ctx.http` `raw_body`/`form`, `auth` list and form-field auth; fixtures `text`/`headers`/`request` |
