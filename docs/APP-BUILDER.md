@@ -73,6 +73,9 @@ docker run -d -p 8080:8080 -v "$PWD/myapp:/app:ro" -v appdata:/data \
 Alternatively, build an app image with `FROM sotig/organon` and
 `COPY myapp /app`.
 
+Images are tagged by release (`sotig/organon:1.1.0`) as well as
+`latest`; pin a release in production so the image matches this guide.
+
 If the binaries are installed locally, `organon` and `organond` work the
 same without Docker.
 
@@ -100,6 +103,7 @@ organon dev myapp --addr :8080     # optional: run it (SQLite, seed data, fake L
 
   | Command | Does |
   | --- | --- |
+  | `organon version` | Prints the framework version, e.g. `1.1.0 (3fa2af8)`. Features in this guide that came later than 1.0 say "since 1.x"; an older image rejects them as `unknown member`. |
   | `organon ui catalog [--json]` | Lists UI components, props, and steps. |
   | `organon ui schema --out .organon/schema` | Writes JSON Schemas for editor completion. |
   | `organon ui i18n <app> --lang <l> [--prune]` | Scaffolds a translation file. |
@@ -819,6 +823,12 @@ props are errors.**
   "notFound": "This page does not exist." }
 ```
 
+- `"speech": {"mode": "auto" | "browser" | "server", "maxSeconds": 60, "position": "end" | "start"}`
+  (since 1.1) turns on dictation: one shared microphone button dictates into the
+  focused text field (or Ctrl/Cmd+Shift+Space) in the user's UI language.
+  Text and textarea form fields and picker searches accept it; give a form
+  field `"speech": false` for codes, plates, or slugs. `server` mode keeps
+  the audio with the operator's transcriber (§18).
 - `requireLogin: false` lets anonymous visitors see the pages whose
   `visible` allows them.
 - `linkHome: "<page>"` is the page a share link opens, with `params.id` =
@@ -882,7 +892,7 @@ props are errors.**
 | Layout | `stack`, `row`, `columns`, `card`, `tabs` (with `state` for an integer state var), `dialog` (`name`, opened by an `open` step), `divider` |
 | Text | `heading`, `text` (`tone`), `markdown` (no raw HTML), `badge`, `image` (`assets/<path>` or a URL), `link` (`page`+`params`, or `url`; `download` saves a file) |
 | Data | `table` (columns by `field` or `value`, `display`, per-column `page`; `rowPage`/`rowParams`), `list` (`item` template), `field`, `detail`, `stat` (`format: number\|percent\|date`), `empty`, `preview` (images, PDF, video, audio from a blob field; `display: inline` (default) or `modal` for a thumbnail/link that opens a viewer), `transitions` (state-machine buttons the user may run now) |
-| Forms | `form` (`mode: create\|update\|action`; generated from the user's create or update view, or the action flow's `input`; `fields: [{path, label, widget, help, labelField}]`; `on.submit` steps see `result` and `form.values`), `button` (`variant`, `on.click`), `menu` (`items: [{label, visible, steps}]`) |
+| Forms | `form` (`mode: create\|update\|action`; generated from the user's create or update view, or the action flow's `input`; `fields: [{path, label, widget, help, labelField, speech}]`; `on.submit` steps see `result` and `form.values`), `button` (`variant`, `on.click`), `menu` (`items: [{label, visible, steps}]`) |
 | Charts | `board` (kanban by a state-machine field; dragging runs the transition), `chart` (`kind: bar\|line\|pie`; `source` + `groupBy` [+ `value`, `op: count\|sum\|avg`] or explicit `series`) |
 
 Every component also takes `visible` (an expression) and `class` (for CSS).
@@ -1113,6 +1123,43 @@ plus `migrations/<id>.json`:
 | `ORGANON_ALLOW_BREAKING=true` | Deploy a breaking manifest directory at startup. |
 | `ORGANON_LLM_PROVIDER` | Force one LLM provider (`fake`, `anthropic`, or a configured one). |
 | `ORGANON_EMAIL_DRIVER=smtp`, `ORGANON_EMAIL_ADDR`, `_FROM`, `_USERNAME`, `_PASSWORD` (a `${secret:<name>}`), `_TLS` | Send email over SMTP; otherwise emails are only logged. |
+| `ORGANON_SPEECH_KIND=openai-compatible`, `ORGANON_SPEECH_BASE_URL`, `_API_KEY` (a `${secret:<name>}`), `_MODEL` | Since 1.1: server transcription for dictation (`ui/app.json` `speech`) where browsers have no recognition, or in `server` mode. |
+
+**Dictation on your own CPU** (since 1.1). Organon has no speech model of its own; it
+sends recordings to any service with OpenAI's `/audio/transcriptions` API.
+That can be a hosted provider (OpenAI, Groq) or a Whisper server next to
+Organon, so the audio never leaves your machines. A Docker Compose example
+with [Speaches](https://speaches.ai) (faster-whisper on CPU):
+
+```yaml
+services:
+  app:
+    image: sotig/organon:1.1.0
+    ports: ["8080:8080"]
+    volumes: ["./myapp:/app:ro", "appdata:/data"]
+    environment:
+      ORGANON_ENV: prod
+      ORGANON_SPEECH_KIND: openai-compatible
+      ORGANON_SPEECH_BASE_URL: http://whisper:8000/v1
+      ORGANON_SPEECH_MODEL: Systran/faster-whisper-small   # multilingual; *.en models are English only
+      # no API key: Speaches needs none by default
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    volumes: ["hf-cache:/home/ubuntu/.cache/huggingface/hub"]   # keeps downloaded models
+volumes: { appdata: {}, hf-cache: {} }
+```
+
+- Download the model once, with the whisper port published
+  (`ports: ["8000:8000"]`) or from a container on the same network:
+  `SPEACHES_BASE_URL=http://localhost:8000 uvx speaches-cli model download Systran/faster-whisper-small`.
+- With `ui/app.json` `"speech": {"mode": "server"}`, every browser uses
+  it; with `"auto"`, only Firefox and Brave do (Chrome, Edge, and Safari
+  use their own recognition, which sends audio to the browser's vendor).
+- Sizing, roughly: `small` (about 1 GB RAM) transcribes a 10–15 s
+  recording in a second or a few on a 4–8 core CPU; `medium` or
+  `large-v3-turbo` recognize Greek and other non-English languages
+  clearly better but are several times slower. Try your users' speech
+  before choosing.
 
 **Storage.** SQLite (one replica per database file) with blobs on disk and
 background jobs in the same database. In the Docker image all state is in

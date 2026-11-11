@@ -190,3 +190,23 @@ video.o-preview { background: #000; }
 .o-ed-tag { display: none; position: absolute; top: -9px; inset-inline-start: 4px; font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 3px; background: var(--o-accent); color: var(--o-accent-text); z-index: 5; pointer-events: none; }
 .o-ed-frame:hover > .o-ed-tag, .o-ed-selected > .o-ed-tag { display: block; }
 .o-ed-dialog { border: 1px dashed var(--o-line); box-shadow: none; width: 100%; }
+
+/* Dictation (ADR 0028): one shared microphone for the focused text field. */
+.o-mic-dock { position: fixed; bottom: 16px; z-index: 90; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+.o-mic-dock.o-mic-end { inset-inline-end: 16px; }
+.o-mic-dock.o-mic-start { inset-inline-start: 16px; align-items: flex-start; }
+.o-mic { pointer-events: auto; width: 52px; height: 52px; border-radius: 50%; border: none; display: grid; place-items: center; cursor: pointer;
+  background: var(--o-accent); color: #fff; box-shadow: 0 6px 20px rgb(0 0 0 / 0.25); transition: transform 0.15s, opacity 0.15s; }
+.o-mic:hover:not(:disabled) { transform: scale(1.05); }
+.o-mic:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.o-mic:focus-visible { outline: 3px solid var(--o-accent); outline-offset: 3px; }
+.o-mic.o-mic-on { background: #dc2626; animation: o-mic-pulse 1.4s ease-out infinite; }
+.o-mic.o-mic-busy { background: var(--o-muted); }
+@keyframes o-mic-pulse { 0% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.55); } 100% { box-shadow: 0 0 0 16px rgb(220 38 38 / 0); } }
+.o-mic-bubble { pointer-events: auto; max-width: min(360px, calc(100vw - 32px)); padding: 8px 12px; border-radius: var(--o-radius); background: var(--o-surface);
+  color: var(--o-text); border: 1px solid var(--o-line); box-shadow: 0 6px 20px rgb(0 0 0 / 0.15); font-size: 0.9em; }
+.o-mic-bubble.o-hidden { display: none; }
+.o-mic-bubble.o-mic-error { border-color: #dc2626; color: #b91c1c; }
+.o-dictating { outline: 2px solid #dc2626; outline-offset: 1px; }
+body:has(.o-mic-dock.o-mic-end) .o-toasts { bottom: 84px; }
+@media (prefers-reduced-motion: reduce) { .o-mic.o-mic-on { animation: none; } }

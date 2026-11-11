@@ -35,8 +35,17 @@ type App struct {
 	Home         string
 	RequireLogin bool
 	Nav          []NavItem
+	// Speech is set when the app turns on dictation (ADR 0028).
+	Speech *Speech
 	// Doc is the document sent to browsers (without $schema, x-layout).
 	Doc json.RawMessage
+}
+
+// Speech configures dictation into text fields (ui/app.json "speech").
+type Speech struct {
+	Mode       string // auto | browser | server
+	MaxSeconds int    // one recording, 5-120
+	Position   string // end | start
 }
 
 // NavItem is one entry of the app navigation.

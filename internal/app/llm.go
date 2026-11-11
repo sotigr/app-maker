@@ -9,6 +9,7 @@ import (
 	rtapi "organon/internal/runtime/api"
 	runtimeapp "organon/internal/runtime/application"
 	llminfra "organon/internal/runtime/infrastructure/llm"
+	speechinfra "organon/internal/runtime/infrastructure/speech"
 	"organon/platform/config"
 )
 
@@ -41,6 +42,30 @@ func llmRouter(cfg config.Config, c *Compiled, secrets func(string) (string, boo
 		}
 	}
 	return runtimeapp.NewRouter(c.LLM, providers, cfg.LLM.Provider, opt.Clock, opt.Log), nil
+}
+
+// speechTranscriber builds the server transcriber for dictation (ADR 0028):
+// kind "" is fake under organon dev and none elsewhere.
+func speechTranscriber(cfg config.Config, secrets func(string) (string, bool)) (rtapi.Transcriber, error) {
+	kind := cfg.Speech.Kind
+	if kind == "" && cfg.Dev {
+		kind = "fake"
+	}
+	switch kind {
+	case "fake":
+		return speechinfra.Fake{}, nil
+	case "openai-compatible":
+		key := ""
+		if cfg.Speech.APIKey != "" {
+			v, ok := secrets(cfg.Speech.APIKey)
+			if !ok {
+				return nil, fmt.Errorf("speech.apiKey: secret %s is not set", cfg.Speech.APIKey)
+			}
+			key = v
+		}
+		return speechinfra.NewOpenAICompatible(cfg.Speech.BaseURL, key, cfg.Speech.Model), nil
+	}
+	return nil, nil
 }
 
 // ephemeral publishes ephemeral field values for flows (llm.complete

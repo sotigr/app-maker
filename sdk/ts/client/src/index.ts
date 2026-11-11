@@ -240,6 +240,21 @@ export class OrganonClient {
     session: () => this.request<{ principal: { id: string; kind: string; roles: string[]; locale?: string; object?: string } }>("GET", "/v1/auth/session"),
   };
 
+  /** transcribe turns a dictation recording into text on the server
+   * (ADR 0028); lang is the UI language (BCP 47), empty for the caller's. */
+  async transcribe(audio: Blob, lang = ""): Promise<{ text: string; seconds?: number }> {
+    const h: Record<string, string> = { "Content-Type": audio.type || "audio/webm" };
+    if (this.token) h["Authorization"] = `Bearer ${this.token}`;
+    else h["X-CSRF-Token"] = csrfCookie();
+    const res = await this.fetchFn(`${this.base}/v1/ui/transcribe${lang ? `?lang=${encodeURIComponent(lang)}` : ""}`, {
+      method: "POST", headers: h, credentials: "same-origin", body: audio,
+    });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : undefined;
+    if (!res.ok) throw new OrganonError({ status: res.status, ...(data || {}) });
+    return data;
+  }
+
   async get(type: string, id: string): Promise<Feature> {
     const f = await this.request<Feature>("GET", `/v1/features/${type}/${id}`);
     this.cache.put(f);

@@ -1,5 +1,6 @@
 // The app: shell, router, login, toasts, and the runtime caches
 // (permissions, ref labels, views) shared by every page.
+import { MicDock } from "./components/speech";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { OrganonClient, type Feature } from "@organon/client";
 import { Node } from "./render";
@@ -329,6 +330,7 @@ function Shell({ bundle, principal, onLanguage, children }: { bundle: Bundle; pr
         {principal && <button className="o-button o-button-link" onClick={() => rt.logout()}>{rt.t("Sign out")}</button>}
       </header>
       <main className="o-main">{children}</main>
+      {app.speech && <MicDock cfg={app.speech} />}
     </div>
   );
 }

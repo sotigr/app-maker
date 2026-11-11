@@ -26,6 +26,8 @@ export interface AppDoc {
   nav?: NavItem[];
   requireLogin?: boolean;
   notFound?: string;
+  /** Dictation into text fields (ADR 0028); absent when off. */
+  speech?: import("./speech").SpeechConfig;
 }
 
 export interface ParamSpec {

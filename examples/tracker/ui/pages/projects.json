@@ -25,7 +25,7 @@
       ] },
     { "component": "dialog", "name": "newProject", "title": "New project", "children": [
       { "component": "form", "mode": "create", "type": "project", "submit": "Create",
-        "fields": [ { "path": "/title" }, { "path": "/slug", "help": "Lower case letters, digits, and dashes" }, { "path": "/description", "widget": "textarea" } ],
+        "fields": [ { "path": "/title" }, { "path": "/slug", "speech": false, "help": "Lower case letters, digits, and dashes" }, { "path": "/description", "widget": "textarea" } ],
         "on": { "submit": [ { "do": "close" }, { "do": "navigate", "page": "project", "params": { "id": "result.id" } } ] } }
     ] }
   ] }

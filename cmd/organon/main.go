@@ -9,6 +9,8 @@ import (
 	_ "time/tzdata" // document templates name time zones (ADR 0022)
 
 	"github.com/spf13/cobra"
+
+	"organon/platform/buildinfo"
 )
 
 func main() {
@@ -17,8 +19,10 @@ func main() {
 		Short:         "Schema-driven application framework CLI",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		Version:       buildinfo.String(),
 	}
-	root.AddCommand(initCmd(), validateCmd(), uiCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
+	root.SetVersionTemplate("organon {{.Version}}\n")
+	root.AddCommand(versionCmd(), initCmd(), validateCmd(), uiCmd(), testCmd(), devCmd(), loginCmd(), tokenCmd(), seedCmd(), runsCmd(),
 		exportCmd(), importCmd(), planCmd(), applyCmd(), codegenCmd())
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "organon:", err)
@@ -31,4 +35,15 @@ func dirArg(args []string) string {
 		return args[0]
 	}
 	return "."
+}
+
+func versionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the framework version (features in the guide name the version that added them)",
+		Args:  cobra.NoArgs,
+		Run: func(*cobra.Command, []string) {
+			fmt.Println("organon", buildinfo.String())
+		},
+	}
 }

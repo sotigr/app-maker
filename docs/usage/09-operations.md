@@ -59,9 +59,33 @@ Environment variables: `ORGANON_ROLES`, `ORGANON_TOPOLOGY`, `ORGANON_DEV`, `ORGA
 `ORGANON_DISABLE_ADMIN_CONSOLE`, `ORGANON_DISABLE_ADMIN_ACCOUNTS`,
 `ORGANON_EMAIL_DRIVER` (`log` or `smtp`), `ORGANON_EMAIL_ADDR`, `ORGANON_EMAIL_FROM`,
 `ORGANON_EMAIL_USERNAME`, `ORGANON_EMAIL_PASSWORD` (a `${secret:<name>}` reference),
-`ORGANON_EMAIL_TLS` (implicit TLS, port 465; otherwise STARTTLS when offered), and
+`ORGANON_EMAIL_TLS` (implicit TLS, port 465; otherwise STARTTLS when offered),
+`ORGANON_SPEECH_KIND` (`openai-compatible`, `fake`, or `none`; dictation
+transcription, see below), `ORGANON_SPEECH_BASE_URL`, `ORGANON_SPEECH_API_KEY`
+(a `${secret:<name>}` reference), `ORGANON_SPEECH_MODEL` (default `whisper-1`), and
 `ORGANON_SECRET_<NAME>` for `${secret:<name>}` references. Invalid
 configuration stops startup with an error naming the key.
+
+### Speech transcription
+
+Apps with `"speech"` in `ui/app.json` let users dictate into text fields.
+Browsers with built-in recognition need nothing from the server; for the
+others (Firefox, Brave) or for apps with `"mode": "server"`, configure a
+transcriber:
+
+```yaml
+speech:
+  kind: openai-compatible           # OpenAI, Groq, or a self-hosted whisper server
+  baseURL: https://api.openai.com/v1
+  apiKey: ${secret:speech}           # ORGANON_SECRET_SPEECH
+  model: whisper-1
+```
+
+Recordings (Opus, at most 1 MiB) are sent to the provider with the user's
+UI language and are never stored or logged; only the duration is recorded
+as the `ui.transcribe_seconds` metric. Without a transcriber
+(`kind: none`, the default outside `organon dev`), those browsers show a
+disabled microphone that says recognition is not available.
 
 ## Running without admins
 

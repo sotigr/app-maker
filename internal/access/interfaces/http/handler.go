@@ -93,29 +93,42 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 			sp, csrf, err := h.auth.AuthenticateSession(ctx, c.Value)
 			if err != nil {
 				h.clearCookies(w)
-				httpserver.WriteError(w, r, err)
-				return
+				if !pageLoad(r, err) {
+					httpserver.WriteError(w, r, err)
+					return
+				}
+			} else {
+				if !safeMethod(r.Method) && r.Header.Get(CSRFHeader) != csrf {
+					httpserver.WriteError(w, r, kernel.NewError(kernel.CodeForbidden, "missing or invalid CSRF token"))
+					return
+				}
+				p = sp
 			}
-			if !safeMethod(r.Method) && r.Header.Get(CSRFHeader) != csrf {
-				httpserver.WriteError(w, r, kernel.NewError(kernel.CodeForbidden, "missing or invalid CSRF token"))
-				return
-			}
-			p = sp
 		} else if c, err := r.Cookie(LinkCookie); err == nil && c.Value != "" {
 			lp, _, err := h.auth.AuthenticateLink(ctx, c.Value)
 			if err != nil {
 				h.clearCookies(w)
-				httpserver.WriteError(w, r, err)
-				return
+				if !pageLoad(r, err) {
+					httpserver.WriteError(w, r, err)
+					return
+				}
+			} else {
+				if !safeMethod(r.Method) && r.Header.Get(CSRFHeader) != application.LinkCSRF(c.Value) {
+					httpserver.WriteError(w, r, kernel.NewError(kernel.CodeForbidden, "missing or invalid CSRF token"))
+					return
+				}
+				p = lp
 			}
-			if !safeMethod(r.Method) && r.Header.Get(CSRFHeader) != application.LinkCSRF(c.Value) {
-				httpserver.WriteError(w, r, kernel.NewError(kernel.CodeForbidden, "missing or invalid CSRF token"))
-				return
-			}
-			p = lp
 		}
 		next.ServeHTTP(w, r.WithContext(accessapi.WithPrincipal(ctx, p)))
 	})
+}
+
+// pageLoad reports whether a request with an expired or revoked cookie
+// should go on as anonymous: a page or asset load, so the app shows its
+// sign-in screen instead of a 401 document. API calls still get 401.
+func pageLoad(r *http.Request, err error) bool {
+	return safeMethod(r.Method) && !strings.HasPrefix(r.URL.Path, "/v1/") && kernel.CodeOf(err) == kernel.CodeUnauthenticated
 }
 
 func safeMethod(m string) bool {

@@ -37,6 +37,7 @@ sdk:
 	cd sdk/ts && pnpm install && pnpm run typecheck
 	node sdk/ts/ui/test/expr.test.ts
 	node sdk/ts/ui/test/texts.test.ts
+	node sdk/ts/ui/test/speech.test.ts
 
 # Regenerate the code-node protocol (spec 11.1); needs protoc,
 # protoc-gen-go and protoc-gen-go-grpc on PATH.
@@ -45,5 +46,10 @@ proto:
 
 # Build the framework image (organon + organond); see docs/usage/10-docker.md.
 IMAGE ?= organon
+# The release (platform/buildinfo.Version) and source revision for `organon version`.
+VERSION ?= $(shell sed -n 's/^const Version = "\(.*\)"/\1/p' platform/buildinfo/buildinfo.go)
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+
+# docker builds $(IMAGE):latest and $(IMAGE):$(VERSION); push both to release.
 docker:
-	docker build -t $(IMAGE) .
+	docker build --build-arg COMMIT=$(COMMIT) --build-arg VERSION=$(VERSION) -t $(IMAGE):latest -t $(IMAGE):$(VERSION) .

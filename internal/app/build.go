@@ -349,7 +349,11 @@ func Build(ctx context.Context, cfg config.Config, c *Compiled, opt Options) (rt
 		mux.Handle("GET /admin/", adminui.Handler())
 		mux.Handle("GET /admin", http.RedirectHandler("/admin/", http.StatusFound))
 	}
-	rt.UI = uiapp.New(uiapp.Deps{UI: c.UI, Types: c.Types, Clock: opt.Clock, Version: c.Manifest.Hash[:12],
+	transcriber, err := speechTranscriber(cfg, secrets)
+	if err != nil {
+		return nil, err
+	}
+	rt.UI = uiapp.New(uiapp.Deps{UI: c.UI, Types: c.Types, Clock: opt.Clock, Version: c.Manifest.Hash[:12], Speech: transcriber,
 		FlowActions: func(ct *schemaapi.CompiledType) map[string]json.RawMessage {
 			out := map[string]json.RawMessage{}
 			for _, f := range c.Flows.ByTrigger(flowdomain.TriggerAction) {

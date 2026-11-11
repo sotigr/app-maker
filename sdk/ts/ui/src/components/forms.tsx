@@ -6,6 +6,7 @@ import { enumLabel, flatten, typeMeta, useEval, useFuncs, usePage, useRuntime, w
 import { describe, runSteps } from "../steps";
 import { labelOf, RefLabel } from "./data";
 import type { FieldMeta, JsonSchema, Row, StepDoc } from "../types";
+import { useDictationTarget } from "../speech";
 
 interface FieldSpec {
   path: string;
@@ -13,6 +14,8 @@ interface FieldSpec {
   widget?: string;
   help?: string;
   labelField?: string;
+  /** speech: false keeps dictation out of this field (ADR 0028). */
+  speech?: boolean;
 }
 
 interface Field {
@@ -24,6 +27,7 @@ interface Field {
   enum?: string[];
   meta?: FieldMeta;
   labelField?: string;
+  speech: boolean;
 }
 
 function widgetFor(meta: FieldMeta | undefined, schema: { type?: string | string[]; enum?: unknown[]; format?: string; maxLength?: number } | undefined): string {
@@ -65,6 +69,8 @@ function RefPicker({ value, onChange, targets, labelField }: { value: string | n
   const [options, setOptions] = useState<Row[]>([]);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+  useDictationTarget(search, open && rt.bundle.app.speech ? { label: rt.t("Search"), get: () => q, set: setQ } : null);
   useEffect(() => {
     if (!open || options.length) return;
     Promise.all(targets.map((t) => rt.client.query({ type: t, limit: 100 }).then((p) => p.items, () => [])))
@@ -79,7 +85,7 @@ function RefPicker({ value, onChange, targets, labelField }: { value: string | n
       </button>
       {open && (
         <div className="o-ref-menu">
-          <input className="o-input" autoFocus placeholder={rt.t("Search")} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input ref={search} className="o-input" autoFocus placeholder={rt.t("Search")} value={q} onChange={(e) => setQ(e.target.value)} />
           <button type="button" className="o-ref-option o-muted" onClick={() => { onChange(null); setOpen(false); }}>{rt.t("None")}</button>
           {shown.map((r) => (
             <button type="button" key={r.id} className="o-ref-option" onClick={() => { onChange(r.id); setOpen(false); }}>{label(r)}</button>
@@ -139,6 +145,8 @@ register("form", ({ node }: ComponentProps) => {
       const en = (fm?.enum || (schema?.enum as string[] | undefined))?.filter((x) => x != null);
       return {
         name, widget, enum: en, meta: fm, labelField: s.labelField,
+        // Dictation suits prose: not codes, emails, URLs, or IDs.
+        speech: s.speech !== false && !["email", "uri", "uuid", "date", "date-time"].includes(String(fm?.format ?? schema?.format ?? "")),
         label: s.label !== undefined ? ev.text(s.label) : schema?.title || labelOf(s.path, fm),
         help: s.help !== undefined ? ev.text(s.help) : undefined,
         required: (view.required || []).includes(name),
@@ -217,6 +225,10 @@ register("form", ({ node }: ComponentProps) => {
 function Input({ field, value, set, type, id, parent }: { field: Field; value: unknown; set(v: unknown): void; type: string; id?: string; parent?: string }) {
   const rt = useRuntime();
   const [uploading, setUploading] = useState(false);
+  // Text and textarea fields accept dictation when the app turns it on.
+  const text = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const dictation = rt.bundle.app.speech && field.speech && (field.widget === "text" || field.widget === "textarea");
+  useDictationTarget(text, dictation ? { label: field.label, get: () => toInput(value, "text"), set: (v) => set(v === "" ? null : v) } : null);
   switch (field.widget) {
     case "checkbox":
       return <input type="checkbox" checked={value === true} onChange={(e) => set(e.target.checked)} />;
@@ -228,7 +240,7 @@ function Input({ field, value, set, type, id, parent }: { field: Field; value: u
         </select>
       );
     case "textarea":
-      return <textarea className="o-input" rows={4} value={toInput(value, "text")} onChange={(e) => set(e.target.value)} />;
+      return <textarea ref={text} className="o-input" rows={4} value={toInput(value, "text")} onChange={(e) => set(e.target.value)} />;
     case "ref":
       return <RefPicker value={(value as string) ?? null} onChange={set} targets={field.meta?.ref || []} labelField={field.labelField} />;
     case "file": {
@@ -258,7 +270,7 @@ function Input({ field, value, set, type, id, parent }: { field: Field; value: u
     case "decimal":
       return <input className="o-input" inputMode="decimal" value={toInput(value, "text")} onChange={(e) => set(e.target.value === "" ? null : e.target.value)} />;
   }
-  return <input className="o-input" value={toInput(value, "text")} onChange={(e) => set(e.target.value === "" ? null : e.target.value)} />;
+  return <input ref={text} className="o-input" value={toInput(value, "text")} onChange={(e) => set(e.target.value === "" ? null : e.target.value)} />;
 }
 
 register("button", ({ node }: ComponentProps) => {

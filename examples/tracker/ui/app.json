@@ -4,6 +4,7 @@
   "linkHome": "sharedTask",
   "requireLogin": true,
   "languages": ["en", "el"],
+  "speech": { "mode": "auto", "maxSeconds": 60 },
   "nav": [
     { "label": "Projects", "page": "projects", "visible": "principal.kind != 'link'" },
     { "label": "My tasks", "page": "myTasks", "visible": "principal.kind == 'user'" }

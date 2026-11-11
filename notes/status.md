@@ -373,3 +373,23 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   Tests: e2e TestAdminAccountOperations, storetest "admin lookups"; browser walkthrough (headless Brave over CDP):
   add user (short-password error, generated password, sign-in works), grant via pickers, create/revoke key, team
   member, project Access. Next: phase 2 (data browser), 3 (runs/audit/deploys), 4 (editors, a11y, layout).
+- Dictation DONE (2026-11-09, ADR 0028): ui/app.json `speech` {mode, maxSeconds, position} (compile.go speech(), AppSchema,
+  catalog form field `speech` opt-out); bundle app.speech with `server` flag; runtime Transcriber port +
+  infrastructure/speech (openai-compatible /audio/transcriptions, fake); config `speech` + ORGANON_SPEECH_*; UI endpoint
+  POST /v1/ui/transcribe (1 MiB, signed-in/link, lang → primary subtag or caller's language); Permissions-Policy
+  microphone=(self) on `/`. Renderer: speechtext.ts (speechLang, insertAt; Greek capitals keep accents), speech.ts
+  (registry useDictationTarget, engines browser/server with silence stop, Brave/service fallback),
+  components/speech.tsx MicDock (one shared button, Ctrl/Cmd+Shift+Space, Escape), client.transcribe. Tracker turns it
+  on (slug opted out), Greek texts. Tests: speech adapter, config, UI compile, e2e TestSpeechTranscription,
+  sdk/ts/ui/test/speech.test.ts (make sdk); headless Brave with fake media (lang=el, insertion, focus, shortcut,
+  opt-out). Browser engine itself to be checked by hand in Chrome.
+- Stale session cookie on page loads FIXED (2026-11-11): the access Middleware lets a GET/HEAD outside /v1/ with an
+  expired or revoked session or link cookie go on as anonymous (cookies cleared), so the renderer shows sign-in instead
+  of a 401 JSON document; API calls still get 401. e2e TestStaleSessionCookiePageLoad. Dictation: without an engine
+  (browser mode in Firefox/Brave) the mic shows disabled with "Speech recognition is not available."; APP-BUILDER
+  §18 has a self-hosted CPU Whisper (Speaches) compose example.
+- Framework version 1.1.0 (2026-11-11): platform/buildinfo (Version const, Commit via ldflags or Go VCS info);
+  `organon version`/`--version`, `organond --version`, version in the startup log; Makefile `docker` tags
+  $(IMAGE):latest and :$(VERSION) with COMMIT/VERSION build args (OCI labels). APP-BUILDER: `organon version`,
+  pinned tags, "since 1.1" on speech. Open from the agent's issue: framework range check, dev waiting on an invalid
+  startup manifest.

@@ -4,6 +4,8 @@
 package http
 
 import (
+	"errors"
+	"io"
 	"io/fs"
 	"net/http"
 	"sort"
@@ -39,6 +41,7 @@ func New(svc *application.Service, web fs.FS, console bool) *Handler {
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/ui", h.bundle)
 	mux.HandleFunc("GET /v1/ui/catalog", h.catalog)
+	mux.HandleFunc("POST /v1/ui/transcribe", h.transcribe)
 	mux.HandleFunc("GET /assets/styles.css", h.styles)
 	mux.HandleFunc("GET /assets/app/{path...}", h.asset)
 	mux.HandleFunc("GET /assets/organon/{path...}", h.runtime)
@@ -50,6 +53,34 @@ func (h *Handler) bundle(w http.ResponseWriter, r *http.Request) {
 	prefs := []string{r.URL.Query().Get("lang")}
 	prefs = append(prefs, acceptLanguages(r.Header.Get("Accept-Language"))...)
 	httpserver.WriteJSON(w, http.StatusOK, h.svc.Bundle(accessapi.PrincipalFrom(r.Context()), prefs))
+}
+
+// maxSpeechBytes bounds one dictation recording (about 4 minutes of
+// 32 kbit/s Opus; the renderer stops at the app's maxSeconds).
+const maxSpeechBytes = 1 << 20
+
+// transcribe turns a dictation recording (the raw audio body) into text in
+// the caller's UI language (ADR 0028).
+func (h *Handler) transcribe(w http.ResponseWriter, r *http.Request) {
+	body := http.MaxBytesReader(w, r.Body, maxSpeechBytes)
+	audio, err := io.ReadAll(body)
+	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			httpserver.WriteError(w, r, &kernel.Error{Code: "too_large", Message: "the recording is too long; dictate in shorter parts", Status: http.StatusRequestEntityTooLarge})
+			return
+		}
+		httpserver.WriteError(w, r, kernel.NewError(kernel.CodeBadRequest, "could not read the recording"))
+		return
+	}
+	prefs := acceptLanguages(r.Header.Get("Accept-Language"))
+	out, err := h.svc.Transcribe(r.Context(), accessapi.PrincipalFrom(r.Context()), audio, r.Header.Get("Content-Type"), r.URL.Query().Get("lang"), prefs)
+	if err != nil {
+		httpserver.WriteError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpserver.WriteJSON(w, http.StatusOK, out)
 }
 
 // acceptLanguages returns the tags of an Accept-Language header, most
@@ -163,5 +194,7 @@ func (h *Handler) page(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Content-Security-Policy", csp)
+	// Dictation (ADR 0028) may use the microphone in the app itself only.
+	w.Header().Set("Permissions-Policy", "microphone=(self), camera=(), geolocation=()")
 	_, _ = w.Write(index)
 }

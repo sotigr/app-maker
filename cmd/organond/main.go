@@ -19,6 +19,7 @@ import (
 	_ "time/tzdata" // document templates name time zones (ADR 0022)
 
 	"organon/internal/app"
+	"organon/platform/buildinfo"
 	"organon/platform/config"
 	"organon/platform/observability"
 )
@@ -36,7 +37,12 @@ func run() error {
 	roles := flag.String("roles", "", "comma-separated roles: api,gateway,worker,runner")
 	env := flag.String("env", "", "manifest environment (env/<env>.json)")
 	dev := flag.Bool("dev", false, "development mode")
+	version := flag.Bool("version", false, "print the framework version and exit")
 	flag.Parse()
+	if *version {
+		fmt.Println("organond", buildinfo.String())
+		return nil
+	}
 
 	getenv := func(k string) string {
 		switch {
@@ -101,7 +107,7 @@ func run() error {
 			}
 		}()
 	}
-	log.Info("organond started", "app", compiled.Manifest.App.App, "roles", strings.Join(cfg.Roles, ","),
+	log.Info("organond started", "version", buildinfo.Version, "app", compiled.Manifest.App.App, "roles", strings.Join(cfg.Roles, ","),
 		"addr", cfg.HTTP.Addr, "internal", cfg.HTTP.InternalAddr)
 
 	select {

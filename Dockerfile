@@ -12,12 +12,15 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
+# The source revision for `organon version` (.git is not in the build context):
+#   docker build --build-arg COMMIT=$(git rev-parse --short HEAD) .
+ARG COMMIT=""
 # Pure Go (SQLite included), so the binaries are static. The admin console
 # (admin/dist), the UI renderer (web/dist), and the Python runtime
 # (runner/python) are embedded.
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/organon ./cmd/organon && \
-    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/organond ./cmd/organond
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X organon/platform/buildinfo.Commit=${COMMIT}" -o /out/organon ./cmd/organon && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X organon/platform/buildinfo.Commit=${COMMIT}" -o /out/organond ./cmd/organond
 
 # ---- uv (Python environments for code nodes with requirements.lock) --------
 FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
@@ -60,5 +63,9 @@ ENV ORGANON_MANIFEST=/app \
 EXPOSE 8080 9090
 CMD ["organond"]
 
+ARG COMMIT=""
+ARG VERSION=""
 LABEL org.opencontainers.image.title="organon" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.description="Schema-driven application framework: organon CLI and organond server"

@@ -49,3 +49,30 @@ func TestAdminSwitches(t *testing.T) {
 		t.Fatalf("invalid boolean: %v", err)
 	}
 }
+
+// ADR 0028: the dictation transcriber is configured from the environment;
+// its key must be a secret reference.
+func TestSpeechConfig(t *testing.T) {
+	c, err := Load("", envOf(map[string]string{"ORGANON_MANIFEST": "m", "ORGANON_SPEECH_KIND": "openai-compatible",
+		"ORGANON_SPEECH_BASE_URL": "https://api.example.com/v1", "ORGANON_SPEECH_API_KEY": "${secret:stt}", "ORGANON_SPEECH_MODEL": "whisper-large"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Speech.Kind != "openai-compatible" || c.Speech.Model != "whisper-large" || c.Speech.APIKey != "${secret:stt}" {
+		t.Fatalf("speech: %+v", c.Speech)
+	}
+	for env, key := range map[string]string{
+		"ORGANON_SPEECH_KIND=cloud":                          "speech.kind",
+		"ORGANON_SPEECH_KIND=openai-compatible":              "speech.baseURL",
+		"ORGANON_SPEECH_KIND=fake,ORGANON_SPEECH_API_KEY=sk": "speech.apiKey",
+	} {
+		vars := map[string]string{"ORGANON_MANIFEST": "m"}
+		for _, kv := range strings.Split(env, ",") {
+			k, v, _ := strings.Cut(kv, "=")
+			vars[k] = v
+		}
+		if _, err := Load("", envOf(vars)); err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s: want an error naming %s, got %v", env, key, err)
+		}
+	}
+}

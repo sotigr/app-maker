@@ -181,6 +181,13 @@ func AppSchema() map[string]any {
 			"languages": obj{"type": "array", "minItems": 1, "uniqueItems": true,
 				"description": "UI languages; the first is the language the ui/ files are written in",
 				"items":       obj{"type": "string", "pattern": langRe.String()}},
+			"speech": obj{"type": "object", "additionalProperties": false,
+				"description": "dictation into text fields in the user's language (one shared microphone button)",
+				"properties": obj{
+					"mode":       obj{"enum": []string{"auto", "browser", "server"}, "default": "auto"},
+					"maxSeconds": obj{"type": "integer", "minimum": 5, "maximum": 120, "default": 60},
+					"position":   obj{"enum": []string{"end", "start"}, "default": "end"},
+				}},
 			"nav": obj{"type": "array", "items": obj{"type": "object", "required": []string{"label", "page"},
 				"additionalProperties": false, "properties": obj{
 					"label":   obj{"type": "string", "description": "text with {{ expr }} interpolations"},

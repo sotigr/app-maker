@@ -346,13 +346,49 @@ func principalScope() *scope {
 	return &scope{funcs: []string{rt.FnNow}, vars: map[string]*rt.Type{"principal": accessapi.PrincipalExprType()}}
 }
 
+// speech checks ui/app.json "speech" (ADR 0028): dictation into text
+// fields through the browser's recognition or the server's transcriber.
+func (c *compiler) speech(v any) *Speech {
+	m, ok := v.(map[string]any)
+	if !ok {
+		c.errf("/speech", "speech is an object, e.g. {\"mode\": \"auto\"}")
+		return nil
+	}
+	c.known("/speech", m, "mode", "maxSeconds", "position")
+	s := &Speech{Mode: "auto", MaxSeconds: 60, Position: "end"}
+	if x, ok := m["mode"]; ok {
+		mode, _ := x.(string)
+		if mode != "auto" && mode != "browser" && mode != "server" {
+			c.errf("/speech/mode", "mode must be auto, browser, or server")
+		}
+		s.Mode = mode
+	}
+	if x, ok := m["maxSeconds"]; ok {
+		n, isNum := x.(json.Number)
+		f, err := n.Int64()
+		if !isNum || err != nil || f < 5 || f > 120 {
+			c.errf("/speech/maxSeconds", "maxSeconds must be a whole number of seconds from 5 to 120")
+		} else {
+			s.MaxSeconds = int(f)
+		}
+	}
+	if x, ok := m["position"]; ok {
+		pos, _ := x.(string)
+		if pos != "end" && pos != "start" {
+			c.errf("/speech/position", "position must be end or start")
+		}
+		s.Position = pos
+	}
+	return s
+}
+
 func (c *compiler) app(data []byte) *App {
 	m, err := decode(data)
 	if err != nil {
 		c.errf("", "invalid JSON: %v", err)
 		return nil
 	}
-	c.known("", m, "$schema", "title", "logo", "home", "linkHome", "requireLogin", "nav", "notFound", "languages", "x-layout")
+	c.known("", m, "$schema", "title", "logo", "home", "linkHome", "requireLogin", "nav", "notFound", "languages", "speech", "x-layout")
 	a := &App{RequireLogin: true, Doc: browserDoc(m)}
 	if v, ok := m["languages"]; ok {
 		c.languages(v)
@@ -377,6 +413,9 @@ func (c *compiler) app(data []byte) *App {
 	}
 	if v, ok := m["notFound"]; ok {
 		c.text("/notFound", v, ps, true)
+	}
+	if v, ok := m["speech"]; ok {
+		a.Speech = c.speech(v)
 	}
 	a.Home, _ = m["home"].(string)
 	if h, ok := c.pages[a.Home]; !ok {

@@ -153,7 +153,8 @@ var components = []Component{
 			{Name: "fields", Kind: KindObjects, Item: []Prop{
 				{Name: "path", Kind: KindPath, Required: true}, {Name: "label", Kind: KindText},
 				{Name: "widget", Kind: KindEnum, Enum: widgEnum}, {Name: "help", Kind: KindText},
-				{Name: "labelField", Kind: KindString, Doc: "ref widget: field of the target shown in the picker"}}},
+				{Name: "labelField", Kind: KindString, Doc: "ref widget: field of the target shown in the picker"},
+				{Name: "speech", Kind: KindBool, Doc: "false: no dictation into this field (codes, plates); ui/app.json speech turns dictation on"}}},
 			{Name: "submit", Kind: KindText, Doc: "Submit button label"}}},
 	{Name: "button", Family: "forms", Doc: "Runs its click steps.", Events: []string{"click"}, Props: []Prop{
 		{Name: "label", Kind: KindText, Required: true},

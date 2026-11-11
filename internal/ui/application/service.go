@@ -3,6 +3,7 @@
 package application
 
 import (
+	"context"
 	"encoding/json"
 	"path"
 	"sort"
@@ -10,6 +11,7 @@ import (
 
 	accessapi "organon/internal/access/api"
 	"organon/internal/kernel"
+	rt "organon/internal/runtime/api"
 	schemaapi "organon/internal/schema/api"
 	"organon/internal/ui/domain"
 )
@@ -24,6 +26,9 @@ type Deps struct {
 	// FlowActions returns the flow actions of a type with their input
 	// schemas (nil when a flow takes no declared input).
 	FlowActions func(ct *schemaapi.CompiledType) map[string]json.RawMessage
+	// Speech transcribes dictation on the server (ADR 0028); nil when no
+	// transcriber is configured (browsers then use their own recognition).
+	Speech rt.Transcriber
 }
 
 // Service serves the UI bundle.
@@ -207,6 +212,11 @@ func (s *Service) Bundle(p accessapi.Principal, prefs []string) Bundle {
 		app["nav"] = nav
 	}
 	app["requireLogin"] = ui.App.RequireLogin
+	if sp := ui.App.Speech; sp != nil {
+		// server: whether this caller may fall back to server transcription.
+		app["speech"] = map[string]any{"mode": sp.Mode, "maxSeconds": sp.MaxSeconds, "position": sp.Position,
+			"server": s.d.Speech != nil && !p.IsAnonymous()}
+	}
 	b.App = app
 	if ui.Styles != nil {
 		b.Styles = "/assets/styles.css?v=" + s.d.Version
@@ -358,4 +368,48 @@ func (s *Service) AllTypes(p accessapi.Principal) map[string]TypeMeta {
 		out[ct.Name] = s.meta(ct, aud, domain.TypeLabels{})
 	}
 	return out
+}
+
+// SpeechTypes are the audio formats dictation may send (ADR 0028).
+var SpeechTypes = []string{"audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/x-wav"}
+
+// Transcribe turns a dictation recording into text in the caller's UI
+// language: lang when given (a BCP 47 tag), else the language Language
+// picks. The audio and the text are neither stored nor logged.
+func (s *Service) Transcribe(ctx context.Context, p accessapi.Principal, audio []byte, contentType, lang string, prefs []string) (rt.Transcript, error) {
+	if !s.Enabled() || s.d.UI.App.Speech == nil {
+		return rt.Transcript{}, kernel.NewError(kernel.CodeNotFound, "this app has no dictation")
+	}
+	if s.d.UI.App.Speech.Mode == "browser" || s.d.Speech == nil {
+		return rt.Transcript{}, &kernel.Error{Code: "speech_unavailable", Message: "server transcription is not configured", Status: 503}
+	}
+	if p.IsAnonymous() {
+		return rt.Transcript{}, kernel.ErrUnauthenticated
+	}
+	media := strings.ToLower(strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0]))
+	if !slicesContains(SpeechTypes, media) {
+		return rt.Transcript{}, kernel.NewError(kernel.CodeValidationFailed, "unsupported audio type %q", media)
+	}
+	if len(audio) == 0 {
+		return rt.Transcript{}, kernel.NewError(kernel.CodeValidationFailed, "no audio")
+	}
+	if lang == "" && len(s.d.UI.Languages) > 0 {
+		lang = s.Language(p, prefs)
+	}
+	lang = strings.ToLower(strings.SplitN(lang, "-", 2)[0])
+	out, err := s.d.Speech.Transcribe(ctx, audio, contentType, lang)
+	if err != nil {
+		return rt.Transcript{}, err
+	}
+	kernel.Tel.Record(ctx, "ui.transcribe_seconds", out.Seconds, kernel.A("lang", lang))
+	return out, nil
+}
+
+func slicesContains(list []string, s string) bool {
+	for _, x := range list {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }

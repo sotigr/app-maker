@@ -152,6 +152,16 @@ type Config struct {
 		// default and uses the SDK's credential resolution.
 		Providers map[string]LLMProvider `yaml:"providers"`
 	} `yaml:"llm"`
+	// Speech transcribes dictation from UI text fields when the browser
+	// cannot (ADR 0028). Kind "" is fake under organon dev and none
+	// otherwise.
+	Speech struct {
+		Kind    string `yaml:"kind"`    // openai-compatible | fake | none
+		BaseURL string `yaml:"baseURL"` // e.g. https://api.openai.com/v1
+		// APIKey is a ${secret:<name>} reference; literal keys are rejected.
+		APIKey string `yaml:"apiKey"`
+		Model  string `yaml:"model"` // default whisper-1
+	} `yaml:"speech"`
 }
 
 // LLMProvider configures one model vendor (spec 11.7).
@@ -278,6 +288,10 @@ func (c *Config) applyEnv(env func(string) string) error {
 	str("ORGANON_RUNNER_ISOLATION", &c.Runner.Isolation)
 	str("ORGANON_BLOBS_DRIVER", &c.Blobs.Driver)
 	str("ORGANON_BLOBS_DIR", &c.Blobs.Dir)
+	str("ORGANON_SPEECH_KIND", &c.Speech.Kind)
+	str("ORGANON_SPEECH_BASE_URL", &c.Speech.BaseURL)
+	str("ORGANON_SPEECH_API_KEY", &c.Speech.APIKey)
+	str("ORGANON_SPEECH_MODEL", &c.Speech.Model)
 	str("ORGANON_EMAIL_DRIVER", &c.Email.Driver)
 	str("ORGANON_EMAIL_ADDR", &c.Email.Addr)
 	str("ORGANON_EMAIL_FROM", &c.Email.From)
@@ -334,6 +348,18 @@ func (c Config) Validate() error {
 		if p.APIKey != "" && !strings.HasPrefix(p.APIKey, "${secret:") {
 			errs = append(errs, fmt.Errorf("llm.providers.%s.apiKey: must be a ${secret:<name>} reference", name))
 		}
+	}
+	switch c.Speech.Kind {
+	case "", "none", "fake":
+	case "openai-compatible":
+		if c.Speech.BaseURL == "" {
+			errs = append(errs, fmt.Errorf("speech.baseURL: required for openai-compatible"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("speech.kind: must be openai-compatible, fake, or none"))
+	}
+	if c.Speech.APIKey != "" && !strings.HasPrefix(c.Speech.APIKey, "${secret:") {
+		errs = append(errs, fmt.Errorf("speech.apiKey: must be a ${secret:<name>} reference"))
 	}
 	switch c.Email.Driver {
 	case "", "log":

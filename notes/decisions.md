@@ -118,3 +118,13 @@
 | Manifest test reads | `expect.feature` on a `read` step checks the caller's view (hidden fields absent) |
 | Outbound bodies (#50, ADR 0025) | `http.request` `rawBody` (text as is) and `form` (URL-encoded, secrets allowed in values) next to JSON `body`, one per call; flow Content-Type wins; non-JSON responses as charset-decoded text; `ctx.http` `raw_body`/`form`, `auth` list and form-field auth; fixtures `text`/`headers`/`request` |
 | Admin console usability (ADR 0027) | Console + small server additions (meta, credentials, set password, MFA reset, sign-out everywhere, list/revoke keys, invite-only users); English-only console; phased, People first |
+
+## 2026-11-09
+| Topic | Decision |
+|---|---|
+| Dictation (ADR 0028) | Hybrid engine (browser Web Speech API, else server transcription via OpenAI-compatible /audio/transcriptions); dictation into the focused field in the UI language; `ui/app.json` `speech` opt-in, field `speech: false` opt-out; one shared microphone button + Ctrl/Cmd+Shift+Space |
+
+## 2026-11-11
+| Topic | Decision |
+|---|---|
+| Framework versions | The 2026-11-07 image counts as 1.0.0; this release (dictation, stale-cookie fix, ...) is 1.1.0. `platform/buildinfo.Version` is the source of truth (bumped per published image); `organon version`, `organon --version`, `organond --version`, startup log. Images are tagged `:<version>` and `:latest`; guide features after 1.0 say "since 1.x". The `framework` range check and dev waiting on an invalid startup manifest were not chosen for now. Publishing: the agent commits and builds; the user pushes. |

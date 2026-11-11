@@ -133,6 +133,8 @@ func TestValidationRules(t *testing.T) {
 			"/body/on/click/0/onError", "unknown member"},
 		{"tabs state must be an integer", "", `{"component":"tabs","state":"s","tabs":[{"label":"a","children":[]}]}`,
 			"/body/state", "integer state variable"},
+		{"field speech opt-out is a boolean", "", `{"component":"form","mode":"create","type":"task","parent":"params.id","fields":[{"path":"/title","speech":"no"}]}`,
+			"/body/fields/0/speech", "boolean"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.rule, func(t *testing.T) {
@@ -171,6 +173,12 @@ func TestFileRules(t *testing.T) {
 			"ui/pages/q.json": `{"page":"q","route":"/q/:other","params":{"other":{"type":"string"}},"body":{"component":"divider"}}`},
 			"ui/app.json", "/linkHome", "only need the route parameter id", false},
 		{"logo must be an asset", map[string]string{"ui/app.json": `{"home":"home","logo":"logo.png"}`}, "ui/app.json", "/logo", "ui/assets", false},
+		// ADR 0028: dictation settings.
+		{"speech mode", map[string]string{"ui/app.json": `{"home":"home","speech":{"mode":"cloud"}}`}, "ui/app.json", "/speech/mode", "auto, browser, or server", false},
+		{"speech maxSeconds", map[string]string{"ui/app.json": `{"home":"home","speech":{"maxSeconds":600}}`}, "ui/app.json", "/speech/maxSeconds", "5 to 120", false},
+		{"speech position", map[string]string{"ui/app.json": `{"home":"home","speech":{"position":"top"}}`}, "ui/app.json", "/speech/position", "end or start", false},
+		{"speech unknown key", map[string]string{"ui/app.json": `{"home":"home","speech":{"lang":"el"}}`}, "ui/app.json", "/speech/lang", "unknown member", false},
+		{"speech is an object", map[string]string{"ui/app.json": `{"home":"home","speech":true}`}, "ui/app.json", "/speech", "is an object", false},
 		{"reserved route", map[string]string{"ui/pages/x.json": `{"page":"x","route":"/v1/x","body":{"component":"divider"}}`},
 			"ui/pages/x.json", "/route", "reserved", false},
 		{"route conflict", map[string]string{"ui/pages/x.json": `{"page":"x","route":"/","body":{"component":"divider"}}`},

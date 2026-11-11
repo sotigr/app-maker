@@ -5,8 +5,14 @@ One image contains the framework: `organon` (CLI), `organond` (server), Python 3
 the manifest by mounting it at `/app` or by building an image `FROM` it.
 
 ```sh
-make docker            # = docker build -t organon .
+make docker            # builds organon:latest and organon:<version>, with the commit for `organon version`
+make docker IMAGE=sotig/organon && docker push sotig/organon:1.1.0 && docker push sotig/organon:latest   # release
 ```
+
+The version is `Version` in `platform/buildinfo/buildinfo.go`; bump it for
+each published image. `organon version` (or `organond --version`) prints
+it with the commit, e.g. `1.1.0 (3fa2af8)`, and `organond` logs it at
+startup.
 
 | Path | Purpose |
 | --- | --- |

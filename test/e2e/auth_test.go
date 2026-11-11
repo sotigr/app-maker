@@ -290,3 +290,37 @@ func TestOIDCLogin(t *testing.T) {
 		t.Fatalf("signed-up user: %s", u.Raw)
 	}
 }
+
+// Spec 8.3: an expired or revoked session cookie is 401 for API calls, but
+// a page load goes on as anonymous with the cookies cleared, so the app
+// shows its sign-in screen instead of a 401 document.
+func TestStaleSessionCookiePageLoad(t *testing.T) {
+	s := start(t, "memory")
+	get := func(path string) *http.Response {
+		req, _ := http.NewRequest("GET", s.url+path, nil)
+		req.AddCookie(&http.Cookie{Name: "organon_session", Value: "fws_revoked"})
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		return res
+	}
+	cleared := func(res *http.Response) bool {
+		for _, c := range res.Cookies() {
+			if c.Name == "organon_session" && c.MaxAge < 0 {
+				return true
+			}
+		}
+		return false
+	}
+	for _, path := range []string{"/", "/projects"} {
+		res := get(path)
+		if res.StatusCode != 200 || !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || !cleared(res) {
+			t.Fatalf("GET %s with a stale cookie: %d %s, cleared %v", path, res.StatusCode, res.Header.Get("Content-Type"), cleared(res))
+		}
+	}
+	if res := get("/v1/auth/session"); res.StatusCode != 401 || !cleared(res) {
+		t.Fatalf("API call with a stale cookie: %d, cleared %v", res.StatusCode, cleared(res))
+	}
+}
