@@ -179,8 +179,8 @@ export function startBrowser(lang: string, maxSeconds: number, on: SessionEvents
 const RECORD_TYPES = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4", "audio/webm"];
 
 /**
- * startServer records the microphone (Opus at 32 kbit/s) until stop, the
- * app's maxSeconds, or 2.5 s of silence after speech, then transcribes the
+ * startServer records the microphone (Opus at 32 kbit/s) until stop (the
+ * microphone is released) or the app's maxSeconds, then transcribes the
  * recording on the server in lang.
  */
 export async function startServer(client: OrganonClient, lang: string, maxSeconds: number, on: SessionEvents): Promise<Session> {
@@ -199,37 +199,10 @@ export async function startServer(client: OrganonClient, lang: string, maxSecond
   let cancelled = false;
   rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
 
-  // Silence detection: stop 2.5 s after the last speech-level sound.
-  let ctx: AudioContext | undefined;
-  let watch: ReturnType<typeof setInterval> | undefined;
-  try {
-    ctx = new AudioContext();
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 1024;
-    ctx.createMediaStreamSource(stream).connect(analyser);
-    const buf = new Float32Array(analyser.fftSize);
-    let heard = false;
-    let quietSince = performance.now();
-    watch = setInterval(() => {
-      analyser.getFloatTimeDomainData(buf);
-      let sum = 0;
-      for (const v of buf) sum += v * v;
-      const loud = Math.sqrt(sum / buf.length) > 0.02;
-      const now = performance.now();
-      if (loud) {
-        heard = true;
-        quietSince = now;
-      } else if (heard && now - quietSince > 2500 && rec.state === "recording") rec.stop();
-    }, 200);
-  } catch {
-    // No Web Audio: stop by click or time limit only.
-  }
   const limit = setTimeout(() => rec.state === "recording" && rec.stop(), maxSeconds * 1000);
   const release = () => {
     clearTimeout(limit);
-    if (watch) clearInterval(watch);
     stream.getTracks().forEach((t) => t.stop());
-    ctx?.close().catch(() => undefined);
   };
   rec.onstop = async () => {
     release();

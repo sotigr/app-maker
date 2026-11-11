@@ -97,7 +97,7 @@ func testCmd() *cobra.Command {
 // devCmd runs all roles locally on SQLite with River, in-process jobs and
 // schedules, seed data, and hot reload on manifest changes (spec 12.3).
 func devCmd() *cobra.Command {
-	var addr, env, llmProvider string
+	var addr, env, llmProvider, speechKind, speechURL, speechModel string
 	c := &cobra.Command{
 		Use:   "dev [dir]",
 		Short: "Run the app locally with SQLite, River, seed data, and hot reload",
@@ -114,6 +114,14 @@ func devCmd() *cobra.Command {
 			cfg.Dev, cfg.Manifest, cfg.Env = true, dir, env
 			cfg.HTTP.Addr = addr
 			cfg.LLM.Provider = llmProvider
+			// Dictation (ADR 0028): the fake transcriber unless --speech or
+			// ORGANON_SPEECH_* choose a real one; the key comes from
+			// ORGANON_SPEECH_API_KEY as a ${secret:<name>} reference.
+			cfg.Speech.Kind, cfg.Speech.BaseURL, cfg.Speech.Model = speechKind, speechURL, speechModel
+			cfg.Speech.APIKey = os.Getenv("ORGANON_SPEECH_API_KEY")
+			if err := cfg.Validate(); err != nil {
+				return err
+			}
 			dbPath := filepath.Join(dir, ".organon", "dev.db")
 			cfg.Repositories = map[string]config.Repository{"default": {Driver: "sqlite", DSN: dbPath}}
 			cfg.Credentials.Driver = "sqlite"
@@ -203,6 +211,10 @@ func devCmd() *cobra.Command {
 	c.Flags().StringVar(&addr, "addr", ":8080", "listen address")
 	c.Flags().StringVar(&llmProvider, "llm", "fake", "LLM provider serving every model alias (fake, anthropic, or a configured name; empty uses app.json aliases)")
 	c.Flags().StringVar(&env, "env", "dev", "environment")
+	c.Flags().StringVar(&speechKind, "speech", envOr("ORGANON_SPEECH_KIND", "fake"),
+		"dictation transcriber: fake (always \"dictated text\"), none, or openai-compatible (with --speech-url)")
+	c.Flags().StringVar(&speechURL, "speech-url", os.Getenv("ORGANON_SPEECH_BASE_URL"), "openai-compatible transcription base URL, e.g. http://localhost:8000/v1")
+	c.Flags().StringVar(&speechModel, "speech-model", os.Getenv("ORGANON_SPEECH_MODEL"), "transcription model (default whisper-1)")
 	return c
 }
 

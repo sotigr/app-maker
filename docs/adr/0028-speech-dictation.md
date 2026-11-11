@@ -33,7 +33,7 @@ per field.
     results. It is skipped on Brave and after a "service not allowed" or
     "network" error, falling back to the server in `auto` mode.
   - The server engine records Opus at 32 kbit/s with `MediaRecorder` and
-    stops on click, at `maxSeconds`, or after 2.5 s of silence. It posts to
+    stops on release or at `maxSeconds`. It posts to
     `POST /v1/ui/transcribe?lang=` (raw audio, at most 1 MiB, signed-in or
     link callers). That calls the `Transcriber` port (runtime context):
     an OpenAI-compatible `/audio/transcriptions` adapter (OpenAI Whisper,
@@ -51,3 +51,12 @@ per field.
   do Firefox and Brave users in `browser` mode).
 - Interim words show in the dock's bubble, not in the field; only final
   text enters the field, so form state never holds partial results.
+
+## Amendment (2026-11-11): hold to talk
+The microphone records while it is held down (pointer with capture, so
+touch and mouse behave alike, or Ctrl/Cmd+Shift+Space, or Space/Enter on
+the focused button) and inserts on release; a press under 300 ms is a tap,
+records nothing, and shows "Hold the microphone while you speak." The
+server engine's silence auto-stop was removed: the user decides the end.
+A release that arrives before the server engine has the microphone stops
+the recording as soon as it starts.

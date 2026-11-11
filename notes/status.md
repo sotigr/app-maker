@@ -393,3 +393,11 @@ Plan: ~/.claude/plans/read-the-docs-then-reflective-valiant.md (milestones M1–
   $(IMAGE):latest and :$(VERSION) with COMMIT/VERSION build args (OCI labels). APP-BUILDER: `organon version`,
   pinned tags, "since 1.1" on speech. Open from the agent's issue: framework range check, dev waiting on an invalid
   startup manifest.
+- `organon dev` speech flags (2026-11-11, 1.1.1): `--speech fake|none|openai-compatible`, `--speech-url`,
+  `--speech-model`, defaulting to ORGANON_SPEECH_KIND/_BASE_URL/_MODEL (key from ORGANON_SPEECH_API_KEY); dev now runs
+  config.Validate. Checked end to end against a stub transcription server (lang=el reached it).
+- Dictation hold to talk (2026-11-11, ADR 0028 amendment): MicDock records while the microphone is held (pointer
+  capture for mouse/touch, Ctrl/Cmd+Shift+Space held, Space/Enter on the button) and inserts on release; taps under
+  300 ms record nothing and hint "Hold the microphone while you speak."; server silence auto-stop removed. Texts
+  "Hold to dictate"/"Release to stop" replace "Dictate"/"Stop dictation". Verified in headless Brave (tap, mouse hold,
+  key hold).

@@ -9,7 +9,7 @@ import (
 
 // Version is the framework release (semantic versioning). Bump it with each
 // published image; features in the guide name the version that added them.
-const Version = "1.1.0"
+const Version = "1.1.1"
 
 // Commit is the source revision, set at build time with
 // -ldflags "-X organon/platform/buildinfo.Commit=<rev>"; local builds fall

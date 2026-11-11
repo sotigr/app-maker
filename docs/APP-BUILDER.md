@@ -99,6 +99,10 @@ organon dev myapp --addr :8080     # optional: run it (SQLite, seed data, fake L
   - reloads within a second of any file change;
   - signs the admin in as `admin@localhost` / `admin-password-dev`;
   - uses the fake LLM unless you pass `--llm anthropic`.
+  - uses a fake dictation transcriber (always "dictated text") unless you
+    pass `--speech openai-compatible --speech-url http://localhost:8000/v1`
+    (and `--speech-model`), or set `ORGANON_SPEECH_KIND` /
+    `_BASE_URL` / `_MODEL` / `_API_KEY` as for `organond` (since 1.1.1).
 - Other CLI commands:
 
   | Command | Does |
@@ -825,7 +829,8 @@ props are errors.**
 
 - `"speech": {"mode": "auto" | "browser" | "server", "maxSeconds": 60, "position": "end" | "start"}`
   (since 1.1) turns on dictation: one shared microphone button dictates into the
-  focused text field (or Ctrl/Cmd+Shift+Space) in the user's UI language.
+  focused text field in the user's UI language while it is held down (or
+  while Ctrl/Cmd+Shift+Space is held); releasing it inserts the text.
   Text and textarea form fields and picker searches accept it; give a form
   field `"speech": false` for codes, plates, or slugs. `server` mode keeps
   the audio with the operator's transcriber (§18).

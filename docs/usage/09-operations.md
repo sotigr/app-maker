@@ -87,6 +87,11 @@ as the `ui.transcribe_seconds` metric. Without a transcriber
 (`kind: none`, the default outside `organon dev`), those browsers show a
 disabled microphone that says recognition is not available.
 
+`organon dev` uses a fake transcriber that always hears "dictated text".
+To try a real one locally, pass `--speech openai-compatible --speech-url
+http://localhost:8000/v1 --speech-model Systran/faster-whisper-small`, or
+set the same `ORGANON_SPEECH_*` variables as for `organond`.
+
 ## Running without admins
 
 For a production instance that should expose only the app:
